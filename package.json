@@ -4,8 +4,8 @@
   "description": "نظام مبيعات ومخزون - DZ Vent & Stock",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
-    "dev": "electron . --dev",
+    "start": "electron . --no-sandbox",
+    "dev": "electron . --no-sandbox --dev",
     "build": "electron-builder --win --x64",
     "install-deps": "npm install"
   },
