@@ -1,0 +1,37 @@
+{
+  "name": "dz-vent-stock",
+  "version": "1.0.0",
+  "description": "نظام مبيعات ومخزون - DZ Vent & Stock",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder --win --x64",
+    "install-deps": "npm install"
+  },
+  "build": {
+    "appId": "com.dzventstock.app",
+    "productName": "DZ Vent & Stock",
+    "directories": { "output": "dist" },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerLanguages": ["ar"],
+      "language": "1025"
+    },
+    "files": ["**/*", "!node_modules/electron-builder/**"]
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3"
+  },
+  "devDependencies": {
+    "electron": "^29.1.4",
+    "electron-builder": "^24.13.3"
+  },
+  "author": "Abdou - Laghouat",
+  "license": "MIT"
+}
