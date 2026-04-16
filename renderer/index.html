@@ -450,6 +450,15 @@ async function renderScreen(name) {
       case 'categories':   await renderCategories();   break;
       case 'mouvements':   await renderMouvements();   break;
       case 'backup':       await renderBackup();       break;
+      case 'quotes':       await renderQuotes();       break;
+      case 'caisse':       await renderCaisse();       break;
+      case 'retours':      await renderRetours();      break;
+      case 'dettes':       await renderDettes();       break;
+      case 'loyalty':      await renderLoyalty();      break;
+      case 'expiry':       await renderExpiry();       break;
+      case 'branches':     await renderBranches();     break;
+      case 'users':        await renderUsers();        break;
+      case 'permissions':  renderPermissions();        break;
       default:             renderComingSoon(name);     break;
     }
   } catch(e) {
@@ -1684,6 +1693,641 @@ function renderComingSoon(name) {
         <div style="margin-top:20px">
           <span style="background:rgba(249,115,22,.1);color:var(--primary);border:1px solid rgba(249,115,22,.2);padding:6px 16px;border-radius:20px;font-size:.78rem">قريباً</span>
         </div>
+      </div>
+    </div>
+  `;
+}
+
+
+// =====================================================
+// QUOTES — عروض الأسعار
+// =====================================================
+async function renderQuotes() {
+  document.getElementById('topbarActions').innerHTML = `
+    <button class="topbar-btn primary" onclick="navigate('pos',null)">➕ عرض سعر جديد (POS)</button>
+  `;
+  const quotes = await window.api.quotes.getAll();
+  document.getElementById('mainContent').innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📋 عروض الأسعار <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${quotes.length})</span></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>الرقم</th><th>العميل</th><th>المبلغ</th><th>الصلاحية</th><th>الحالة</th><th>التاريخ</th><th>إجراءات</th></tr></thead>
+          <tbody>
+            ${quotes.length === 0
+              ? `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">لا توجد عروض أسعار بعد</td></tr>`
+              : quotes.map(q => {
+                  const expDate = new Date(q.date);
+                  expDate.setDate(expDate.getDate() + (q.validity_days||30));
+                  const expired = new Date() > expDate && q.status === 'معلق';
+                  const statusColor = q.status==='مقبول'?'success':q.status==='مرفوض'?'danger':expired?'danger':'warning';
+                  const statusLabel = expired && q.status==='معلق' ? 'منتهي' : q.status;
+                  return `<tr>
+                    <td><code style="background:#0f172a;padding:2px 6px;border-radius:4px;color:var(--info)">${q.num}</code></td>
+                    <td>${q.client_name||'—'}</td>
+                    <td style="color:var(--primary);font-weight:700">${fmt(q.net)}</td>
+                    <td style="color:var(--muted);font-size:.75rem">${q.validity_days||30} يوم</td>
+                    <td><span class="badge badge-${statusColor}">${statusLabel}</span></td>
+                    <td style="color:var(--muted);font-size:.75rem">${q.date}</td>
+                    <td><div style="display:flex;gap:4px">
+                      ${q.status==='معلق'?`
+                        <button class="btn btn-sm btn-success" onclick="updateQuoteStatus('${q.id}','مقبول')">✅</button>
+                        <button class="btn btn-sm btn-danger" onclick="updateQuoteStatus('${q.id}','مرفوض')">❌</button>
+                      `:''}
+                      <button class="btn btn-sm" style="background:var(--border);color:#fff" onclick="deleteQuote('${q.id}')">🗑️</button>
+                    </div></td>
+                  </tr>`;
+                }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div style="margin-top:12px;background:rgba(56,189,248,.05);border:1px solid rgba(56,189,248,.15);border-radius:8px;padding:12px;font-size:.75rem;color:var(--muted)">
+      💡 لإنشاء عرض سعر: اذهب إلى <strong style="color:var(--primary)">نقطة البيع</strong> — أضف المنتجات — اختر <strong>"حفظ كعرض سعر"</strong>
+    </div>
+  `;
+}
+async function updateQuoteStatus(id, status) {
+  await window.api.quotes.updateStatus(id, status);
+  toast(`✅ تم تغيير الحالة إلى "${status}"`, 'success');
+  await renderQuotes();
+}
+async function deleteQuote(id) {
+  if(!confirm('حذف عرض السعر؟')) return;
+  await window.api.quotes.delete(id);
+  toast('🗑️ تم الحذف','info'); await renderQuotes();
+}
+
+// =====================================================
+// CAISSE — الخزينة
+// =====================================================
+async function renderCaisse() {
+  document.getElementById('topbarActions').innerHTML = `
+    <button class="topbar-btn primary" onclick="showCaisseModal('entrée')">📥 دخول</button>
+    <button class="topbar-btn" style="border-color:var(--danger);color:var(--danger)" onclick="showCaisseModal('sortie')">📤 خروج</button>
+  `;
+  const data = await window.api.caisse.getStats();
+  const solde = (data.total_in||0) - (data.total_out||0);
+  document.getElementById('mainContent').innerHTML = `
+    <div class="stats-grid mb-16" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(16,185,129,.15)">💰</div>
+        <div><div class="stat-val" style="color:var(--success)">${fmt(data.total_in)}</div><div class="stat-lbl">إجمالي الدخول</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(239,68,68,.15)">💸</div>
+        <div><div class="stat-val" style="color:var(--danger)">${fmt(data.total_out)}</div><div class="stat-lbl">إجمالي الخروج</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(249,115,22,.15)">🏦</div>
+        <div><div class="stat-val" style="color:${solde>=0?'var(--primary)':'var(--danger)'}">${fmt(solde)}</div><div class="stat-lbl">الرصيد الحالي</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">💵 سجل المعاملات</div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>النوع</th><th>المبلغ</th><th>الوصف</th><th>التاريخ</th></tr></thead>
+          <tbody>
+            ${!data.transactions?.length
+              ? `<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">لا توجد معاملات بعد</td></tr>`
+              : data.transactions.map(t=>`
+              <tr>
+                <td><span class="badge badge-${t.type==='entrée'?'success':'danger'}">${t.type==='entrée'?'📥 دخول':'📤 خروج'}</span></td>
+                <td style="font-weight:700;color:${t.type==='entrée'?'var(--success)':'var(--danger)'}">${fmt(t.montant)}</td>
+                <td>${t.description||'—'}</td>
+                <td style="color:var(--muted);font-size:.75rem">${t.date}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+function showCaisseModal(type) {
+  const isIn = type==='entrée';
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">${isIn?'📥 إدخال مبلغ':'📤 سحب مبلغ'}</div>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group"><label class="form-label">المبلغ (DA) *</label><input class="form-input" id="c_montant" type="number" value="0" min="0"></div>
+          <div class="form-group"><label class="form-label">الوصف</label><input class="form-input" id="c_desc" placeholder="سبب العملية..."></div>
+          <div class="form-group"><label class="form-label">التاريخ</label><input class="form-input" id="c_date" type="date" value="${today()}"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" style="background:var(--border);color:#fff" onclick="closeModal()">إلغاء</button>
+          <button class="btn ${isIn?'btn-success':'btn-danger'}" onclick="saveCaisse('${type}')">✅ حفظ</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+async function saveCaisse(type) {
+  const montant = parseFloat(document.getElementById('c_montant').value)||0;
+  if(!montant){ toast('أدخل مبلغاً','error'); return; }
+  await window.api.caisse.add({ type, montant, description: document.getElementById('c_desc').value, date: document.getElementById('c_date').value });
+  closeModal(); toast('✅ تم الحفظ','success'); await renderCaisse();
+}
+
+// =====================================================
+// RETOURS — المرتجعات
+// =====================================================
+async function renderRetours() {
+  document.getElementById('topbarActions').innerHTML = `
+    <button class="topbar-btn primary" onclick="showAddRetourModal()">➕ مرتجع جديد</button>
+  `;
+  const retours = await window.api.retours.getAll();
+  document.getElementById('mainContent').innerHTML = `
+    <div class="card">
+      <div class="card-header"><div class="card-title">↩️ المرتجعات <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${retours.length})</span></div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>الرقم</th><th>العميل</th><th>المبلغ</th><th>ملاحظات</th><th>التاريخ</th></tr></thead>
+          <tbody>
+            ${retours.length===0
+              ? `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--muted)">لا توجد مرتجعات بعد</td></tr>`
+              : retours.map(r=>`
+              <tr>
+                <td><code style="background:#0f172a;padding:2px 6px;border-radius:4px;color:var(--info)">${r.num}</code></td>
+                <td>${r.client_name||'—'}</td>
+                <td style="color:var(--danger);font-weight:700">${fmt(r.total)}</td>
+                <td style="color:var(--muted);font-size:.75rem">${r.notes||'—'}</td>
+                <td style="color:var(--muted);font-size:.75rem">${r.date}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+async function showAddRetourModal() {
+  const products = await window.api.products.getAll();
+  window.retourItems = [];
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal modal-lg">
+        <div class="modal-header">
+          <div class="modal-title">↩️ مرتجع جديد</div>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="grid-2 mb-16">
+            <div class="form-group"><label class="form-label">اسم العميل</label><input class="form-input" id="r_client" placeholder="اسم العميل"></div>
+            <div class="form-group"><label class="form-label">ملاحظات</label><input class="form-input" id="r_notes" placeholder="سبب الإرجاع..."></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <select class="form-select" id="r_prod_sel" style="flex:1">
+              ${products.map(p=>`<option value="${p.id}" data-price="${p.sell_price}">${p.name} (${p.ref})</option>`).join('')}
+            </select>
+            <button class="btn btn-primary" onclick="
+              const sel=document.getElementById('r_prod_sel');
+              const opt=sel.options[sel.selectedIndex];
+              window.retourItems.push({product_id:opt.value,product_name:opt.text.split(' (')[0],price:parseFloat(opt.dataset.price)||0,qty:1});
+              document.getElementById('retourItemsBody').innerHTML=buildRetourRows();
+              updateRetourTotal();
+            ">➕ إضافة</button>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:12px">
+            <thead><tr>
+              <th style="text-align:right;padding:6px;border-bottom:1px solid var(--border);color:var(--muted)">المنتج</th>
+              <th style="text-align:center;padding:6px;border-bottom:1px solid var(--border);color:var(--muted)">الكمية</th>
+              <th style="text-align:center;padding:6px;border-bottom:1px solid var(--border);color:var(--muted)">السعر</th>
+              <th style="text-align:center;padding:6px;border-bottom:1px solid var(--border);color:var(--muted)">المجموع</th>
+              <th></th>
+            </tr></thead>
+            <tbody id="retourItemsBody"></tbody>
+          </table>
+          <div style="text-align:left"><div style="font-size:.75rem;color:var(--muted)">الإجمالي</div><div id="retourTotal" style="font-size:1.3rem;font-weight:900;color:var(--danger)">0 DA</div></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" style="background:var(--border);color:#fff" onclick="closeModal()">إلغاء</button>
+          <button class="btn btn-danger" onclick="saveRetour()">✅ حفظ المرتجع</button>
+        </div>
+      </div>
+    </div>
+  `);
+  window.buildRetourRows = () => window.retourItems.map((item,i)=>`
+    <tr>
+      <td style="padding:6px">${item.product_name}</td>
+      <td style="padding:6px;text-align:center"><input type="number" value="${item.qty}" min="1" onchange="window.retourItems[${i}].qty=+this.value;updateRetourTotal()" style="width:60px;background:#0f172a;border:1px solid var(--border);border-radius:4px;color:#fff;padding:3px;text-align:center"></td>
+      <td style="padding:6px;text-align:center;color:var(--muted)">${fmtNum(item.price)}</td>
+      <td style="padding:6px;text-align:center;color:var(--danger);font-weight:700">${fmtNum(item.qty*item.price)}</td>
+      <td><button onclick="window.retourItems.splice(${i},1);document.getElementById('retourItemsBody').innerHTML=window.buildRetourRows();updateRetourTotal()" style="background:var(--danger);border:none;color:#fff;border-radius:4px;padding:2px 7px;cursor:pointer">✕</button></td>
+    </tr>`).join('');
+  window.updateRetourTotal = () => {
+    const total = window.retourItems.reduce((s,i)=>s+i.qty*i.price,0);
+    document.getElementById('retourTotal').textContent = fmt(total);
+  };
+}
+window.saveRetour = async () => {
+  if(!window.retourItems.length){ toast('أضف منتجاً واحداً على الأقل','error'); return; }
+  const total = window.retourItems.reduce((s,i)=>s+i.qty*i.price,0);
+  await window.api.retours.add({
+    client_name: document.getElementById('r_client').value,
+    notes: document.getElementById('r_notes').value,
+    total, date: today(), items: window.retourItems,
+  });
+  closeModal(); toast('✅ تم حفظ المرتجع — المخزون محدّث','success'); await renderRetours();
+};
+
+// =====================================================
+// DETTES — تسوية الديون
+// =====================================================
+async function renderDettes() {
+  const dettes = await window.api.dettes.getAll();
+  const totalDettes = dettes.reduce((s,d)=>s+(d.reste||0),0);
+  document.getElementById('mainContent').innerHTML = `
+    <div class="stat-card mb-16" style="max-width:300px">
+      <div class="stat-icon" style="background:rgba(239,68,68,.15)">💳</div>
+      <div><div class="stat-val" style="color:var(--danger)">${fmt(totalDettes)}</div><div class="stat-lbl">إجمالي الديون المستحقة</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">💳 الفواتير غير المسددة <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${dettes.length})</span></div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>التاريخ</th><th>تسديد</th></tr></thead>
+          <tbody>
+            ${dettes.length===0
+              ? `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--success)">✅ لا توجد ديون مستحقة</td></tr>`
+              : dettes.map(d=>`
+              <tr>
+                <td><code style="background:#0f172a;padding:2px 6px;border-radius:4px;color:var(--info)">${d.num}</code></td>
+                <td style="font-weight:600">${d.client_name}</td>
+                <td>${fmt(d.net)}</td>
+                <td style="color:var(--success)">${fmt(d.paid)}</td>
+                <td style="color:var(--danger);font-weight:700">${fmt(d.reste)}</td>
+                <td style="color:var(--muted);font-size:.75rem">${d.date}</td>
+                <td><button class="btn btn-sm btn-success" onclick="showPayDebtModal('${d.id}','${d.client_name.replace(/'/g,"\'")}',${d.reste})">💵 تسديد</button></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+function showPayDebtModal(venteId, clientName, reste) {
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">💵 تسديد دين: ${clientName}</div>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px;margin-bottom:14px;text-align:center">
+            <div style="font-size:.75rem;color:var(--muted)">المبلغ المتبقي</div>
+            <div style="font-size:1.4rem;font-weight:900;color:var(--danger)">${fmt(reste)}</div>
+          </div>
+          <div class="form-group"><label class="form-label">المبلغ المدفوع (DA) *</label><input class="form-input" id="dp_amount" type="number" value="${reste}" max="${reste}"></div>
+          <div class="form-group"><label class="form-label">ملاحظات</label><input class="form-input" id="dp_notes" placeholder="اختياري"></div>
+          <div class="form-group"><label class="form-label">التاريخ</label><input class="form-input" id="dp_date" type="date" value="${today()}"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" style="background:var(--border);color:#fff" onclick="closeModal()">إلغاء</button>
+          <button class="btn btn-success" onclick="saveDebtPayment('${venteId}','${clientName.replace(/'/g,"\'")}')">✅ تأكيد التسديد</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+async function saveDebtPayment(venteId, clientName) {
+  const amount = parseFloat(document.getElementById('dp_amount').value)||0;
+  if(!amount){ toast('أدخل مبلغاً','error'); return; }
+  await window.api.dettes.addPayment({ vente_id: venteId, client_name: clientName, amount, notes: document.getElementById('dp_notes').value, date: document.getElementById('dp_date').value });
+  closeModal(); toast('✅ تم تسجيل الدفعة','success'); await renderDettes();
+}
+
+// =====================================================
+// LOYALTY — ولاء العملاء
+// =====================================================
+async function renderLoyalty() {
+  const list = await window.api.loyalty.getAll();
+  document.getElementById('mainContent').innerHTML = `
+    <div style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <div class="stat-card" style="flex:1"><div class="stat-icon" style="background:rgba(249,115,22,.15)">👥</div><div><div class="stat-val" style="color:var(--primary)">${list.length}</div><div class="stat-lbl">عميل مسجل</div></div></div>
+      <div class="stat-card" style="flex:1"><div class="stat-icon" style="background:rgba(245,158,11,.15)">🥇</div><div><div class="stat-val" style="color:var(--warning)">${list.filter(l=>l.level==='ذهبي').length}</div><div class="stat-lbl">عميل ذهبي</div></div></div>
+      <div class="stat-card" style="flex:1"><div class="stat-icon" style="background:rgba(100,116,139,.15)">🥈</div><div><div class="stat-val" style="color:#94a3b8">${list.filter(l=>l.level==='فضي').length}</div><div class="stat-lbl">عميل فضي</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🎁 برنامج الولاء</div>
+        <div style="font-size:.7rem;color:var(--muted)">عادي: 0-100,000 DA | فضي: 100,000+ DA | ذهبي: 500,000+ DA</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>العميل</th><th>النقاط</th><th>إجمالي المشتريات</th><th>المستوى</th></tr></thead>
+          <tbody>
+            ${list.length===0
+              ? `<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">لا توجد بيانات — النقاط تُضاف تلقائياً عند البيع للعملاء المسجلين</td></tr>`
+              : list.map(l=>{
+                  const levelColor = l.level==='ذهبي'?'var(--warning)':l.level==='فضي'?'#94a3b8':'var(--muted)';
+                  const levelIcon = l.level==='ذهبي'?'🥇':l.level==='فضي'?'🥈':'🥉';
+                  return `<tr>
+                    <td style="font-weight:600">${l.client_name}</td>
+                    <td style="color:var(--primary);font-weight:700">${fmtNum(l.points)} نقطة</td>
+                    <td style="color:var(--success)">${fmt(l.total_spent)}</td>
+                    <td><span style="color:${levelColor};font-weight:700">${levelIcon} ${l.level}</span></td>
+                  </tr>`;
+                }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// =====================================================
+// EXPIRY — تواريخ الصلاحية
+// =====================================================
+async function renderExpiry() {
+  document.getElementById('topbarActions').innerHTML = `
+    <button class="topbar-btn primary" onclick="showAddExpiryModal()">➕ إضافة دفعة</button>
+  `;
+  const list = await window.api.expiry.getAll();
+  const todayDate = today();
+  document.getElementById('mainContent').innerHTML = `
+    <div class="card">
+      <div class="card-header"><div class="card-title">📅 تواريخ الصلاحية <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${list.length})</span></div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>المنتج</th><th>رقم الدفعة</th><th>الكمية</th><th>تاريخ الصلاحية</th><th>الحالة</th><th>حذف</th></tr></thead>
+          <tbody>
+            ${list.length===0
+              ? `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">لا توجد دفعات مسجلة</td></tr>`
+              : list.map(e=>{
+                  const daysLeft = Math.ceil((new Date(e.expiry_date)-new Date())/(1000*60*60*24));
+                  const status = daysLeft<0?'منتهي':daysLeft<=30?`${daysLeft} يوم`:`${daysLeft} يوم`;
+                  const color = daysLeft<0?'danger':daysLeft<=30?'warning':'success';
+                  return `<tr>
+                    <td style="font-weight:600">${e.product_name}</td>
+                    <td style="color:var(--muted)">${e.batch_num||'—'}</td>
+                    <td style="color:var(--info);font-weight:700">${e.qty}</td>
+                    <td style="color:${daysLeft<0?'var(--danger)':''}font-weight:${daysLeft<0?700:400}">${e.expiry_date}</td>
+                    <td><span class="badge badge-${color}">${status}</span></td>
+                    <td><button class="btn btn-sm btn-danger" onclick="deleteExpiry('${e.id}')">🗑️</button></td>
+                  </tr>`;
+                }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+async function showAddExpiryModal() {
+  const products = await window.api.products.getAll();
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">📅 إضافة دفعة منتج</div>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group"><label class="form-label">المنتج *</label>
+            <select class="form-select" id="ex_prod">
+              ${products.map(p=>`<option value="${p.id}">${p.name} (${p.ref})</option>`).join('')}
+            </select>
+          </div>
+          <div class="grid-2">
+            <div class="form-group"><label class="form-label">رقم الدفعة</label><input class="form-input" id="ex_batch" placeholder="اختياري"></div>
+            <div class="form-group"><label class="form-label">الكمية</label><input class="form-input" id="ex_qty" type="number" value="1"></div>
+          </div>
+          <div class="form-group"><label class="form-label">تاريخ الصلاحية *</label><input class="form-input" id="ex_date" type="date"></div>
+          <div class="form-group"><label class="form-label">ملاحظات</label><input class="form-input" id="ex_notes" placeholder="اختياري"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" style="background:var(--border);color:#fff" onclick="closeModal()">إلغاء</button>
+          <button class="btn btn-primary" onclick="saveExpiry()">✅ حفظ</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+async function saveExpiry() {
+  const prodSel = document.getElementById('ex_prod');
+  const date = document.getElementById('ex_date').value;
+  if(!date){ toast('تاريخ الصلاحية مطلوب','error'); return; }
+  await window.api.expiry.add({
+    product_id: prodSel.value,
+    product_name: prodSel.options[prodSel.selectedIndex].text.split(' (')[0],
+    batch_num: document.getElementById('ex_batch').value,
+    qty: parseInt(document.getElementById('ex_qty').value)||1,
+    expiry_date: date,
+    notes: document.getElementById('ex_notes').value,
+  });
+  closeModal(); toast('✅ تم إضافة الدفعة','success'); await renderExpiry();
+}
+async function deleteExpiry(id) {
+  if(!confirm('حذف هذا السجل؟')) return;
+  await window.api.expiry.delete(id);
+  toast('🗑️ تم الحذف','info'); await renderExpiry();
+}
+
+// =====================================================
+// BRANCHES — إدارة الفروع
+// =====================================================
+let allBranches = [];
+async function renderBranches() {
+  document.getElementById('topbarActions').innerHTML = `
+    <button class="topbar-btn primary" onclick="showBranchModal()">➕ فرع جديد</button>
+  `;
+  allBranches = await window.api.branches.getAll();
+  document.getElementById('mainContent').innerHTML = `
+    <div class="card">
+      <div class="card-header"><div class="card-title">🏪 إدارة الفروع <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${allBranches.length})</span></div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>اسم الفرع</th><th>العنوان</th><th>الهاتف</th><th>المدير</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+          <tbody>
+            ${allBranches.map(b=>`
+            <tr>
+              <td style="font-weight:600">🏪 ${b.name}</td>
+              <td style="color:var(--muted)">${b.address||'—'}</td>
+              <td style="color:var(--muted)">${b.phone||'—'}</td>
+              <td>${b.manager||'—'}</td>
+              <td><span class="badge badge-${b.is_active?'success':'danger'}">${b.is_active?'✅ نشط':'❌ معطل'}</span></td>
+              <td><div style="display:flex;gap:4px">
+                <button class="btn btn-sm btn-info" onclick="showBranchModal('${b.id}')">✏️</button>
+                ${b.id!=='branch-main'?`<button class="btn btn-sm btn-danger" onclick="deleteBranch('${b.id}','${b.name.replace(/'/g,"\'")}')">🗑️</button>`:''}
+              </div></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+function showBranchModal(id) {
+  const b = id ? allBranches.find(x=>x.id===id) : null;
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">${b?'✏️ تعديل الفرع':'➕ فرع جديد'}</div>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group"><label class="form-label">اسم الفرع *</label><input class="form-input" id="br_name" value="${b?.name||''}"></div>
+          <div class="grid-2">
+            <div class="form-group"><label class="form-label">العنوان</label><input class="form-input" id="br_addr" value="${b?.address||''}"></div>
+            <div class="form-group"><label class="form-label">الهاتف</label><input class="form-input" id="br_phone" value="${b?.phone||''}"></div>
+          </div>
+          <div class="form-group"><label class="form-label">المدير</label><input class="form-input" id="br_mgr" value="${b?.manager||''}"></div>
+          ${b?`<div class="form-group"><label class="form-label">الحالة</label>
+            <select class="form-select" id="br_active">
+              <option value="1" ${b.is_active?'selected':''}>✅ نشط</option>
+              <option value="0" ${!b.is_active?'selected':''}>❌ معطل</option>
+            </select></div>`:''}
+        </div>
+        <div class="modal-footer">
+          <button class="btn" style="background:var(--border);color:#fff" onclick="closeModal()">إلغاء</button>
+          <button class="btn btn-primary" onclick="saveBranch('${id||''}')">✅ حفظ</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+async function saveBranch(id) {
+  const name = document.getElementById('br_name').value.trim();
+  if(!name){ toast('الاسم مطلوب','error'); return; }
+  const data = { name, address: document.getElementById('br_addr').value, phone: document.getElementById('br_phone').value, manager: document.getElementById('br_mgr').value, is_active: document.getElementById('br_active')?.value??1 };
+  if(id) { await window.api.branches.update(id,data); toast('✅ تم التعديل','success'); }
+  else { await window.api.branches.add(data); toast('✅ تم إضافة الفرع','success'); }
+  closeModal(); await renderBranches();
+}
+async function deleteBranch(id,name) {
+  if(!confirm(`حذف الفرع "${name}"?`)) return;
+  await window.api.branches.delete(id);
+  toast('🗑️ تم الحذف','info'); await renderBranches();
+}
+
+// =====================================================
+// USERS — المستخدمون
+// =====================================================
+let allUsers = [];
+async function renderUsers() {
+  document.getElementById('topbarActions').innerHTML = `
+    <button class="topbar-btn primary" onclick="showUserModal()">➕ مستخدم جديد</button>
+  `;
+  allUsers = await window.api.users.getAll();
+  document.getElementById('mainContent').innerHTML = `
+    <div class="card">
+      <div class="card-header"><div class="card-title">👤 المستخدمون <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${allUsers.length})</span></div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>الاسم</th><th>اسم المستخدم</th><th>الدور</th><th>الحالة</th><th>آخر دخول</th><th>إجراءات</th></tr></thead>
+          <tbody>
+            ${allUsers.map(u=>{
+              const roleColor = u.role==='admin'?'primary':u.role==='manager'?'info':'success';
+              const roleLabel = u.role==='admin'?'مدير':u.role==='manager'?'مشرف':'كاشير';
+              return `<tr>
+                <td style="font-weight:600">👤 ${u.name}</td>
+                <td><code style="background:#0f172a;padding:2px 6px;border-radius:4px;color:var(--info)">${u.username}</code></td>
+                <td><span class="badge badge-${roleColor}">${roleLabel}</span></td>
+                <td><span class="badge badge-${u.is_active?'success':'danger'}">${u.is_active?'نشط':'معطل'}</span></td>
+                <td style="color:var(--muted);font-size:.75rem">${u.last_login||'لم يدخل بعد'}</td>
+                <td><div style="display:flex;gap:4px">
+                  <button class="btn btn-sm btn-info" onclick="showUserModal('${u.id}')">✏️</button>
+                  ${u.id!=='user-admin'?`<button class="btn btn-sm btn-danger" onclick="deleteUser('${u.id}','${u.name.replace(/'/g,"\'")}')">🗑️</button>`:'<span style="font-size:.65rem;color:var(--muted)">محمي</span>'}
+                </div></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+function showUserModal(id) {
+  const u = id ? allUsers.find(x=>x.id===id) : null;
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">${u?'✏️ تعديل المستخدم':'➕ مستخدم جديد'}</div>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group"><label class="form-label">الاسم الكامل *</label><input class="form-input" id="u_name" value="${u?.name||''}"></div>
+          <div class="grid-2">
+            <div class="form-group"><label class="form-label">اسم المستخدم *</label><input class="form-input" id="u_username" value="${u?.username||''}" ${u?'readonly style="opacity:.6"':''}></div>
+            <div class="form-group"><label class="form-label">كلمة المرور ${u?'(اتركها فارغة للإبقاء)':''}</label><input class="form-input" id="u_pass" type="password" placeholder="${u?'••••••':'أدخل كلمة المرور'}"></div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group"><label class="form-label">الدور</label>
+              <select class="form-select" id="u_role">
+                <option value="cashier" ${u?.role==='cashier'?'selected':''}>كاشير</option>
+                <option value="manager" ${u?.role==='manager'?'selected':''}>مشرف</option>
+                <option value="admin" ${u?.role==='admin'?'selected':''}>مدير</option>
+              </select>
+            </div>
+            <div class="form-group"><label class="form-label">الحالة</label>
+              <select class="form-select" id="u_active">
+                <option value="1" ${u?.is_active!==0?'selected':''}>✅ نشط</option>
+                <option value="0" ${u?.is_active===0?'selected':''}>❌ معطل</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" style="background:var(--border);color:#fff" onclick="closeModal()">إلغاء</button>
+          <button class="btn btn-primary" onclick="saveUser('${id||''}')">✅ حفظ</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+async function saveUser(id) {
+  const name = document.getElementById('u_name').value.trim();
+  const username = document.getElementById('u_username').value.trim();
+  if(!name||!username){ toast('الاسم واسم المستخدم مطلوبان','error'); return; }
+  const data = { name, username, role: document.getElementById('u_role').value, is_active: parseInt(document.getElementById('u_active').value) };
+  const pass = document.getElementById('u_pass').value;
+  if(pass) data.password = pass;
+  if(id) { await window.api.users.update(id,data); toast('✅ تم التعديل','success'); }
+  else {
+    const res = await window.api.users.add(data);
+    if(!res.success){ toast(res.error||'خطأ','error'); return; }
+    toast('✅ تم إضافة المستخدم','success');
+  }
+  closeModal(); await renderUsers();
+}
+async function deleteUser(id,name) {
+  if(!confirm(`حذف المستخدم "${name}"?`)) return;
+  await window.api.users.delete(id);
+  toast('🗑️ تم الحذف','info'); await renderUsers();
+}
+
+// =====================================================
+// PERMISSIONS — الصلاحيات
+// =====================================================
+function renderPermissions() {
+  document.getElementById('topbarActions').innerHTML = '';
+  const roles = [
+    { name:'مدير (Admin)', color:'var(--primary)', perms:['لوحة التحكم','نقطة البيع','المبيعات','المشتريات','المنتجات','العملاء','الموردون','الخزينة','التقارير','الإعدادات','المستخدمون','النسخ الاحتياطي','كل الصلاحيات'] },
+    { name:'مشرف (Manager)', color:'var(--info)', perms:['لوحة التحكم','نقطة البيع','المبيعات','المشتريات','المنتجات','العملاء','الموردون','التقارير'] },
+    { name:'كاشير (Cashier)', color:'var(--success)', perms:['نقطة البيع','المبيعات','المنتجات (قراءة فقط)'] },
+  ];
+  document.getElementById('mainContent').innerHTML = `
+    <div style="display:grid;gap:16px">
+      ${roles.map(r=>`
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" style="color:${r.color}">🔐 ${r.name}</div>
+          </div>
+          <div class="card-body" style="display:flex;gap:8px;flex-wrap:wrap">
+            ${r.perms.map(p=>`<span class="badge badge-success">✅ ${p}</span>`).join('')}
+          </div>
+        </div>
+      `).join('')}
+      <div style="background:rgba(56,189,248,.05);border:1px solid rgba(56,189,248,.15);border-radius:8px;padding:12px;font-size:.75rem;color:var(--muted)">
+        💡 نظام الصلاحيات التفصيلي قيد التطوير — حالياً يمكنك تعيين الدور لكل مستخدم من صفحة <strong style="color:var(--info)">المستخدمون</strong>
       </div>
     </div>
   `;

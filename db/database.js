@@ -102,17 +102,75 @@ class DB {
         product_name TEXT, ref TEXT, qty INTEGER DEFAULT 1,
         price REAL DEFAULT 0, total REAL DEFAULT 0
       );
-    `);
+      CREATE TABLE IF NOT EXISTS quotes (
+        id TEXT PRIMARY KEY, num TEXT UNIQUE, client_id TEXT, client_name TEXT DEFAULT '',
+        total REAL DEFAULT 0, discount REAL DEFAULT 0, tva REAL DEFAULT 0, net REAL DEFAULT 0,
+        status TEXT DEFAULT 'معلق', notes TEXT DEFAULT '', validity_days INTEGER DEFAULT 30,
+        date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0
+      );
+      CREATE TABLE IF NOT EXISTS quote_items (
+        id TEXT PRIMARY KEY, quote_id TEXT, product_id TEXT,
+        product_name TEXT, ref TEXT, qty INTEGER DEFAULT 1, price REAL DEFAULT 0, total REAL DEFAULT 0
+      );
+      CREATE TABLE IF NOT EXISTS caisse (
+        id TEXT PRIMARY KEY, type TEXT DEFAULT 'entrée', montant REAL DEFAULT 0,
+        description TEXT DEFAULT '', ref_id TEXT DEFAULT '', ref_type TEXT DEFAULT '',
+        date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS retours (
+        id TEXT PRIMARY KEY, num TEXT UNIQUE, vente_id TEXT, client_name TEXT DEFAULT '',
+        total REAL DEFAULT 0, notes TEXT DEFAULT '',
+        date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0
+      );
+      CREATE TABLE IF NOT EXISTS retour_items (
+        id TEXT PRIMARY KEY, retour_id TEXT, product_id TEXT,
+        product_name TEXT, qty INTEGER DEFAULT 1, price REAL DEFAULT 0, total REAL DEFAULT 0
+      );
+      CREATE TABLE IF NOT EXISTS loyalty (
+        id TEXT PRIMARY KEY, client_id TEXT UNIQUE, client_name TEXT,
+        points INTEGER DEFAULT 0, total_spent REAL DEFAULT 0, level TEXT DEFAULT 'عادي',
+        created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS expiry (
+        id TEXT PRIMARY KEY, product_id TEXT, product_name TEXT,
+        batch_num TEXT DEFAULT '', qty INTEGER DEFAULT 0,
+        expiry_date TEXT NOT NULL, notes TEXT DEFAULT '',
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS branches (
+        id TEXT PRIMARY KEY, name TEXT NOT NULL, address TEXT DEFAULT '',
+        phone TEXT DEFAULT '', manager TEXT DEFAULT '', is_active INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY, username TEXT UNIQUE NOT NULL, name TEXT NOT NULL,
+        role TEXT DEFAULT 'cashier', password TEXT DEFAULT '1234',
+        is_active INTEGER DEFAULT 1, last_login TEXT DEFAULT '',
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS debt_payments (
+        id TEXT PRIMARY KEY, vente_id TEXT, client_name TEXT,
+        amount REAL DEFAULT 0, notes TEXT DEFAULT '',
+        date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now'))
+      );
+    \`);
 
     const defaults = [
       ['company_name','محل الأغواط للإلكترونيات'],['company_phone','0550 000 000'],
       ['company_address','الأغواط، الجزائر'],['tva','19'],['currency','DA'],
       ['paper_size','A4'],['stock_alert','1'],['vente_num_prefix','F'],
-      ['vente_num_counter','1'],['achat_num_prefix','A'],['achat_num_counter','1'],['tva_enabled','0'],
+      ['vente_num_counter','1'],['achat_num_prefix','A'],['achat_num_counter','1'],['tva_enabled','0'],['quote_num_prefix','D'],['quote_num_counter','1'],
+      ['retour_num_prefix','R'],['retour_num_counter','1'],
     ];
     defaults.forEach(([k,v]) => {
       this.db.run(`INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)`, [k,v]);
     });
+    // Default branch
+    this.db.run(`INSERT OR IGNORE INTO branches(id,name,address,phone,manager) VALUES(?,?,?,?,?)`,
+      ['branch-main','الفرع الرئيسي','الأغواط','0550 000 000','المدير']);
+    // Default admin user
+    this.db.run(`INSERT OR IGNORE INTO users(id,username,name,role,password) VALUES(?,?,?,?,?)`,
+      ['user-admin','admin','مدير النظام','admin','admin123']);
     this.save();
   }
 
@@ -311,5 +369,157 @@ class DB {
     return { success:true };
   }
 }
+
+  // ===== QUOTES =====
+  getAllQuotes() { return this.all(`SELECT * FROM quotes WHERE is_deleted=0 ORDER BY created_at DESC LIMIT 200`); }
+  getQuoteById(id) {
+    const q = this.get(`SELECT * FROM quotes WHERE id=?`,[id]);
+    if(!q) return null;
+    q.items = this.all(`SELECT * FROM quote_items WHERE quote_id=?`,[id]);
+    return q;
+  }
+  addQuote(data) {
+    const id = this.uuid();
+    const counter = parseInt(this.get(`SELECT value FROM settings WHERE key='quote_num_counter'`)?.value||'1');
+    const prefix = this.get(`SELECT value FROM settings WHERE key='quote_num_prefix'`)?.value||'D';
+    const num = `${prefix}${String(counter).padStart(5,'0')}`;
+    this.db.run(`INSERT INTO quotes(id,num,client_id,client_name,total,discount,tva,net,status,notes,validity_days,date)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [id,num,data.client_id||null,data.client_name||'',data.total||0,data.discount||0,
+       data.tva||0,data.net||0,data.status||'معلق',data.notes||'',data.validity_days||30,data.date]);
+    (data.items||[]).forEach(item=>{
+      this.db.run(`INSERT INTO quote_items(id,quote_id,product_id,product_name,ref,qty,price,total) VALUES(?,?,?,?,?,?,?,?)`,
+        [this.uuid(),id,item.product_id||null,item.product_name,item.ref||'',item.qty,item.price,item.qty*item.price]);
+    });
+    this.db.run(`UPDATE settings SET value=? WHERE key='quote_num_counter'`,[String(counter+1)]);
+    this.save();
+    return {success:true,id,num};
+  }
+  updateQuoteStatus(id, status) {
+    this.run(`UPDATE quotes SET status=? WHERE id=?`,[status,id]);
+    return {success:true};
+  }
+  deleteQuote(id) { this.run(`UPDATE quotes SET is_deleted=1 WHERE id=?`,[id]); return {success:true}; }
+
+  // ===== CAISSE =====
+  getCaisseStats() {
+    const today = new Date().toISOString().slice(0,10);
+    const month = today.slice(0,7);
+    return {
+      total_in:    this.get(`SELECT COALESCE(SUM(montant),0) as s FROM caisse WHERE type='entrée'`)?.s||0,
+      total_out:   this.get(`SELECT COALESCE(SUM(montant),0) as s FROM caisse WHERE type='sortie'`)?.s||0,
+      today_in:    this.get(`SELECT COALESCE(SUM(montant),0) as s FROM caisse WHERE type='entrée' AND date=?`,[today])?.s||0,
+      today_out:   this.get(`SELECT COALESCE(SUM(montant),0) as s FROM caisse WHERE type='sortie' AND date=?`,[today])?.s||0,
+      month_in:    this.get(`SELECT COALESCE(SUM(montant),0) as s FROM caisse WHERE type='entrée' AND date LIKE ?`,[`${month}%`])?.s||0,
+      transactions: this.all(`SELECT * FROM caisse ORDER BY created_at DESC LIMIT 100`),
+    };
+  }
+  addCaisseTransaction(data) {
+    const id = this.uuid();
+    this.run(`INSERT INTO caisse(id,type,montant,description,ref_id,ref_type,date) VALUES(?,?,?,?,?,?,?)`,
+      [id,data.type,data.montant,data.description||'',data.ref_id||'',data.ref_type||'',data.date||new Date().toISOString().slice(0,10)]);
+    return {success:true,id};
+  }
+
+  // ===== RETOURS =====
+  getAllRetours() { return this.all(`SELECT * FROM retours WHERE is_deleted=0 ORDER BY created_at DESC LIMIT 200`); }
+  addRetour(data) {
+    const id = this.uuid();
+    const counter = parseInt(this.get(`SELECT value FROM settings WHERE key='retour_num_counter'`)?.value||'1');
+    const prefix = this.get(`SELECT value FROM settings WHERE key='retour_num_prefix'`)?.value||'R';
+    const num = `${prefix}${String(counter).padStart(5,'0')}`;
+    this.db.run(`INSERT INTO retours(id,num,vente_id,client_name,total,notes,date) VALUES(?,?,?,?,?,?,?)`,
+      [id,num,data.vente_id||null,data.client_name||'',data.total||0,data.notes||'',data.date||new Date().toISOString().slice(0,10)]);
+    (data.items||[]).forEach(item=>{
+      this.db.run(`INSERT INTO retour_items(id,retour_id,product_id,product_name,qty,price,total) VALUES(?,?,?,?,?,?,?)`,
+        [this.uuid(),id,item.product_id||null,item.product_name,item.qty,item.price,item.qty*item.price]);
+      if(item.product_id) this.db.run(`UPDATE products SET stock=stock+? WHERE id=?`,[item.qty,item.product_id]);
+    });
+    this.db.run(`UPDATE settings SET value=? WHERE key='retour_num_counter'`,[String(counter+1)]);
+    this.save();
+    return {success:true,id,num};
+  }
+
+  // ===== DETTES =====
+  getAllDettes() {
+    return this.all(`SELECT v.id, v.num, v.client_name, v.net, v.paid, v.reste, v.date, v.payment_type
+      FROM ventes v WHERE v.is_deleted=0 AND v.reste>0 ORDER BY v.reste DESC`);
+  }
+  addDebtPayment(data) {
+    const id = this.uuid();
+    this.db.run(`INSERT INTO debt_payments(id,vente_id,client_name,amount,notes,date) VALUES(?,?,?,?,?,?)`,
+      [id,data.vente_id,data.client_name,data.amount,data.notes||'',data.date||new Date().toISOString().slice(0,10)]);
+    // Update vente
+    const v = this.get(`SELECT paid, net FROM ventes WHERE id=?`,[data.vente_id]);
+    if(v) {
+      const newPaid = parseFloat(v.paid)+parseFloat(data.amount);
+      const newReste = Math.max(0, parseFloat(v.net)-newPaid);
+      this.db.run(`UPDATE ventes SET paid=?, reste=? WHERE id=?`,[newPaid,newReste,data.vente_id]);
+    }
+    this.save();
+    return {success:true,id};
+  }
+
+  // ===== LOYALTY =====
+  getAllLoyalty() { return this.all(`SELECT * FROM loyalty ORDER BY points DESC`); }
+  addLoyaltyPoints(clientId, clientName, points, spent) {
+    const existing = this.get(`SELECT * FROM loyalty WHERE client_id=?`,[clientId]);
+    if(existing) {
+      const newPoints = existing.points + points;
+      const newSpent = existing.total_spent + spent;
+      const level = newSpent >= 500000 ? 'ذهبي' : newSpent >= 100000 ? 'فضي' : 'عادي';
+      this.run(`UPDATE loyalty SET points=?,total_spent=?,level=?,client_name=?,updated_at=datetime('now') WHERE client_id=?`,
+        [newPoints,newSpent,level,clientName,clientId]);
+    } else {
+      const level = spent >= 500000 ? 'ذهبي' : spent >= 100000 ? 'فضي' : 'عادي';
+      this.run(`INSERT INTO loyalty(id,client_id,client_name,points,total_spent,level) VALUES(?,?,?,?,?,?)`,
+        [this.uuid(),clientId,clientName,points,spent,level]);
+    }
+    return {success:true};
+  }
+
+  // ===== EXPIRY =====
+  getAllExpiry() { return this.all(`SELECT * FROM expiry ORDER BY expiry_date ASC`); }
+  addExpiry(data) {
+    const id = this.uuid();
+    this.run(`INSERT INTO expiry(id,product_id,product_name,batch_num,qty,expiry_date,notes) VALUES(?,?,?,?,?,?,?)`,
+      [id,data.product_id||null,data.product_name,data.batch_num||'',data.qty||0,data.expiry_date,data.notes||'']);
+    return {success:true,id};
+  }
+  deleteExpiry(id) { this.run(`DELETE FROM expiry WHERE id=?`,[id]); return {success:true}; }
+
+  // ===== BRANCHES =====
+  getAllBranches() { return this.all(`SELECT * FROM branches ORDER BY created_at`); }
+  addBranch(data) {
+    const id = this.uuid();
+    this.run(`INSERT INTO branches(id,name,address,phone,manager) VALUES(?,?,?,?,?)`,
+      [id,data.name,data.address||'',data.phone||'',data.manager||'']);
+    return {success:true,id};
+  }
+  updateBranch(id,data) {
+    this.run(`UPDATE branches SET name=?,address=?,phone=?,manager=?,is_active=? WHERE id=?`,
+      [data.name,data.address||'',data.phone||'',data.manager||'',data.is_active??1,id]);
+    return {success:true};
+  }
+  deleteBranch(id) { this.run(`DELETE FROM branches WHERE id=?`,[id]); return {success:true}; }
+
+  // ===== USERS =====
+  getAllUsers() { return this.all(`SELECT id,username,name,role,is_active,last_login,created_at FROM users`); }
+  addUser(data) {
+    const id = this.uuid();
+    try {
+      this.run(`INSERT INTO users(id,username,name,role,password,is_active) VALUES(?,?,?,?,?,?)`,
+        [id,data.username,data.name,data.role||'cashier',data.password||'1234',1]);
+      return {success:true,id};
+    } catch(e) { return {success:false,error:'اسم المستخدم موجود مسبقاً'}; }
+  }
+  updateUser(id,data) {
+    this.run(`UPDATE users SET name=?,role=?,is_active=? WHERE id=?`,
+      [data.name,data.role||'cashier',data.is_active??1,id]);
+    if(data.password) this.run(`UPDATE users SET password=? WHERE id=?`,[data.password,id]);
+    return {success:true};
+  }
+  deleteUser(id) { this.run(`DELETE FROM users WHERE id!=? AND id=?`,['user-admin',id]); return {success:true}; }
+
 
 module.exports = DB;

@@ -31,6 +31,54 @@ contextBridge.exposeInMainWorld('api', {
     delete:  (id)       => ipcRenderer.invoke('fournisseurs:delete', id),
   },
 
+  // ===== عروض الأسعار =====
+  quotes: {
+    getAll:       ()         => ipcRenderer.invoke('quotes:getAll'),
+    getById:      (id)       => ipcRenderer.invoke('quotes:getById', id),
+    add:          (d)        => ipcRenderer.invoke('quotes:add', d),
+    updateStatus: (id, s)    => ipcRenderer.invoke('quotes:updateStatus', id, s),
+    delete:       (id)       => ipcRenderer.invoke('quotes:delete', id),
+  },
+  // ===== الخزينة =====
+  caisse: {
+    getStats: ()  => ipcRenderer.invoke('caisse:getStats'),
+    add:      (d) => ipcRenderer.invoke('caisse:add', d),
+  },
+  // ===== المرتجعات =====
+  retours: {
+    getAll: ()  => ipcRenderer.invoke('retours:getAll'),
+    add:    (d) => ipcRenderer.invoke('retours:add', d),
+  },
+  // ===== الديون =====
+  dettes: {
+    getAll:      ()  => ipcRenderer.invoke('dettes:getAll'),
+    addPayment:  (d) => ipcRenderer.invoke('dettes:addPayment', d),
+  },
+  // ===== الولاء =====
+  loyalty: {
+    getAll:     ()                    => ipcRenderer.invoke('loyalty:getAll'),
+    addPoints:  (ci, cn, pts, spent)  => ipcRenderer.invoke('loyalty:addPoints', ci, cn, pts, spent),
+  },
+  // ===== الصلاحية =====
+  expiry: {
+    getAll:  ()    => ipcRenderer.invoke('expiry:getAll'),
+    add:     (d)   => ipcRenderer.invoke('expiry:add', d),
+    delete:  (id)  => ipcRenderer.invoke('expiry:delete', id),
+  },
+  // ===== الفروع =====
+  branches: {
+    getAll:   ()         => ipcRenderer.invoke('branches:getAll'),
+    add:      (d)        => ipcRenderer.invoke('branches:add', d),
+    update:   (id, d)    => ipcRenderer.invoke('branches:update', id, d),
+    delete:   (id)       => ipcRenderer.invoke('branches:delete', id),
+  },
+  // ===== المستخدمون =====
+  users: {
+    getAll:   ()         => ipcRenderer.invoke('users:getAll'),
+    add:      (d)        => ipcRenderer.invoke('users:add', d),
+    update:   (id, d)    => ipcRenderer.invoke('users:update', id, d),
+    delete:   (id)       => ipcRenderer.invoke('users:delete', id),
+  },
   // ===== الفئات =====
   categories: {
     rename: (oldName, newName) => ipcRenderer.invoke('categories:rename', oldName, newName),

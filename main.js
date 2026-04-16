@@ -109,6 +109,46 @@ ipcMain.handle('stats:getReports',   (_, p)  => db.getReports(p));
 ipcMain.handle('settings:get',     ()        => db.getSettings());
 ipcMain.handle('settings:save',    (_, d)    => db.saveSettings(d));
 
+// Quotes
+ipcMain.handle('quotes:getAll',        ()        => db.getAllQuotes());
+ipcMain.handle('quotes:getById',       (_, i)    => db.getQuoteById(i));
+ipcMain.handle('quotes:add',           (_, d)    => db.addQuote(d));
+ipcMain.handle('quotes:updateStatus',  (_, i, s) => db.updateQuoteStatus(i, s));
+ipcMain.handle('quotes:delete',        (_, i)    => db.deleteQuote(i));
+
+// Caisse
+ipcMain.handle('caisse:getStats',      ()        => db.getCaisseStats());
+ipcMain.handle('caisse:add',           (_, d)    => db.addCaisseTransaction(d));
+
+// Retours
+ipcMain.handle('retours:getAll',       ()        => db.getAllRetours());
+ipcMain.handle('retours:add',          (_, d)    => db.addRetour(d));
+
+// Dettes
+ipcMain.handle('dettes:getAll',        ()        => db.getAllDettes());
+ipcMain.handle('dettes:addPayment',    (_, d)    => db.addDebtPayment(d));
+
+// Loyalty
+ipcMain.handle('loyalty:getAll',       ()        => db.getAllLoyalty());
+ipcMain.handle('loyalty:addPoints',    (_, ci, cn, p, s) => db.addLoyaltyPoints(ci, cn, p, s));
+
+// Expiry
+ipcMain.handle('expiry:getAll',        ()        => db.getAllExpiry());
+ipcMain.handle('expiry:add',           (_, d)    => db.addExpiry(d));
+ipcMain.handle('expiry:delete',        (_, i)    => db.deleteExpiry(i));
+
+// Branches
+ipcMain.handle('branches:getAll',      ()        => db.getAllBranches());
+ipcMain.handle('branches:add',         (_, d)    => db.addBranch(d));
+ipcMain.handle('branches:update',      (_, i, d) => db.updateBranch(i, d));
+ipcMain.handle('branches:delete',      (_, i)    => db.deleteBranch(i));
+
+// Users
+ipcMain.handle('users:getAll',         ()        => db.getAllUsers());
+ipcMain.handle('users:add',            (_, d)    => db.addUser(d));
+ipcMain.handle('users:update',         (_, i, d) => db.updateUser(i, d));
+ipcMain.handle('users:delete',         (_, i)    => db.deleteUser(i));
+
 // Print
 ipcMain.handle('print:invoice', (_, html) => {
   const win = new BrowserWindow({ width:800, height:600, show:false,
