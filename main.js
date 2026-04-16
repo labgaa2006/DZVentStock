@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
 const Database = require('./db/database');
 
@@ -7,99 +7,74 @@ let db;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    minWidth: 1024,
-    minHeight: 680,
+    width: 1280, height: 800, minWidth: 1024, minHeight: 680,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
+      contextIsolation: true, nodeIntegration: false,
     },
-    frame: false,          // بدون شريط العنوان الافتراضي
-    titleBarStyle: 'hidden',
-    backgroundColor: '#0f172a',
-    show: false,
-    icon: path.join(__dirname, 'assets', 'icon.ico'),
+    frame: false, backgroundColor: '#0f172a', show: false,
   });
-
   mainWindow.loadFile('renderer/index.html');
-
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-  });
-
-  // فتح DevTools في وضع التطوير
-  if (process.argv.includes('--dev')) {
-    mainWindow.webContents.openDevTools();
-  }
-
+  mainWindow.once('ready-to-show', () => mainWindow.show());
+  if (process.argv.includes('--dev')) mainWindow.webContents.openDevTools();
   Menu.setApplicationMenu(null);
 }
 
-// ===== تهيئة التطبيق =====
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   db = new Database();
+  await db.initSQL();
   db.init();
   createWindow();
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 
-// ===== IPC: تحكم النافذة =====
+// Window controls
 ipcMain.on('window:minimize', () => mainWindow.minimize());
-ipcMain.on('window:maximize', () => {
-  mainWindow.isMaximized() ? mainWindow.restore() : mainWindow.maximize();
-});
+ipcMain.on('window:maximize', () => mainWindow.isMaximized() ? mainWindow.restore() : mainWindow.maximize());
 ipcMain.on('window:close', () => mainWindow.close());
 
-// ===== IPC: المنتجات =====
-ipcMain.handle('products:getAll', () => db.getAllProducts());
-ipcMain.handle('products:add', (_, data) => db.addProduct(data));
-ipcMain.handle('products:update', (_, id, data) => db.updateProduct(id, data));
-ipcMain.handle('products:delete', (_, id) => db.deleteProduct(id));
-ipcMain.handle('products:search', (_, q) => db.searchProducts(q));
+// Products
+ipcMain.handle('products:getAll',  ()        => db.getAllProducts());
+ipcMain.handle('products:add',     (_, d)    => db.addProduct(d));
+ipcMain.handle('products:update',  (_, i, d) => db.updateProduct(i, d));
+ipcMain.handle('products:delete',  (_, i)    => db.deleteProduct(i));
+ipcMain.handle('products:search',  (_, q)    => db.searchProducts(q));
 
-// ===== IPC: العملاء =====
-ipcMain.handle('clients:getAll', () => db.getAllClients());
-ipcMain.handle('clients:add', (_, data) => db.addClient(data));
-ipcMain.handle('clients:update', (_, id, data) => db.updateClient(id, data));
-ipcMain.handle('clients:delete', (_, id) => db.deleteClient(id));
+// Clients
+ipcMain.handle('clients:getAll',   ()        => db.getAllClients());
+ipcMain.handle('clients:add',      (_, d)    => db.addClient(d));
+ipcMain.handle('clients:update',   (_, i, d) => db.updateClient(i, d));
+ipcMain.handle('clients:delete',   (_, i)    => db.deleteClient(i));
 
-// ===== IPC: الموردين =====
-ipcMain.handle('fournisseurs:getAll', () => db.getAllFournisseurs());
-ipcMain.handle('fournisseurs:add', (_, data) => db.addFournisseur(data));
+// Fournisseurs
+ipcMain.handle('fournisseurs:getAll', ()     => db.getAllFournisseurs());
+ipcMain.handle('fournisseurs:add',    (_, d) => db.addFournisseur(d));
 
-// ===== IPC: المبيعات =====
-ipcMain.handle('ventes:getAll', () => db.getAllVentes());
-ipcMain.handle('ventes:add', (_, data) => db.addVente(data));
-ipcMain.handle('ventes:getById', (_, id) => db.getVenteById(id));
+// Ventes
+ipcMain.handle('ventes:getAll',    ()        => db.getAllVentes());
+ipcMain.handle('ventes:add',       (_, d)    => db.addVente(d));
+ipcMain.handle('ventes:getById',   (_, i)    => db.getVenteById(i));
 
-// ===== IPC: المشتريات =====
-ipcMain.handle('achats:getAll', () => db.getAllAchats());
-ipcMain.handle('achats:add', (_, data) => db.addAchat(data));
+// Achats
+ipcMain.handle('achats:getAll',    ()        => db.getAllAchats());
+ipcMain.handle('achats:add',       (_, d)    => db.addAchat(d));
 
-// ===== IPC: الإحصائيات =====
-ipcMain.handle('stats:getDashboard', () => db.getDashboardStats());
-ipcMain.handle('stats:getReports', (_, period) => db.getReports(period));
+// Stats
+ipcMain.handle('stats:getDashboard', ()      => db.getDashboardStats());
+ipcMain.handle('stats:getReports',   (_, p)  => db.getReports(p));
 
-// ===== IPC: الإعدادات =====
-ipcMain.handle('settings:get', () => db.getSettings());
-ipcMain.handle('settings:save', (_, data) => db.saveSettings(data));
+// Settings
+ipcMain.handle('settings:get',     ()        => db.getSettings());
+ipcMain.handle('settings:save',    (_, d)    => db.saveSettings(d));
 
-// ===== IPC: الطباعة =====
-ipcMain.handle('print:invoice', (_, data) => {
-  const win = new BrowserWindow({
-    width: 800, height: 600, show: false,
-    webPreferences: { contextIsolation: true }
-  });
-  win.loadURL('data:text/html,' + encodeURIComponent(data));
+// Print
+ipcMain.handle('print:invoice', (_, html) => {
+  const win = new BrowserWindow({ width:800, height:600, show:false,
+    webPreferences:{ contextIsolation:true } });
+  win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
   win.webContents.once('did-finish-load', () => {
-    win.webContents.print({ silent: false, printBackground: true }, (success) => {
-      win.close();
-    });
+    win.webContents.print({ silent:false, printBackground:true }, () => win.close());
   });
   return true;
 });
