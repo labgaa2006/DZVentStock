@@ -25,8 +25,22 @@ contextBridge.exposeInMainWorld('api', {
 
   // ===== الموردين =====
   fournisseurs: {
-    getAll: ()     => ipcRenderer.invoke('fournisseurs:getAll'),
-    add:    (data) => ipcRenderer.invoke('fournisseurs:add', data),
+    getAll:  ()         => ipcRenderer.invoke('fournisseurs:getAll'),
+    add:     (data)     => ipcRenderer.invoke('fournisseurs:add', data),
+    update:  (id, data) => ipcRenderer.invoke('fournisseurs:update', id, data),
+    delete:  (id)       => ipcRenderer.invoke('fournisseurs:delete', id),
+  },
+
+  // ===== الفئات =====
+  categories: {
+    rename: (oldName, newName) => ipcRenderer.invoke('categories:rename', oldName, newName),
+    delete: (name)             => ipcRenderer.invoke('categories:delete', name),
+  },
+
+  // ===== النسخ الاحتياطي =====
+  backup: {
+    export: () => ipcRenderer.invoke('backup:export'),
+    import: () => ipcRenderer.invoke('backup:import'),
   },
 
   // ===== المبيعات =====

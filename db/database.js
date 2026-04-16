@@ -176,6 +176,24 @@ class DB {
     return { success:true, id };
   }
 
+  updateFournisseur(id, data) {
+    this.run(`UPDATE fournisseurs SET name=?,phone=?,address=?,notes=? WHERE id=?`,
+      [data.name, data.phone||'', data.address||'', data.notes||'', id]);
+    return { success: true };
+  }
+  deleteFournisseur(id) {
+    this.run(`UPDATE fournisseurs SET is_deleted=1 WHERE id=?`, [id]);
+    return { success: true };
+  }
+  renameCategory(oldName, newName) {
+    this.run(`UPDATE products SET category=? WHERE category=?`, [newName, oldName]);
+    return { success: true };
+  }
+  deleteCategory(name) {
+    this.run(`UPDATE products SET category='' WHERE category=?`, [name]);
+    return { success: true };
+  }
+
   // ===== VENTES =====
   getAllVentes() {
     return this.all(`SELECT v.*, vi_sum.items FROM ventes v

@@ -48,8 +48,49 @@ ipcMain.handle('clients:update',   (_, i, d) => db.updateClient(i, d));
 ipcMain.handle('clients:delete',   (_, i)    => db.deleteClient(i));
 
 // Fournisseurs
-ipcMain.handle('fournisseurs:getAll', ()     => db.getAllFournisseurs());
-ipcMain.handle('fournisseurs:add',    (_, d) => db.addFournisseur(d));
+ipcMain.handle('fournisseurs:getAll',   ()        => db.getAllFournisseurs());
+ipcMain.handle('fournisseurs:add',     (_, d)    => db.addFournisseur(d));
+ipcMain.handle('fournisseurs:update',  (_, i, d) => db.updateFournisseur(i, d));
+ipcMain.handle('fournisseurs:delete',  (_, i)    => db.deleteFournisseur(i));
+
+// Categories
+ipcMain.handle('categories:rename',   (_, o, n) => db.renameCategory(o, n));
+ipcMain.handle('categories:delete',   (_, n)    => db.deleteCategory(n));
+
+// Backup
+ipcMain.handle('backup:export', async () => {
+  const { dialog } = require('electron');
+  const { shell } = require('electron');
+  const fs = require('fs');
+  const path = require('path');
+  const src = require('path').join(app.getPath('userData'), 'dzventstock.db');
+  const { filePath } = await dialog.showSaveDialog(mainWindow, {
+    title: 'حفظ نسخة احتياطية',
+    defaultPath: `dzventstock_backup_${new Date().toISOString().slice(0,10)}.db`,
+    filters: [{ name: 'Database', extensions: ['db'] }]
+  });
+  if (!filePath) return { cancelled: true };
+  fs.copyFileSync(src, filePath);
+  return { success: true, path: filePath };
+});
+
+ipcMain.handle('backup:import', async () => {
+  const { dialog } = require('electron');
+  const fs = require('fs');
+  const { filePath } = await dialog.showOpenDialog(mainWindow, {
+    title: 'استعادة نسخة احتياطية',
+    filters: [{ name: 'Database', extensions: ['db'] }],
+    properties: ['openFile']
+  });
+  if (!filePath || !filePath[0]) return { cancelled: true };
+  const dest = require('path').join(app.getPath('userData'), 'dzventstock.db');
+  fs.copyFileSync(filePath[0], dest);
+  // Reload DB
+  db = new Database();
+  await db.initSQL();
+  db.init();
+  return { success: true };
+});
 
 // Ventes
 ipcMain.handle('ventes:getAll',    ()        => db.getAllVentes());

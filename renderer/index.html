@@ -1373,28 +1373,34 @@ async function saveSettings() {
 // =====================================================
 // FOURNISSEURS
 // =====================================================
+let allFournisseurs = [];
+
 async function renderFournisseurs() {
   document.getElementById('topbarActions').innerHTML = `
-    <button class="topbar-btn primary" onclick="showAddFournisseurModal()">➕ مورد جديد</button>
+    <button class="topbar-btn primary" onclick="showFournisseurModal()">➕ مورد جديد</button>
   `;
-  const list = await window.api.fournisseurs.getAll();
+  allFournisseurs = await window.api.fournisseurs.getAll();
   document.getElementById('mainContent').innerHTML = `
     <div class="card">
       <div class="card-header">
-        <div class="card-title">🏭 الموردون <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${list.length})</span></div>
+        <div class="card-title">🏭 الموردون <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${allFournisseurs.length})</span></div>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>الاسم</th><th>الهاتف</th><th>العنوان</th><th>ملاحظات</th></tr></thead>
+          <thead><tr><th>الاسم</th><th>الهاتف</th><th>العنوان</th><th>ملاحظات</th><th>إجراءات</th></tr></thead>
           <tbody>
-            ${list.length === 0
-              ? `<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">لا يوجد موردون بعد</td></tr>`
-              : list.map(f => `
+            ${allFournisseurs.length === 0
+              ? `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--muted)">لا يوجد موردون بعد</td></tr>`
+              : allFournisseurs.map(f => `
               <tr>
                 <td style="font-weight:600">${f.name}</td>
                 <td style="color:var(--muted)">${f.phone||'—'}</td>
                 <td style="color:var(--muted)">${f.address||'—'}</td>
                 <td style="color:var(--muted);font-size:.75rem">${f.notes||'—'}</td>
+                <td><div style="display:flex;gap:4px">
+                  <button class="btn btn-sm btn-info" onclick="showFournisseurModal('${f.id}')">✏️</button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteFournisseur('${f.id}','${f.name.replace(/'/g,"\'")}')">🗑️</button>
+                </div></td>
               </tr>`).join('')}
           </tbody>
         </table>
@@ -1403,96 +1409,141 @@ async function renderFournisseurs() {
   `;
 }
 
-function showAddFournisseurModal() {
+function showFournisseurModal(id) {
+  const f = id ? allFournisseurs.find(x => x.id === id) : null;
   showModal(`
     <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
       <div class="modal">
         <div class="modal-header">
-          <div class="modal-title">➕ مورد جديد</div>
+          <div class="modal-title">${f ? '✏️ تعديل المورد' : '➕ مورد جديد'}</div>
           <button class="modal-close" onclick="closeModal()">✕</button>
         </div>
         <div class="modal-body">
-          <div class="form-group"><label class="form-label">الاسم *</label><input class="form-input" id="f_name" placeholder="اسم المورد"></div>
-          <div class="form-group"><label class="form-label">الهاتف</label><input class="form-input" id="f_phone" placeholder="05xxxxxxxx"></div>
-          <div class="form-group"><label class="form-label">العنوان</label><input class="form-input" id="f_addr" placeholder="الولاية، المدينة"></div>
-          <div class="form-group"><label class="form-label">ملاحظات</label><input class="form-input" id="f_notes" placeholder="اختياري"></div>
+          <div class="form-group"><label class="form-label">الاسم *</label><input class="form-input" id="f_name" value="${f?.name||''}" placeholder="اسم المورد"></div>
+          <div class="form-group"><label class="form-label">الهاتف</label><input class="form-input" id="f_phone" value="${f?.phone||''}" placeholder="05xxxxxxxx"></div>
+          <div class="form-group"><label class="form-label">العنوان</label><input class="form-input" id="f_addr" value="${f?.address||''}" placeholder="الولاية، المدينة"></div>
+          <div class="form-group"><label class="form-label">ملاحظات</label><input class="form-input" id="f_notes" value="${f?.notes||''}" placeholder="اختياري"></div>
         </div>
         <div class="modal-footer">
           <button class="btn" style="background:var(--border);color:#fff" onclick="closeModal()">إلغاء</button>
-          <button class="btn btn-primary" onclick="addFournisseur()">✅ حفظ</button>
+          <button class="btn btn-primary" onclick="saveFournisseur('${id||''}')">✅ حفظ</button>
         </div>
       </div>
     </div>
   `);
 }
 
-async function addFournisseur() {
+async function saveFournisseur(id) {
   const name = document.getElementById('f_name').value.trim();
   if (!name) { toast('الاسم مطلوب', 'error'); return; }
-  await window.api.fournisseurs.add({
+  const data = {
     name, phone: document.getElementById('f_phone').value,
     address: document.getElementById('f_addr').value,
     notes: document.getElementById('f_notes').value,
-  });
-  closeModal(); toast('✅ تم إضافة المورد', 'success'); await renderFournisseurs();
+  };
+  if (id) {
+    await window.api.fournisseurs.update(id, data);
+    toast('✅ تم تعديل المورد', 'success');
+  } else {
+    await window.api.fournisseurs.add(data);
+    toast('✅ تم إضافة المورد', 'success');
+  }
+  closeModal(); await renderFournisseurs();
+}
+
+async function deleteFournisseur(id, name) {
+  if (!confirm(`حذف المورد "${name}"؟`)) return;
+  await window.api.fournisseurs.delete(id);
+  toast('🗑️ تم الحذف', 'info'); await renderFournisseurs();
 }
 
 // =====================================================
 // CATEGORIES
 // =====================================================
 async function renderCategories() {
-  document.getElementById('topbarActions').innerHTML = `
-    <button class="topbar-btn primary" onclick="showAddCategoryModal()">➕ فئة جديدة</button>
-  `;
+  document.getElementById('topbarActions').innerHTML = '';
   const products = await window.api.products.getAll();
   const cats = {};
   products.forEach(p => {
     const c = p.category || 'بدون فئة';
-    if (!cats[c]) cats[c] = { count: 0, stock: 0 };
+    if (!cats[c]) cats[c] = { count: 0, stock: 0, products: [] };
     cats[c].count++;
     cats[c].stock += p.stock;
+    cats[c].products.push(p.name);
   });
 
   document.getElementById('mainContent').innerHTML = `
     <div class="card">
-      <div class="card-header"><div class="card-title">📂 الفئات <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${Object.keys(cats).length})</span></div></div>
+      <div class="card-header">
+        <div class="card-title">📂 الفئات <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${Object.keys(cats).length})</span></div>
+        <div style="font-size:.72rem;color:var(--muted)">الفئات تُستخرج من المنتجات — عدّل اسم الفئة هنا لتغييره على كل المنتجات</div>
+      </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>الفئة</th><th>عدد المنتجات</th><th>إجمالي المخزون</th></tr></thead>
+          <thead><tr><th>الفئة</th><th>عدد المنتجات</th><th>إجمالي المخزون</th><th>إجراءات</th></tr></thead>
           <tbody>
             ${Object.keys(cats).length === 0
-              ? `<tr><td colspan="3" style="text-align:center;padding:40px;color:var(--muted)">لا توجد فئات بعد — أضف منتجات أولاً</td></tr>`
+              ? `<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">لا توجد فئات — أضف منتجات أولاً</td></tr>`
               : Object.entries(cats).map(([cat, info]) => `
               <tr>
                 <td><span style="font-weight:600">📂 ${cat}</span></td>
                 <td style="color:var(--info);font-weight:700">${info.count} منتج</td>
                 <td style="color:var(--success);font-weight:700">${info.stock} وحدة</td>
+                <td><div style="display:flex;gap:4px">
+                  ${cat !== 'بدون فئة' ? `
+                  <button class="btn btn-sm btn-info" onclick="showRenameCategoryModal('${cat.replace(/'/g,"\'")}')">✏️ تعديل</button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteCategoryConfirm('${cat.replace(/'/g,"\'")}',${info.count})">🗑️ حذف</button>
+                  ` : '<span style="color:var(--muted);font-size:.72rem">تلقائي</span>'}
+                </div></td>
               </tr>`).join('')}
           </tbody>
         </table>
       </div>
     </div>
+    <div style="margin-top:12px;background:rgba(56,189,248,.05);border:1px solid rgba(56,189,248,.15);border-radius:8px;padding:12px;font-size:.75rem;color:var(--muted)">
+      💡 <strong style="color:var(--info)">ملاحظة:</strong> تعديل اسم الفئة يؤثر على جميع المنتجات التابعة لها. حذف الفئة لا يحذف المنتجات، فقط يُزيل تصنيفها.
+    </div>
   `;
 }
 
-function showAddCategoryModal() {
+function showRenameCategoryModal(oldName) {
   showModal(`
     <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
       <div class="modal">
         <div class="modal-header">
-          <div class="modal-title">📂 فئة جديدة</div>
+          <div class="modal-title">✏️ تعديل الفئة: ${oldName}</div>
           <button class="modal-close" onclick="closeModal()">✕</button>
         </div>
         <div class="modal-body">
-          <div class="form-group"><label class="form-label">اسم الفئة *</label><input class="form-input" id="cat_name" placeholder="مثال: إلكترونيات، هواتف، تكييف..."></div>
+          <div class="form-group">
+            <label class="form-label">الاسم الجديد *</label>
+            <input class="form-input" id="cat_new_name" value="${oldName}" placeholder="اسم الفئة الجديد">
+          </div>
+          <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:10px;font-size:.75rem;color:var(--warning)">
+            ⚠️ سيتغير اسم الفئة على جميع المنتجات التابعة لها
+          </div>
         </div>
         <div class="modal-footer">
           <button class="btn" style="background:var(--border);color:#fff" onclick="closeModal()">إلغاء</button>
-          <button class="btn btn-primary" onclick="closeModal();toast('✅ الفئة ستُضاف عند إضافة منتج بهذا الاسم','info')">✅ حفظ</button>
+          <button class="btn btn-primary" onclick="renameCategory('${oldName.replace(/'/g,"\'")}')">✅ حفظ</button>
         </div>
       </div>
     </div>
   `);
+}
+
+async function renameCategory(oldName) {
+  const newName = document.getElementById('cat_new_name').value.trim();
+  if (!newName) { toast('الاسم مطلوب', 'error'); return; }
+  if (newName === oldName) { closeModal(); return; }
+  await window.api.categories.rename(oldName, newName);
+  closeModal(); toast('✅ تم تعديل الفئة', 'success'); await renderCategories();
+}
+
+async function deleteCategoryConfirm(name, count) {
+  if (!confirm(`حذف الفئة "${name}"?\nسيتم إزالة التصنيف من ${count} منتج (المنتجات لن تُحذف).`)) return;
+  await window.api.categories.delete(name);
+  toast('🗑️ تم حذف الفئة', 'info'); await renderCategories();
 }
 
 // =====================================================
@@ -1542,19 +1593,39 @@ async function renderBackup() {
   document.getElementById('mainContent').innerHTML = `
     <div class="grid-2">
       <div class="card">
-        <div class="card-header"><div class="card-title">💾 تصدير البيانات</div></div>
-        <div class="card-body" style="display:grid;gap:12px">
-          <p style="font-size:.82rem;color:var(--muted)">ملف قاعدة البيانات محفوظ في:</p>
-          <code style="background:#0f172a;padding:10px;border-radius:8px;font-size:.75rem;color:var(--info);word-break:break-all">
-            %APPDATA%\dz-vent-stock\dzventstock.db
-          </code>
-          <p style="font-size:.78rem;color:var(--muted)">انسخ هذا الملف لمكان آمن للحصول على نسخة احتياطية.</p>
-          <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:12px">
-            <div style="font-size:.8rem;color:var(--success);font-weight:600;margin-bottom:4px">✅ البيانات محفوظة تلقائياً</div>
-            <div style="font-size:.72rem;color:var(--muted)">كل عملية تُحفظ فوراً في قاعدة البيانات</div>
+        <div class="card-header"><div class="card-title">💾 النسخ الاحتياطي اليدوي</div></div>
+        <div class="card-body" style="display:grid;gap:14px">
+
+          <div style="background:rgba(249,115,22,.05);border:1px solid rgba(249,115,22,.15);border-radius:10px;padding:14px">
+            <div style="font-size:.85rem;font-weight:700;margin-bottom:4px">📤 تصدير النسخة الاحتياطية</div>
+            <div style="font-size:.72rem;color:var(--muted);margin-bottom:12px">حفظ قاعدة البيانات كاملة في مكان تختاره</div>
+            <button class="btn btn-primary" style="width:100%" onclick="exportBackup()">
+              💾 تصدير الآن
+            </button>
+          </div>
+
+          <div style="background:rgba(56,189,248,.05);border:1px solid rgba(56,189,248,.15);border-radius:10px;padding:14px">
+            <div style="font-size:.85rem;font-weight:700;margin-bottom:4px">📥 استعادة نسخة احتياطية</div>
+            <div style="font-size:.72rem;color:var(--muted);margin-bottom:12px">تحميل نسخة سابقة — سيتم استبدال البيانات الحالية</div>
+            <button class="btn btn-info" style="width:100%" onclick="importBackup()">
+              📂 استعادة من ملف
+            </button>
+          </div>
+
+          <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:10px">
+            <div style="font-size:.78rem;color:var(--success);font-weight:600;margin-bottom:3px">✅ حفظ تلقائي مستمر</div>
+            <div style="font-size:.7rem;color:var(--muted)">كل عملية تُحفظ فوراً — النسخة اليدوية للأمان الإضافي</div>
+          </div>
+
+          <div style="font-size:.72rem;color:var(--muted)">
+            📁 مسار الملف:<br>
+            <code style="background:#0f172a;padding:4px 8px;border-radius:4px;color:var(--info);display:block;margin-top:4px;word-break:break-all">
+              %APPDATA%\dz-vent-stock\dzventstock.db
+            </code>
           </div>
         </div>
       </div>
+
       <div class="card">
         <div class="card-header"><div class="card-title">ℹ️ معلومات النظام</div></div>
         <div class="card-body" style="display:grid;gap:10px">
@@ -1578,6 +1649,25 @@ async function renderBackup() {
       </div>
     </div>
   `;
+}
+
+async function exportBackup() {
+  const res = await window.api.backup.export();
+  if (res.cancelled) return;
+  if (res.success) toast('✅ تم تصدير النسخة الاحتياطية بنجاح', 'success');
+  else toast('❌ فشل التصدير', 'error');
+}
+
+async function importBackup() {
+  if (!confirm('⚠️ تحذير: ستُستبدل جميع البيانات الحالية بالنسخة المختارة.\nهل تريد المتابعة؟')) return;
+  const res = await window.api.backup.import();
+  if (res.cancelled) return;
+  if (res.success) {
+    toast('✅ تمت الاستعادة — سيتم إعادة التحميل', 'success');
+    setTimeout(() => location.reload(), 1500);
+  } else {
+    toast('❌ فشلت الاستعادة', 'error');
+  }
 }
 
 // =====================================================
