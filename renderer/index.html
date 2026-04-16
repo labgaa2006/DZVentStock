@@ -141,32 +141,72 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
 .form-input::placeholder{color:var(--muted)}
 .form-select option{background:#1e293b}
 
-/* ===== POS ===== */
-.pos-layout{display:grid;grid-template-columns:360px 1fr;height:100%;gap:0;overflow:hidden}
-.pos-invoice{background:var(--sidebar);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-.pos-products{display:flex;flex-direction:column;overflow:hidden}
-.pos-search{width:100%;padding:9px 14px;background:var(--bg);border:2px solid var(--border);border-radius:10px;color:#fff;font-size:.9rem;font-family:'Cairo',sans-serif}
+/* ===== POS NEW LAYOUT ===== */
+.pos-layout{display:grid;grid-template-columns:1fr 420px;height:100%;gap:0;overflow:hidden}
+
+/* Left: product grid */
+.pos-products{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.pos-topbar{background:var(--sidebar);border-bottom:1px solid var(--border);padding:8px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.pos-mode-btn{padding:5px 16px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Cairo',sans-serif;font-size:.78rem;transition:.15s}
+.pos-mode-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.pos-remise-row{display:flex;align-items:center;gap:6px;margin-right:auto}
+.pos-vente-num{color:var(--info);font-weight:700;font-size:.82rem}
+.pos-search-zone{padding:8px 10px;background:var(--sidebar);border-bottom:1px solid var(--border);position:relative;flex-shrink:0}
+.pos-search{width:100%;padding:10px 16px;background:var(--bg);border:2px solid var(--border);border-radius:10px;color:#fff;font-size:.92rem;font-family:'Cairo',sans-serif;transition:.15s}
 .pos-search:focus{border-color:var(--primary);outline:none}
-.pos-cats{display:flex;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border);overflow-x:auto;background:var(--sidebar)}
-.pos-cat{padding:5px 14px;border-radius:20px;border:1px solid var(--border);font-size:.75rem;cursor:pointer;white-space:nowrap;color:var(--muted);transition:.15s;font-family:'Cairo',sans-serif;background:transparent}
+.pos-search::placeholder{color:var(--muted)}
+/* Dropdown results */
+.pos-dropdown{position:absolute;top:100%;right:10px;left:10px;background:#1e293b;border:1px solid var(--primary);border-top:none;border-radius:0 0 10px 10px;z-index:100;max-height:260px;overflow-y:auto;display:none}
+.pos-dropdown.open{display:block}
+.pos-dropdown-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;transition:.12s;border-bottom:1px solid rgba(51,65,85,.3)}
+.pos-dropdown-item:last-child{border-bottom:none}
+.pos-dropdown-item:hover{background:rgba(249,115,22,.1)}
+.pos-dropdown-price{margin-right:auto;font-weight:700;color:var(--primary);font-size:.85rem;white-space:nowrap}
+.pos-dropdown-stock{font-size:.7rem;padding:2px 6px;border-radius:10px}
+.pos-cats{display:flex;gap:6px;padding:7px 10px;border-bottom:1px solid var(--border);overflow-x:auto;background:var(--sidebar);flex-shrink:0}
+.pos-cats::-webkit-scrollbar{height:0}
+.pos-cat{padding:5px 14px;border-radius:20px;border:1px solid var(--border);font-size:.75rem;cursor:pointer;white-space:nowrap;color:var(--muted);transition:.15s;font-family:'Cairo',sans-serif;background:transparent;flex-shrink:0}
 .pos-cat:hover{border-color:var(--primary);color:var(--primary)}
 .pos-cat.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-.pos-grid{flex:1;overflow-y:auto;padding:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;align-content:start}
-.pos-product{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;cursor:pointer;transition:.15s;text-align:center}
-.pos-product:hover{border-color:var(--primary);background:#263548}
-.pos-product-name{font-size:.78rem;font-weight:700;color:#fff;margin-bottom:4px}
-.pos-product-ref{font-size:.65rem;color:var(--muted);margin-bottom:6px}
-.pos-product-price{font-size:.88rem;font-weight:700;color:var(--primary)}
-.pos-product-stock{font-size:.65rem;margin-top:4px}
+/* Product buttons grid — like touchscreen POS */
+.pos-grid{flex:1;overflow-y:auto;padding:8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;align-content:start}
+.pos-product{
+  background:var(--card);border:1px solid var(--border);border-radius:8px;
+  cursor:pointer;transition:.15s;overflow:hidden;position:relative;
+}
+.pos-product:hover{border-color:var(--primary);transform:translateY(-1px);box-shadow:0 4px 12px rgba(249,115,22,.2)}
+.pos-product:active{transform:scale(.97)}
+.pos-product-price-bar{background:rgba(249,115,22,.15);padding:5px 8px;font-size:.82rem;font-weight:900;color:var(--primary);text-align:center;border-bottom:1px solid var(--border)}
+.pos-product-body{padding:8px;text-align:center}
+.pos-product-name{font-size:.75rem;font-weight:700;color:#fff;margin-bottom:3px;line-height:1.3}
+.pos-product-ref{font-size:.62rem;color:var(--muted);margin-bottom:4px}
+.pos-product-num{font-size:1.6rem;font-weight:900;color:#e2e8f0;line-height:1;margin-bottom:4px}
+.pos-product-stock{font-size:.62rem;margin-top:2px}
+.pos-product.out-of-stock{opacity:.35;pointer-events:none}
+
+/* Right: invoice */
+.pos-invoice{background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.pos-invoice-head{padding:8px 12px;border-bottom:1px solid var(--border);background:#111827;flex-shrink:0}
+.pos-total-display{font-size:2.6rem;font-weight:900;color:#00ff88;text-align:center;letter-spacing:2px;padding:6px 0;font-family:monospace}
+.pos-invoice-meta{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-top:4px}
+/* Invoice table */
 .pos-invoice-list{flex:1;overflow-y:auto}
-.pos-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(51,65,85,.4)}
-.pos-item-name{flex:1;font-size:.75rem;font-weight:600}
-.pos-qty-btn{width:22px;height:22px;border-radius:4px;border:none;cursor:pointer;font-weight:700;font-size:.8rem;display:flex;align-items:center;justify-content:center}
-.pos-qty-num{font-size:.8rem;font-weight:700;min-width:20px;text-align:center}
-.pos-item-total{font-size:.8rem;color:var(--primary);font-weight:700;margin-right:4px;white-space:nowrap}
-.pos-totals{padding:10px;border-top:1px solid var(--border);background:#0f172a}
-.pos-total-row{display:flex;justify-content:space-between;padding:3px 0;font-size:.78rem}
-.pos-grand-total{font-size:1.2rem;font-weight:900;color:var(--primary);border-top:1px solid var(--border);padding-top:8px;margin-top:5px}
+.pos-inv-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.pos-inv-table thead th{background:#0f172a;padding:7px 8px;text-align:right;color:var(--muted);font-size:.68rem;border-bottom:1px solid var(--border);white-space:nowrap}
+.pos-inv-table tbody td{padding:7px 8px;border-bottom:1px solid rgba(51,65,85,.3);vertical-align:middle}
+.pos-inv-table tbody tr:hover td{background:rgba(255,255,255,.02)}
+/* Totals zone */
+.pos-totals{padding:10px 12px;background:#0f172a;flex-shrink:0}
+.pos-total-row{display:flex;justify-content:space-between;padding:2px 0;font-size:.78rem}
+.pos-grand-total{font-size:1.1rem;font-weight:900;color:var(--primary);border-top:1px solid var(--border);padding-top:6px;margin-top:4px}
+.pos-qty-btn{width:24px;height:24px;border-radius:4px;border:none;cursor:pointer;font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center;transition:.1s}
+.pos-qty-btn:active{transform:scale(.9)}
+.pos-qty-num{font-size:.82rem;font-weight:700;min-width:22px;text-align:center}
+/* Action buttons — match the screenshot style */
+.pos-actions{padding:8px 10px;border-top:1px solid var(--border);flex-shrink:0}
+.pos-btn-row{display:grid;gap:5px;margin-bottom:5px}
+.pos-action-btn{padding:10px;border:none;border-radius:7px;cursor:pointer;font-weight:700;font-size:.8rem;font-family:'Cairo',sans-serif;transition:.15s;display:flex;align-items:center;justify-content:center;gap:5px}
+.pos-action-btn:active{transform:scale(.97)}
 
 /* ===== MODAL ===== */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(6px);animation:fadeIn .2s ease}
@@ -1492,12 +1532,14 @@ async function renderPOS() {
 }
 
 window.addToPOS = (id, name, price, stock) => {
+  if (stock === 0) { toast('المنتج نفد من المخزون', 'error'); return; }
   const existing = App.pos.items.find(i => i.product_id === id);
   if (existing) {
     if (existing.qty >= stock) { toast('لا يوجد مخزون كافٍ', 'error'); return; }
     existing.qty++;
   } else {
-    App.pos.items.push({ product_id: id, product_name: name, price, qty: 1, stock });
+    const p = (window._posAllProducts||[]).find(x=>x.id===id);
+    App.pos.items.push({ product_id:id, product_name:name, ref:p?.ref||'', price, qty:1, stock, unit:p?.unit||'قطعة' });
   }
   renderPOSItems();
   recalcPOS();
@@ -1512,14 +1554,27 @@ window.recalcPOS = () => {
   const afterDisc = total - discAmt;
   const tvaAmt = tvaEnabled ? (afterDisc * tvaRate / 100) : 0;
   const net = afterDisc + tvaAmt;
-  // إخفاء/إظهار سطر TVA
   const tvaRow = document.getElementById('pos_tva_row');
   if (tvaRow) tvaRow.style.display = tvaEnabled ? '' : 'none';
-  document.getElementById('pos_ht').textContent = tvaEnabled ? fmt(afterDisc / (1 + tvaRate/100)) : fmt(afterDisc);
-  document.getElementById('pos_tva').textContent = fmt(tvaAmt);
-  document.getElementById('pos_disc_amt').textContent = fmt(discAmt);
-  document.getElementById('pos_net').textContent = fmt(net);
-  document.getElementById('pos_paid').value = Math.round(net);
+  const htEl = document.getElementById('pos_ht');
+  if (htEl) htEl.textContent = tvaEnabled ? fmt(afterDisc / (1 + tvaRate/100)) : fmt(afterDisc);
+  const tvaEl = document.getElementById('pos_tva');
+  if (tvaEl) tvaEl.textContent = fmt(tvaAmt);
+  // Update disc display
+  const discPct = document.getElementById('pos_disc_pct');
+  if (discPct) discPct.textContent = disc;
+  const discAmt2 = document.getElementById('pos_disc_amt');
+  if (discAmt2) discAmt2.textContent = fmt(discAmt);
+  const netEl = document.getElementById('pos_net');
+  if (netEl) netEl.textContent = fmt(net);
+  // Big green total display
+  const display = document.getElementById('pos_total_display');
+  if (display) display.textContent = net.toLocaleString('fr-DZ', {minimumFractionDigits:2, maximumFractionDigits:2});
+  // Items count
+  const countEl = document.getElementById('pos_items_count');
+  if (countEl) countEl.textContent = App.pos.items.reduce((s,i)=>s+i.qty,0);
+  const paidEl = document.getElementById('pos_paid');
+  if (paidEl) paidEl.value = Math.round(net);
   updateReste();
 };
 
@@ -1532,25 +1587,42 @@ window.updateReste = () => {
 };
 
 function renderPOSItems() {
-  const list = document.getElementById('pos_items_list');
-  if (!list) return;
+  const tbody = document.getElementById('pos_items_list');
+  if (!tbody) return;
   if (!App.pos.items.length) {
-    list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);font-size:.8rem">أضف منتجات من اليمين ←</div>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--muted);font-size:.8rem">— اختر منتجاً من الشبكة —</td></tr>';
     return;
   }
-  list.innerHTML = App.pos.items.map((item, i) => `
-    <div class="pos-item">
-      <div class="pos-item-name">${item.product_name}<br><small style="color:var(--muted)">${fmtNum(item.price)} DA</small></div>
-      <div class="pos-item-qty" style="display:flex;align-items:center;gap:4px">
-        <button class="pos-qty-btn" style="background:var(--danger);color:#fff" onclick="changePOSQty(${i},-1)">−</button>
-        <span class="pos-qty-num">${item.qty}</span>
-        <button class="pos-qty-btn" style="background:var(--success);color:#fff" onclick="changePOSQty(${i},1)">+</button>
-      </div>
-      <div class="pos-item-total">${fmtNum(item.qty * item.price)}</div>
-      <button onclick="removePOSItem(${i})" style="background:transparent;border:none;color:var(--danger);cursor:pointer;font-size:1rem">✕</button>
-    </div>
+  tbody.innerHTML = App.pos.items.map((item, i) => `
+    <tr onclick="selectPOSRow(${i})" style="cursor:pointer;${window._posSelectedRow===i?'background:rgba(249,115,22,.1)':''}" id="pos_row_${i}">
+      <td style="font-size:.7rem;color:var(--info)">${item.ref||'—'}</td>
+      <td style="font-weight:600;max-width:100px">
+        <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.78rem">${item.product_name}</div>
+      </td>
+      <td>
+        <div style="display:flex;align-items:center;gap:3px">
+          <button class="pos-qty-btn" style="background:var(--danger);color:#fff;width:20px;height:20px;font-size:.75rem" onclick="event.stopPropagation();changePOSQty(${i},-1)">−</button>
+          <span class="pos-qty-num" style="font-size:.82rem;min-width:24px;font-weight:700">${item.qty}</span>
+          <button class="pos-qty-btn" style="background:var(--success);color:#fff;width:20px;height:20px;font-size:.75rem" onclick="event.stopPropagation();changePOSQty(${i},1)">+</button>
+        </div>
+      </td>
+      <td style="color:var(--muted);font-size:.78rem;white-space:nowrap">${fmtNum(item.price)}</td>
+      <td style="color:var(--primary);font-weight:700;font-size:.82rem;white-space:nowrap">${fmtNum(item.qty*item.price)}</td>
+      <td><button onclick="event.stopPropagation();removePOSItem(${i})" style="background:transparent;border:none;color:var(--danger);cursor:pointer;font-size:.9rem;padding:2px 4px">✕</button></td>
+    </tr>
   `).join('');
 }
+
+window.selectPOSRow = (i) => {
+  window._posSelectedRow = i;
+  renderPOSItems();
+};
+
+window.changePOSQtySelected = (d) => {
+  const i = window._posSelectedRow;
+  if (i < 0 || i >= App.pos.items.length) { toast('اختر صفاً أولاً','error'); return; }
+  changePOSQty(i, d);
+};
 
 window.changePOSQty = (i, d) => {
   const item = App.pos.items[i];
