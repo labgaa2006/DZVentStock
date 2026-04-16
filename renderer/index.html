@@ -253,6 +253,20 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
 .mini-bar:hover{background:var(--primary)}
 .mini-bar.active{background:var(--primary)}
 
+/* ===== SKELETON LOADING ===== */
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skeleton{background:linear-gradient(90deg,#1e293b 25%,#273344 50%,#1e293b 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px}
+.skeleton-text{height:14px;margin-bottom:8px}
+.skeleton-title{height:20px;width:60%;margin-bottom:12px}
+.skeleton-card{height:80px;border-radius:12px;margin-bottom:10px}
+.skeleton-row{height:40px;border-radius:4px;margin-bottom:6px}
+
+/* ===== ERROR STATE ===== */
+.error-state{text-align:center;padding:50px 20px}
+.error-state .icon{font-size:3rem;margin-bottom:12px}
+.error-state h3{color:#fff;margin-bottom:8px}
+.error-state p{font-size:.82rem;color:var(--muted);margin-bottom:16px}
+
 /* ===== HOVER EFFECTS ===== */
 .card{transition:.2s}
 .card:hover{border-color:rgba(249,115,22,.2)}
@@ -261,7 +275,32 @@ tbody tr{transition:.12s}tbody tr:hover{background:rgba(249,115,22,.03)!importan
 </style>
 </head>
 <body>
-<div class="app">
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" style="position:fixed;inset:0;background:#0f172a;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column">
+  <div style="text-align:center;margin-bottom:32px;animation:fadeUp .4s ease">
+    <div style="width:64px;height:64px;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto 12px">🏪</div>
+    <div style="font-size:1.4rem;font-weight:900;color:#fff">DZ Vent & Stock</div>
+    <div style="font-size:.8rem;color:#64748b;margin-top:4px">نظام المبيعات والمخزون</div>
+  </div>
+  <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:28px 32px;width:320px;animation:fadeUp .4s ease .1s both">
+    <div style="font-size:.95rem;font-weight:700;color:#fff;margin-bottom:20px;text-align:center">🔐 تسجيل الدخول</div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:.72rem;color:#94a3b8;display:block;margin-bottom:5px;font-weight:600">اسم المستخدم</label>
+      <input id="loginUsername" class="form-input" placeholder="admin" value="admin" autocomplete="off" onkeydown="if(event.key==='Enter')document.getElementById('loginPassword').focus()">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:.72rem;color:#94a3b8;display:block;margin-bottom:5px;font-weight:600">كلمة المرور</label>
+      <input id="loginPassword" class="form-input" type="password" placeholder="••••••" value="admin123" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div id="loginError" style="display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:8px 12px;font-size:.78rem;color:#f87171;margin-bottom:12px"></div>
+    <button onclick="doLogin()" id="loginBtn" style="width:100%;padding:11px;background:#f97316;border:none;border-radius:9px;color:#fff;font-family:'Cairo',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:.15s">تسجيل الدخول</button>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #334155;font-size:.7rem;color:#64748b;text-align:center">
+      مستخدم افتراضي: <code style="color:#f97316">admin</code> / <code style="color:#f97316">admin123</code>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="mainApp" style="display:none">
 
   <!-- TITLEBAR -->
   <div class="titlebar">
@@ -298,100 +337,103 @@ tbody tr{transition:.12s}tbody tr:hover{background:rgba(249,115,22,.03)!importan
 
       <nav class="nav">
         <div class="nav-section">الرئيسية</div>
-        <div class="nav-item active" onclick="navigate('dashboard',this)">
+        <div class="nav-item active" onclick="navigate('dashboard',this)" data-screen="dashboard">
           <span class="nav-icon">📊</span> لوحة التحكم
         </div>
-        <div class="nav-item" onclick="navigate('pos',this)">
+        <div class="nav-item" onclick="navigate('pos',this)" data-screen="pos">
           <span class="nav-icon">⚡</span> نقطة البيع POS
         </div>
 
         <div class="nav-section">التجارة</div>
-        <div class="nav-item" onclick="navigate('ventes',this)">
+        <div class="nav-item" onclick="navigate('ventes',this)" data-screen="ventes">
           <span class="nav-icon">💰</span> المبيعات
         </div>
-        <div class="nav-item" onclick="navigate('achats',this)">
+        <div class="nav-item" onclick="navigate('achats',this)" data-screen="achats">
           <span class="nav-icon">🛒</span> المشتريات
         </div>
-        <div class="nav-item" onclick="navigate('quotes',this)">
+        <div class="nav-item" onclick="navigate('quotes',this)" data-screen="quotes">
           <span class="nav-icon">📋</span> عروض الأسعار
           <span class="nav-badge-soon">قريباً</span>
         </div>
 
         <div class="nav-section">المخزون</div>
-        <div class="nav-item" onclick="navigate('products',this)">
+        <div class="nav-item" onclick="navigate('products',this)" data-screen="products">
           <span class="nav-icon">📦</span> المنتجات
           <span class="nav-badge" id="navLowStock" style="display:none">!</span>
         </div>
-        <div class="nav-item" onclick="navigate('categories',this)">
+        <div class="nav-item" onclick="navigate('categories',this)" data-screen="categories">
           <span class="nav-icon">📂</span> الفئات
         </div>
-        <div class="nav-item" onclick="navigate('mouvements',this)">
+        <div class="nav-item" onclick="navigate('mouvements',this)" data-screen="mouvements">
           <span class="nav-icon">🔄</span> حركة المخزون
         </div>
 
         <div class="nav-section">العلاقات</div>
-        <div class="nav-item" onclick="navigate('clients',this)">
+        <div class="nav-item" onclick="navigate('clients',this)" data-screen="clients">
           <span class="nav-icon">👥</span> العملاء
         </div>
-        <div class="nav-item" onclick="navigate('fournisseurs',this)">
+        <div class="nav-item" onclick="navigate('fournisseurs',this)" data-screen="fournisseurs">
           <span class="nav-icon">🏭</span> الموردون
         </div>
 
         <div class="nav-section">المالية</div>
-        <div class="nav-item" onclick="navigate('caisse',this)">
+        <div class="nav-item" onclick="navigate('caisse',this)" data-screen="caisse">
           <span class="nav-icon">💵</span> الخزينة
           <span class="nav-badge-soon">قريباً</span>
         </div>
-        <div class="nav-item" onclick="navigate('reports',this)">
+        <div class="nav-item" onclick="navigate('reports',this)" data-screen="reports">
           <span class="nav-icon">📈</span> التقارير
         </div>
 
         <div class="nav-section">إضافي</div>
-        <div class="nav-item" onclick="navigate('retours',this)">
+        <div class="nav-item" onclick="navigate('retours',this)" data-screen="retours">
           <span class="nav-icon">↩️</span> المرتجعات
           <span class="nav-badge-soon">قريباً</span>
         </div>
-        <div class="nav-item" onclick="navigate('dettes',this)">
+        <div class="nav-item" onclick="navigate('dettes',this)" data-screen="dettes">
           <span class="nav-icon">💳</span> تسوية الديون
           <span class="nav-badge-soon">قريباً</span>
         </div>
-        <div class="nav-item" onclick="navigate('loyalty',this)">
+        <div class="nav-item" onclick="navigate('loyalty',this)" data-screen="loyalty">
           <span class="nav-icon">🎁</span> ولاء العملاء
           <span class="nav-badge-soon">قريباً</span>
         </div>
-        <div class="nav-item" onclick="navigate('expiry',this)">
+        <div class="nav-item" onclick="navigate('expiry',this)" data-screen="expiry">
           <span class="nav-icon">📅</span> تواريخ الصلاحية
           <span class="nav-badge-soon">قريباً</span>
         </div>
 
         <div class="nav-section">الفروع</div>
-        <div class="nav-item" onclick="navigate('branches',this)">
+        <div class="nav-item" onclick="navigate('branches',this)" data-screen="branches">
           <span class="nav-icon">🏪</span> إدارة الفروع
           <span class="nav-badge-soon">قريباً</span>
         </div>
 
         <div class="nav-section">الإعدادات</div>
-        <div class="nav-item" onclick="navigate('settings',this)">
+        <div class="nav-item" onclick="navigate('settings',this)" data-screen="settings">
           <span class="nav-icon">⚙️</span> الإعدادات
         </div>
-        <div class="nav-item" onclick="navigate('permissions',this)">
+        <div class="nav-item" onclick="navigate('permissions',this)" data-screen="permissions">
           <span class="nav-icon">🔐</span> الصلاحيات
           <span class="nav-badge-soon">قريباً</span>
         </div>
-        <div class="nav-item" onclick="navigate('users',this)">
+        <div class="nav-item" onclick="navigate('users',this)" data-screen="users">
           <span class="nav-icon">👤</span> المستخدمون
           <span class="nav-badge-soon">قريباً</span>
         </div>
-        <div class="nav-item" onclick="navigate('backup',this)">
+        <div class="nav-item" onclick="navigate('backup',this)" data-screen="backup">
           <span class="nav-icon">💾</span> النسخ الاحتياطي
         </div>
       </nav>
 
       <div class="sidebar-footer">
-        <div class="company-box">
+        <div class="company-box" style="margin-bottom:8px">
           <div class="company-name" id="footerCompany">محل الأغواط</div>
           <div class="company-sub" id="footerDate"></div>
         </div>
+        <button onclick="doLogout()" style="width:100%;padding:7px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#fca5a5;border-radius:8px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:.75rem;transition:.15s" onmouseover="this.style.background='rgba(239,68,68,.2)'" onmouseout="this.style.background='rgba(239,68,68,.1)'">
+          🚪 تسجيل الخروج
+        </button>
       </div>
     </div>
 
@@ -417,15 +459,15 @@ tbody tr{transition:.12s}tbody tr:hover{background:rgba(249,115,22,.03)!importan
 
       <!-- QUICK NAV -->
       <div class="quick-nav" id="quickNav">
-        <button class="qnav-btn active" onclick="navigate('dashboard',null);setActiveQNav(this)">📊 الرئيسية</button>
-        <button class="qnav-btn" onclick="navigate('pos',null);setActiveQNav(this)">⚡ POS</button>
-        <button class="qnav-btn" onclick="navigate('ventes',null);setActiveQNav(this)">💰 مبيعات</button>
-        <button class="qnav-btn" onclick="navigate('achats',null);setActiveQNav(this)">🛒 مشتريات</button>
-        <button class="qnav-btn" onclick="navigate('products',null);setActiveQNav(this)">📦 منتجات</button>
-        <button class="qnav-btn" onclick="navigate('clients',null);setActiveQNav(this)">👥 عملاء</button>
-        <button class="qnav-btn" onclick="navigate('caisse',null);setActiveQNav(this)">💵 خزينة</button>
-        <button class="qnav-btn" onclick="navigate('reports',null);setActiveQNav(this)">📈 تقارير</button>
-        <button class="qnav-btn" onclick="navigate('dettes',null);setActiveQNav(this)">💳 ديون</button>
+        <button class="qnav-btn active" onclick="navigate('dashboard',null);setActiveQNav(this)" data-screen="dashboard">📊 الرئيسية</button>
+        <button class="qnav-btn" onclick="navigate('pos',null);setActiveQNav(this)" data-screen="pos">⚡ POS</button>
+        <button class="qnav-btn" onclick="navigate('ventes',null);setActiveQNav(this)" data-screen="ventes">💰 مبيعات</button>
+        <button class="qnav-btn" onclick="navigate('achats',null);setActiveQNav(this)" data-screen="achats">🛒 مشتريات</button>
+        <button class="qnav-btn" onclick="navigate('products',null);setActiveQNav(this)" data-screen="products">📦 منتجات</button>
+        <button class="qnav-btn" onclick="navigate('clients',null);setActiveQNav(this)" data-screen="clients">👥 عملاء</button>
+        <button class="qnav-btn" onclick="navigate('caisse',null);setActiveQNav(this)" data-screen="caisse">💵 خزينة</button>
+        <button class="qnav-btn" onclick="navigate('reports',null);setActiveQNav(this)" data-screen="reports">📈 تقارير</button>
+        <button class="qnav-btn" onclick="navigate('dettes',null);setActiveQNav(this)" data-screen="dettes">💳 ديون</button>
       </div>
 
       <div class="content" id="mainContent">
@@ -434,6 +476,7 @@ tbody tr{transition:.12s}tbody tr:hover{background:rgba(249,115,22,.03)!importan
     </div>
 
   </div>
+</div>
 </div>
 
 <!-- MODAL CONTAINER -->
@@ -449,12 +492,44 @@ tbody tr{transition:.12s}tbody tr:hover{background:rgba(249,115,22,.03)!importan
 const App = {
   settings: {},
   currentScreen: 'dashboard',
-  pos: {
-    items: [],
-    discount: 0,
-    tvaRate: 19,
-  }
+  currentUser: null,  // { id, name, username, role }
+  lastScreen: localStorage.getItem('lastScreen') || 'dashboard',
+  pos: { items: [], discount: 0, tvaRate: 19 }
 };
+
+// ===== PERMISSIONS =====
+const ROLE_PERMISSIONS = {
+  admin:   ['dashboard','pos','ventes','achats','products','clients','fournisseurs','reports','settings','categories','mouvements','backup','quotes','caisse','retours','dettes','loyalty','expiry','branches','users','permissions'],
+  manager: ['dashboard','pos','ventes','achats','products','clients','fournisseurs','reports','categories','mouvements','quotes','retours','dettes','loyalty','expiry'],
+  cashier: ['dashboard','pos','ventes','products','clients'],
+};
+
+function canAccess(screen) {
+  if (!App.currentUser) return false;
+  const perms = ROLE_PERMISSIONS[App.currentUser.role] || [];
+  return perms.includes(screen);
+}
+
+function applyPermissions() {
+  if (!App.currentUser) return;
+  const role = App.currentUser.role;
+  document.querySelectorAll('.nav-item[data-screen]').forEach(item => {
+    const screen = item.dataset.screen;
+    if (!canAccess(screen)) {
+      item.style.opacity = '.35';
+      item.style.pointerEvents = 'none';
+      item.title = 'لا تملك صلاحية الوصول';
+    } else {
+      item.style.opacity = '';
+      item.style.pointerEvents = '';
+      item.title = '';
+    }
+  });
+  // Hide quick nav buttons based on permissions
+  document.querySelectorAll('.qnav-btn[data-screen]').forEach(btn => {
+    btn.style.display = canAccess(btn.dataset.screen) ? '' : 'none';
+  });
+}
 
 // =====================================================
 // UTILITIES
@@ -508,25 +583,66 @@ const screens = {
   dettes:      { title:'💳 تسوية الديون',     sub:'الفواتير غير المسددة' },
   loyalty:     { title:'🎁 ولاء العملاء',     sub:'نقاط ومستويات الولاء' },
   expiry:      { title:'📅 تواريخ الصلاحية',  sub:'متابعة صلاحية المنتجات' },
+  all:         { title:'📊 كل التقارير',        sub:'جميع البيانات' },
   branches:    { title:'🏪 إدارة الفروع',     sub:'الفروع والمواقع' },
   permissions: { title:'🔐 الصلاحيات',        sub:'أدوار وصلاحيات النظام' },
   users:       { title:'👤 المستخدمون',       sub:'إدارة حسابات المستخدمين' },
 };
 
 async function navigate(name, el) {
+  // Permission check
+  if (!canAccess(name)) {
+    toast('⛔ لا تملك صلاحية الوصول لهذه الصفحة', 'error');
+    return;
+  }
   App.currentScreen = name;
+  // Save last screen (except POS)
+  if (name !== 'pos') {
+    localStorage.setItem('lastScreen', name);
+    App.lastScreen = name;
+  }
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  if (el) el.classList.add('active');
+  if (el) { el.classList.add('active'); }
+  else {
+    document.querySelectorAll(`.nav-item[data-screen="${name}"]`).forEach(n => n.classList.add('active'));
+  }
   const info = screens[name] || { title: name, sub: '' };
   document.getElementById('pageTitle').textContent = info.title;
   document.getElementById('pageSub').textContent = info.sub;
   document.getElementById('topbarActions').innerHTML = '';
+  // Reset content padding for non-POS screens
+  document.getElementById('mainContent').style.padding = name === 'pos' ? '0' : '18px';
   await renderScreen(name);
+}
+
+function showSkeleton() {
+  const c = document.getElementById('mainContent');
+  c.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+      ${[1,2,3,4].map(()=>`<div class="skeleton skeleton-card"></div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div><div class="skeleton" style="height:200px;border-radius:12px"></div></div>
+      <div><div class="skeleton" style="height:200px;border-radius:12px"></div></div>
+    </div>
+  `;
+}
+
+function showError(msg, retryFn) {
+  const c = document.getElementById('mainContent');
+  c.innerHTML = `
+    <div class="error-state">
+      <div class="icon">⚠️</div>
+      <h3>حدث خطأ</h3>
+      <p>${msg}</p>
+      ${retryFn ? `<button class="btn btn-primary" onclick="${retryFn}()">🔄 إعادة المحاولة</button>` : ''}
+    </div>
+  `;
 }
 
 async function renderScreen(name) {
   const c = document.getElementById('mainContent');
-  c.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">⏳ جار التحميل...</div>';
+  showSkeleton();
   try {
     switch(name) {
       case 'dashboard':    await renderDashboard();    break;
@@ -553,7 +669,8 @@ async function renderScreen(name) {
       default:             renderComingSoon(name);     break;
     }
   } catch(e) {
-    c.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
+    showError(e.message || 'خطأ غير معروف', `renderScreen.bind(null,'${name}')`);
+    console.error('Screen error:', e);
   }
 }
 
@@ -1384,53 +1501,153 @@ window.confirmPOSSale = async () => {
 // REPORTS
 // =====================================================
 async function renderReports() {
-  const r = await window.api.stats.getReports('month');
+  // Period tabs
+  const period = App._reportPeriod || 'month';
+  const r = await window.api.stats.getReports(period);
   const c = document.getElementById('mainContent');
-  const profit = (r.total_ventes || 0) - (r.total_achats || 0);
+  const profit = (r.total_ventes||0) - (r.total_achats||0);
+
   c.innerHTML = `
-    <div class="grid-3 mb-16">
-      <div class="stat-card"><div class="stat-icon" style="background:rgba(16,185,129,.15)">💰</div><div><div class="stat-val" style="color:var(--success)">${fmt(r.total_ventes)}</div><div class="stat-lbl">إجمالي المبيعات (الشهر)</div></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:rgba(239,68,68,.15)">🛒</div><div><div class="stat-val" style="color:var(--danger)">${fmt(r.total_achats)}</div><div class="stat-lbl">إجمالي المشتريات</div></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:rgba(249,115,22,.15)">📈</div><div><div class="stat-val" style="color:var(--primary)">${fmt(profit)}</div><div class="stat-lbl">الربح التقديري</div></div></div>
+    <!-- PERIOD TABS -->
+    <div class="tabs mb-16">
+      <div class="tab ${period==='today'?'active':''}" onclick="setReportPeriod('today')">اليوم</div>
+      <div class="tab ${period==='month'?'active':''}" onclick="setReportPeriod('month')">هذا الشهر</div>
+      <div class="tab ${period==='year'?'active':''}" onclick="setReportPeriod('year')">هذه السنة</div>
+      <div class="tab ${period==='all'?'active':''}" onclick="setReportPeriod('all')">الكل</div>
     </div>
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-header"><div class="card-title">🏆 أكثر المنتجات مبيعاً</div></div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>المنتج</th><th>الكمية</th><th>المبيعات</th></tr></thead>
-            <tbody>
-              ${r.top_products.length === 0
-                ? `<tr><td colspan="3" style="text-align:center;padding:30px;color:var(--muted)">لا توجد بيانات</td></tr>`
-                : r.top_products.map(p => `
-                <tr>
-                  <td>${p.product_name}</td>
-                  <td style="color:var(--info);font-weight:700">${fmtNum(p.total_qty)}</td>
-                  <td style="color:var(--primary);font-weight:700">${fmt(p.total_amount)}</td>
-                </tr>`).join('')}
-            </tbody>
-          </table>
+
+    <div class="grid-3 mb-16">
+      <div class="stat-card anim-fadeup anim-d1"><div class="stat-icon" style="background:rgba(16,185,129,.15)">💰</div><div><div class="stat-val" style="color:var(--success)">${fmt(r.total_ventes)}</div><div class="stat-lbl">إجمالي المبيعات</div></div></div>
+      <div class="stat-card anim-fadeup anim-d2"><div class="stat-icon" style="background:rgba(239,68,68,.15)">🛒</div><div><div class="stat-val" style="color:var(--danger)">${fmt(r.total_achats)}</div><div class="stat-lbl">إجمالي المشتريات</div></div></div>
+      <div class="stat-card anim-fadeup anim-d3"><div class="stat-icon" style="background:rgba(249,115,22,.15)">📈</div><div><div class="stat-val" style="color:var(--primary)">${fmt(profit)}</div><div class="stat-lbl">الربح التقديري</div></div></div>
+    </div>
+
+    <div class="grid-2 mb-16">
+      <!-- REAL BAR CHART -->
+      <div class="card anim-fadeup anim-d1">
+        <div class="card-header"><div class="card-title">📊 مبيعات حسب الأيام</div></div>
+        <div class="card-body">
+          <canvas id="salesChart" height="160"></canvas>
+          ${r.ventes_by_day?.length===0?`<div style="text-align:center;color:var(--muted);padding:30px;font-size:.82rem">لا توجد بيانات</div>`:''}
         </div>
       </div>
-      <div class="card">
-        <div class="card-header"><div class="card-title">💳 طرق الدفع</div></div>
-        <div class="card-body" style="display:flex;gap:16px;flex-wrap:wrap">
-          ${r.payment_types.length === 0
-            ? `<div style="color:var(--muted);font-size:.85rem">لا توجد بيانات</div>`
-            : r.payment_types.map(pt => {
-                const pct = r.total_ventes > 0 ? Math.round(pt.total * 100 / r.total_ventes) : 0;
-                const color = pt.payment_type==='نقداً'?'var(--success)':pt.payment_type==='تحويل'?'var(--info)':'var(--warning)';
-                return `
-                <div style="text-align:center">
-                  <div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.05);border:3px solid ${color};display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:900;color:${color};margin:0 auto 6px">${pct}%</div>
-                  <div style="font-size:.7rem;color:var(--muted)">${pt.payment_type}</div>
-                  <div style="font-size:.72rem;color:#fff;font-weight:700">${fmt(pt.total)}</div>
-                </div>`;
-              }).join('')}
+
+      <!-- PAYMENT PIE CHART -->
+      <div class="card anim-fadeup anim-d2">
+        <div class="card-header"><div class="card-title">💳 توزيع طرق الدفع</div></div>
+        <div class="card-body" style="display:flex;align-items:center;gap:16px">
+          <canvas id="payChart" width="140" height="140" style="flex-shrink:0"></canvas>
+          <div id="payLegend" style="flex:1;display:grid;gap:8px"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- TOP PRODUCTS -->
+    <div class="card anim-fadeup anim-d3">
+      <div class="card-header"><div class="card-title">🏆 أكثر المنتجات مبيعاً</div></div>
+      <div class="card-body">
+        ${r.top_products.length===0
+          ? `<div style="text-align:center;color:var(--muted);padding:20px">لا توجد بيانات</div>`
+          : r.top_products.map((p,i)=>{
+              const maxAmt = r.top_products[0].total_amount||1;
+              const pct = Math.round((p.total_amount/maxAmt)*100);
+              return `
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                <span style="font-size:.8rem;font-weight:700;color:var(--muted);width:18px;text-align:center">${i+1}</span>
+                <div style="flex:1">
+                  <div style="font-size:.8rem;font-weight:600;color:#fff;margin-bottom:4px">${p.product_name}</div>
+                  <div class="progress-bar">
+                    <div class="progress-fill" style="width:${pct}%;background:${i===0?'var(--primary)':i===1?'var(--info)':'var(--success)'}"></div>
+                  </div>
+                </div>
+                <span style="font-size:.75rem;color:var(--primary);font-weight:700;white-space:nowrap">${fmt(p.total_amount)}</span>
+                <span style="font-size:.7rem;color:var(--muted);white-space:nowrap">${fmtNum(p.total_qty)} وحدة</span>
+              </div>`;
+            }).join('')}
       </div>
     </div>
   `;
+
+  // Draw real charts
+  setTimeout(() => {
+    drawSalesChart(r.ventes_by_day||[]);
+    drawPayChart(r.payment_types||[], r.total_ventes||0);
+  }, 50);
+}
+
+function setReportPeriod(period) {
+  App._reportPeriod = period;
+  renderReports();
+}
+
+function drawSalesChart(data) {
+  const canvas = document.getElementById('salesChart');
+  if (!canvas || !data.length) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth; canvas.width = W; const H = 160; canvas.height = H;
+  const pad = { top:10, right:10, bottom:30, left:55 };
+  const maxVal = Math.max(...data.map(d=>d.total||0), 1);
+  const cols = data.length;
+  const barW = Math.min(40, (W - pad.left - pad.right) / cols * 0.6);
+  const gap = (W - pad.left - pad.right) / cols;
+  ctx.clearRect(0,0,W,H);
+  // Grid lines
+  ctx.strokeStyle='#334155'; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y = pad.top + (H-pad.top-pad.bottom)*i/4;
+    ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(W-pad.right,y); ctx.stroke();
+    ctx.fillStyle='#64748b'; ctx.font='10px Cairo'; ctx.textAlign='right';
+    ctx.fillText(fmt(maxVal*(1-i/4)).replace(' DA',''), pad.left-4, y+3);
+  }
+  // Bars
+  data.forEach((d,i) => {
+    const barH = ((d.total||0)/maxVal)*(H-pad.top-pad.bottom);
+    const x = pad.left + i*gap + gap/2 - barW/2;
+    const y = H - pad.bottom - barH;
+    const grad = ctx.createLinearGradient(0,y,0,H-pad.bottom);
+    grad.addColorStop(0,'#f97316'); grad.addColorStop(1,'rgba(249,115,22,.3)');
+    ctx.fillStyle=grad;
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, barH, [4,4,0,0]);
+    ctx.fill();
+    // Date label
+    ctx.fillStyle='#64748b'; ctx.font='9px Cairo'; ctx.textAlign='center';
+    ctx.fillText(d.date?.slice(8)||'', x+barW/2, H-pad.bottom+12);
+  });
+}
+
+function drawPayChart(data, total) {
+  const canvas = document.getElementById('payChart');
+  const legend = document.getElementById('payLegend');
+  if (!canvas || !data.length) return;
+  const ctx = canvas.getContext('2d');
+  const W=140,H=140,cx=70,cy=70,r=55,inner=30;
+  const colors = ['#10b981','#38bdf8','#f59e0b','#f97316','#ef4444'];
+  let startAngle = -Math.PI/2;
+  ctx.clearRect(0,0,W,H);
+  let legendHTML = '';
+  data.forEach((pt,i) => {
+    const pct = total > 0 ? pt.total/total : 0;
+    const angle = pct * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,startAngle,startAngle+angle);
+    ctx.closePath();
+    ctx.fillStyle = colors[i%colors.length];
+    ctx.fill();
+    ctx.strokeStyle='#0f172a'; ctx.lineWidth=2; ctx.stroke();
+    startAngle += angle;
+    const pctNum = Math.round(pct*100);
+    legendHTML += `<div style="display:flex;align-items:center;gap:8px">
+      <div style="width:10px;height:10px;border-radius:50%;background:${colors[i%colors.length]};flex-shrink:0"></div>
+      <div style="font-size:.72rem;flex:1;color:#e2e8f0">${pt.payment_type}</div>
+      <div style="font-size:.72rem;font-weight:700;color:${colors[i%colors.length]}">${pctNum}%</div>
+    </div>`;
+  });
+  // Inner circle (donut)
+  ctx.beginPath(); ctx.arc(cx,cy,inner,0,Math.PI*2);
+  ctx.fillStyle='#0f172a'; ctx.fill();
+  if (legend) legend.innerHTML = legendHTML;
 }
 
 // =====================================================
@@ -2463,46 +2680,81 @@ function renderPermissions() {
 }
 
 // =====================================================
-// NOTIFICATIONS SYSTEM
+// NOTIFICATIONS SYSTEM (Real DB-backed)
 // =====================================================
 let notifications = [];
 
-function buildNotifications(stats, lowStock, dettes) {
-  const notifs = [];
-  if (lowStock > 0) notifs.push({ icon:'⚠️', text:`${lowStock} منتج بمخزون منخفض`, color:'var(--warning)', screen:'products' });
-  if (stats.out_of_stock > 0) notifs.push({ icon:'❌', text:`${stats.out_of_stock} منتج نفد من المخزون`, color:'var(--danger)', screen:'products' });
-  if (dettes.length > 0) {
-    const total = dettes.reduce((s,d)=>s+(d.reste||0),0);
-    notifs.push({ icon:'💳', text:`${dettes.length} فاتورة غير مسددة — ${fmt(total)}`, color:'var(--danger)', screen:'dettes' });
-  }
-  if (notifs.length === 0) notifs.push({ icon:'✅', text:'كل شيء على ما يرام', color:'var(--success)', screen:null });
-  return notifs;
+const NOTIF_ICONS = { stock:'📦', debt:'💳', info:'ℹ️', sale:'💰', error:'❌' };
+const NOTIF_COLORS = { stock:'var(--warning)', debt:'var(--danger)', info:'var(--info)', sale:'var(--success)', error:'var(--danger)' };
+
+async function loadNotifications() {
+  try {
+    await window.api.notif.generate(); // auto-generate smart notifs
+    notifications = await window.api.notif.getAll();
+    updateNotifBadge();
+  } catch(e) {}
 }
 
 function updateNotifBadge() {
-  const count = notifications.filter(n => n.color !== 'var(--success)').length;
+  const unread = notifications.filter(n => !n.is_read).length;
   const badge = document.getElementById('notifBadge');
   if (!badge) return;
-  if (count > 0) { badge.style.display = 'flex'; badge.textContent = count; }
+  if (unread > 0) { badge.style.display = 'flex'; badge.textContent = unread > 9 ? '9+' : unread; }
   else badge.style.display = 'none';
 }
 
-function toggleNotifPanel() {
+async function toggleNotifPanel() {
   const panel = document.getElementById('notifPanel');
   if (!panel) return;
   if (panel.style.display === 'none') {
     panel.style.display = 'block';
+    const typeLabel = { stock:'مخزون', debt:'ديون', info:'تنبيه', sale:'مبيعات', error:'خطأ' };
     panel.innerHTML = `
-      <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:.78rem;font-weight:700;color:#fff">🔔 الإشعارات</div>
-      ${notifications.map(n => `
-        <div class="notif-item" onclick="${n.screen?`navigate('${n.screen}',null);toggleNotifPanel()`:'toggleNotifPanel()'}" style="cursor:${n.screen?'pointer':'default'}">
-          <span style="font-size:1.1rem">${n.icon}</span>
-          <span style="font-size:.78rem;color:${n.color}">${n.text}</span>
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:.78rem;font-weight:700;color:#fff">🔔 الإشعارات</span>
+        <div style="display:flex;gap:6px">
+          <button onclick="markAllRead()" style="background:transparent;border:none;color:var(--muted);font-size:.7rem;cursor:pointer;font-family:'Cairo',sans-serif">✓ قراءة الكل</button>
+          <button onclick="clearAllNotif()" style="background:transparent;border:none;color:var(--danger);font-size:.7rem;cursor:pointer;font-family:'Cairo',sans-serif">🗑️ مسح</button>
+        </div>
+      </div>
+      ${notifications.length === 0
+        ? `<div style="padding:20px;text-align:center;color:var(--muted);font-size:.78rem">✅ لا توجد إشعارات</div>`
+        : notifications.slice(0,10).map(n => `
+        <div class="notif-item" onclick="handleNotifClick('${n.ref_screen}','${n.id}')" style="cursor:${n.ref_screen?'pointer':'default'};background:${n.is_read?'':'rgba(249,115,22,.04)'}">
+          <div>
+            <div style="font-size:1rem">${NOTIF_ICONS[n.type]||'🔔'}</div>
+            ${!n.is_read?'<div style="width:6px;height:6px;border-radius:50%;background:var(--primary);margin:0 auto;margin-top:2px"></div>':''}
+          </div>
+          <div style="flex:1">
+            <div style="font-size:.78rem;color:${NOTIF_COLORS[n.type]||'#fff'};font-weight:600">${n.title}</div>
+            ${n.message?`<div style="font-size:.7rem;color:var(--muted);margin-top:2px">${n.message}</div>`:''}
+            <div style="font-size:.65rem;color:#475569;margin-top:3px">${n.created_at?.slice(11,16)||''}</div>
+          </div>
         </div>`).join('')}
     `;
   } else {
     panel.style.display = 'none';
   }
+}
+
+async function handleNotifClick(screen, id) {
+  if (screen) { navigate(screen, null); }
+  toggleNotifPanel();
+}
+
+async function markAllRead() {
+  await window.api.notif.markRead();
+  notifications = notifications.map(n => ({ ...n, is_read: 1 }));
+  updateNotifBadge();
+  toggleNotifPanel(); toggleNotifPanel();
+}
+
+async function clearAllNotif() {
+  await window.api.notif.clear();
+  notifications = [];
+  updateNotifBadge();
+  document.getElementById('notifPanel').style.display = 'none';
+  toast('🗑️ تم مسح الإشعارات', 'info');
 }
 
 // Close notif panel on outside click
@@ -2539,18 +2791,13 @@ async function init() {
   }
 
   // تحميل الإشعارات
-  try {
-    const stats = await window.api.stats.getDashboard();
-    const dettes = await window.api.dettes.getAll();
-    notifications = buildNotifications(stats, stats.low_stock_count + stats.out_of_stock, dettes);
-    updateNotifBadge();
-    // Update low stock badge in nav
-    const badge = document.getElementById('navLowStock');
-    if (badge && (stats.low_stock_count + stats.out_of_stock) > 0) {
-      badge.style.display = '';
-      badge.textContent = stats.low_stock_count + stats.out_of_stock;
-    }
-  } catch(e) {}
+  await loadNotifications();
+  const unread = notifications.filter(n=>!n.is_read).length;
+  const badge = document.getElementById('navLowStock');
+  if (badge) {
+    const lowStockNotifs = notifications.filter(n=>n.type==='stock').length;
+    if (lowStockNotifs > 0) { badge.style.display=''; badge.textContent=lowStockNotifs; }
+  }
 
   // تحميل الفروع
   try {
@@ -2559,20 +2806,57 @@ async function init() {
     if (mainBranch) document.getElementById('branchTag').textContent = '🏪 ' + mainBranch.name;
   } catch(e) {}
 
-  // تحميل بيانات المستخدم
-  try {
-    const users = await window.api.users.getAll();
-    const admin = users.find(u => u.role === 'admin') || users[0];
-    if (admin) {
-      document.getElementById('userName').textContent = admin.name;
-      document.getElementById('userAvatar').textContent = admin.name.charAt(0);
-      const roleLabel = admin.role==='admin'?'🔑 مدير':admin.role==='manager'?'📋 مشرف':'💼 كاشير';
-      document.getElementById('userRole').textContent = roleLabel;
-    }
-  } catch(e) {}
+  // تطبيق الصلاحيات
+  applyPermissions();
 
-  // عرض الشاشة الرئيسية
-  await navigate('dashboard', document.querySelector('.nav-item'));
+  // عرض الشاشة الأخيرة أو الرئيسية
+  const startScreen = canAccess(App.lastScreen) ? App.lastScreen : 'dashboard';
+  const firstNavItem = document.querySelector(`.nav-item[data-screen="${startScreen}"]`);
+  await navigate(startScreen, firstNavItem);
+}
+
+// ===== LOGIN SYSTEM =====
+async function doLogin() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginError');
+  if (!username || !password) {
+    errEl.style.display='block'; errEl.textContent='أدخل اسم المستخدم وكلمة المرور';
+    return;
+  }
+  btn.textContent = '⏳ جار التحقق...'; btn.disabled = true;
+  try {
+    const result = await window.api.auth.login(username, password);
+    if (result.success) {
+      App.currentUser = result.user;
+      // Show main app
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'flex';
+      // Update user info in sidebar
+      document.getElementById('userName').textContent = result.user.name;
+      document.getElementById('userAvatar').textContent = result.user.name.charAt(0);
+      const roleLabel = result.user.role==='admin'?'🔑 مدير':result.user.role==='manager'?'📋 مشرف':'💼 كاشير';
+      document.getElementById('userRole').textContent = roleLabel;
+      await init();
+    } else {
+      errEl.style.display='block'; errEl.textContent = result.error || 'خطأ في تسجيل الدخول';
+      btn.textContent='تسجيل الدخول'; btn.disabled=false;
+    }
+  } catch(e) {
+    errEl.style.display='block'; errEl.textContent='خطأ في الاتصال بقاعدة البيانات';
+    btn.textContent='تسجيل الدخول'; btn.disabled=false;
+  }
+}
+
+function doLogout() {
+  App.currentUser = null;
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginBtn').textContent = 'تسجيل الدخول';
+  document.getElementById('loginBtn').disabled = false;
+  document.getElementById('loginError').style.display = 'none';
 }
 
 // ===== POS PAUSE/RESUME =====
@@ -2593,6 +2877,7 @@ function resumePOS() {
 
 // اختصارات لوحة المفاتيح
 document.addEventListener('keydown', e => {
+  if (!App.currentUser) return; // ignore shortcuts on login screen
   if (e.key === 'F1') navigate('dashboard', null);
   if (e.key === 'F2') navigate('pos', null);
   if (e.key === 'F3') navigate('products', null);
@@ -2604,7 +2889,15 @@ document.addEventListener('keydown', e => {
   }
 });
 
-init();
+// Add Enter key on login
+document.addEventListener('DOMContentLoaded', () => {
+  // Focus username on load
+  setTimeout(() => {
+    const u = document.getElementById('loginUsername');
+    if (u) u.focus();
+  }, 100);
+});
+// Don't auto-init — wait for login
 </script>
 </body>
 </html>

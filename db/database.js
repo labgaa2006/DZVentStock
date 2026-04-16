@@ -148,6 +148,11 @@ class DB {
         is_active INTEGER DEFAULT 1, last_login TEXT DEFAULT '',
         created_at TEXT DEFAULT (datetime('now'))
       );
+      CREATE TABLE IF NOT EXISTS notifications (
+        id TEXT PRIMARY KEY, type TEXT DEFAULT 'info', title TEXT NOT NULL,
+        message TEXT DEFAULT '', is_read INTEGER DEFAULT 0, ref_id TEXT DEFAULT '',
+        ref_screen TEXT DEFAULT '', created_at TEXT DEFAULT (datetime('now'))
+      );
       CREATE TABLE IF NOT EXISTS debt_payments (
         id TEXT PRIMARY KEY, vente_id TEXT, client_name TEXT,
         amount REAL DEFAULT 0, notes TEXT DEFAULT '',
@@ -520,6 +525,69 @@ class DB {
     return {success:true};
   }
   deleteUser(id) { this.run(`DELETE FROM users WHERE id!=? AND id=?`,['user-admin',id]); return {success:true}; }
+
+
+  // ===== NOTIFICATIONS =====
+  getNotifications() {
+    return this.all(`SELECT * FROM notifications ORDER BY created_at DESC LIMIT 50`);
+  }
+  getUnreadCount() {
+    return this.get(`SELECT COUNT(*) as c FROM notifications WHERE is_read=0`)?.c || 0;
+  }
+  addNotification(type, title, message, refScreen='', refId='') {
+    const id = this.uuid();
+    this.run(`INSERT INTO notifications(id,type,title,message,ref_screen,ref_id) VALUES(?,?,?,?,?,?)`,
+      [id, type, title, message, refScreen, refId]);
+    return { success: true, id };
+  }
+  markAllRead() {
+    this.run(`UPDATE notifications SET is_read=1`);
+    return { success: true };
+  }
+  clearNotifications() {
+    this.run(`DELETE FROM notifications`);
+    return { success: true };
+  }
+  // Generate smart notifications
+  generateNotifications() {
+    // Clear old auto notifications
+    this.db.run(`DELETE FROM notifications WHERE type IN ('stock','debt','info')`);
+    // Low stock
+    const lowStock = this.all(`SELECT * FROM products WHERE is_deleted=0 AND stock<=stock_min AND stock>0 LIMIT 10`);
+    lowStock.forEach(p => {
+      this.db.run(`INSERT INTO notifications(id,type,title,message,ref_screen,ref_id) VALUES(?,?,?,?,?,?)`,
+        [this.uuid(),'stock',`مخزون منخفض: ${p.name}`,`المخزون: ${p.stock} / الحد: ${p.stock_min}`,'products',p.id]);
+    });
+    // Out of stock
+    const outStock = this.all(`SELECT * FROM products WHERE is_deleted=0 AND stock=0 LIMIT 10`);
+    outStock.forEach(p => {
+      this.db.run(`INSERT INTO notifications(id,type,title,message,ref_screen,ref_id) VALUES(?,?,?,?,?,?)`,
+        [this.uuid(),'stock',`نفد المخزون: ${p.name}`,`المنتج غير متوفر`,'products',p.id]);
+    });
+    // Unpaid debts
+    const dettes = this.all(`SELECT * FROM ventes WHERE is_deleted=0 AND reste>0 ORDER BY reste DESC LIMIT 5`);
+    if (dettes.length > 0) {
+      const total = dettes.reduce((s,d) => s + d.reste, 0);
+      this.db.run(`INSERT INTO notifications(id,type,title,message,ref_screen,ref_id) VALUES(?,?,?,?,?,?)`,
+        [this.uuid(),'debt',`${dettes.length} فواتير غير مسددة`,`إجمالي الديون: ${total.toLocaleString()} DA`,'dettes','']);
+    }
+    // Expiry warnings
+    const soon = this.all(`SELECT * FROM expiry WHERE date(expiry_date) <= date('now','+30 days') AND date(expiry_date) >= date('now') LIMIT 5`);
+    soon.forEach(e => {
+      this.db.run(`INSERT INTO notifications(id,type,title,message,ref_screen,ref_id) VALUES(?,?,?,?,?,?)`,
+        [this.uuid(),'info',`قرب انتهاء صلاحية: ${e.product_name}`,`تاريخ الانتهاء: ${e.expiry_date}`,'expiry',e.id]);
+    });
+    this.save();
+    return { success: true, count: lowStock.length + outStock.length + (dettes.length>0?1:0) + soon.length };
+  }
+  // LOGIN
+  loginUser(username, password) {
+    const user = this.get(`SELECT * FROM users WHERE username=? AND password=? AND is_active=1`,[username,password]);
+    if (!user) return { success: false, error: 'اسم المستخدم أو كلمة المرور غير صحيحة' };
+    this.db.run(`UPDATE users SET last_login=datetime('now') WHERE id=?`,[user.id]);
+    this.save();
+    return { success: true, user: { id:user.id, name:user.name, username:user.username, role:user.role } };
+  }
 
 
 module.exports = DB;

@@ -31,6 +31,19 @@ contextBridge.exposeInMainWorld('api', {
     delete:  (id)       => ipcRenderer.invoke('fournisseurs:delete', id),
   },
 
+  // ===== تسجيل الدخول =====
+  auth: {
+    login: (username, password) => ipcRenderer.invoke('auth:login', username, password),
+  },
+  // ===== الإشعارات =====
+  notif: {
+    getAll:    ()                    => ipcRenderer.invoke('notif:getAll'),
+    getUnread: ()                    => ipcRenderer.invoke('notif:getUnread'),
+    add:       (t, title, msg, s, r) => ipcRenderer.invoke('notif:add', t, title, msg, s, r),
+    markRead:  ()                    => ipcRenderer.invoke('notif:markRead'),
+    clear:     ()                    => ipcRenderer.invoke('notif:clear'),
+    generate:  ()                    => ipcRenderer.invoke('notif:generate'),
+  },
   // ===== عروض الأسعار =====
   quotes: {
     getAll:       ()         => ipcRenderer.invoke('quotes:getAll'),

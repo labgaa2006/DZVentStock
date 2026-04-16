@@ -109,6 +109,17 @@ ipcMain.handle('stats:getReports',   (_, p)  => db.getReports(p));
 ipcMain.handle('settings:get',     ()        => db.getSettings());
 ipcMain.handle('settings:save',    (_, d)    => db.saveSettings(d));
 
+// Auth
+ipcMain.handle('auth:login',    (_, u, p) => db.loginUser(u, p));
+
+// Notifications
+ipcMain.handle('notif:getAll',    ()    => db.getNotifications());
+ipcMain.handle('notif:getUnread', ()    => db.getUnreadCount());
+ipcMain.handle('notif:add',    (_, t, ti, m, s, r) => db.addNotification(t, ti, m, s, r));
+ipcMain.handle('notif:markRead',  ()    => db.markAllRead());
+ipcMain.handle('notif:clear',     ()    => db.clearNotifications());
+ipcMain.handle('notif:generate',  ()    => db.generateNotifications());
+
 // Quotes
 ipcMain.handle('quotes:getAll',        ()        => db.getAllQuotes());
 ipcMain.handle('quotes:getById',       (_, i)    => db.getQuoteById(i));
