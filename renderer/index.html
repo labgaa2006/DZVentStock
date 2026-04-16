@@ -588,6 +588,8 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(255,255,255,.02)}
         <button class="topbar-btn" onclick="refreshCurrentScreen()" title="تحديث الصفحة">🔄 تحديث</button>
         <button class="topbar-btn" onclick="openGlobalSearch()" title="بحث شامل (Ctrl+K)">🔍 بحث عام</button>
         <button class="topbar-btn" onclick="printCurrentScreen()" title="طباعة">🖨️ طباعة</button>
+        <!-- Theme Toggle -->
+        <button id="themeToggleBtn" class="topbar-btn" onclick="toggleTheme()" title="تبديل الوضع الليلي/النهاري" style="font-size:.9rem;padding:5px 9px">🌙</button>
         <button class="topbar-btn" id="themeToggleBtn" onclick="toggleTheme()" title="تبديل الوضع">🌙</button>
         <!-- Notification Bell -->
         <div style="position:relative">
@@ -1539,6 +1541,7 @@ async function renderPOS() {
       <div style="border-right:1px solid var(--border);padding-right:14px;margin-right:0">
         <div style="font-size:.72rem;color:var(--muted)">فاتورة رقم: <strong style="color:var(--info)">${venteNum}</strong></div>
         <div style="font-size:.72rem;color:var(--muted)">عدد الأصناف: <span id="pos_count" style="color:#fff;font-weight:700">0</span></div>
+        <div style="font-size:.72rem;color:var(--muted)">Nombre de produits: <span id="pos_items_count" style="color:var(--info);font-weight:700">0</span></div>
       </div>
       <div style="margin-right:auto;text-align:center">
         <div style="font-size:.6rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase">TOTAL</div>
@@ -1726,7 +1729,7 @@ function handlePOSSearch(q) {
     ? `<div style="padding:16px;text-align:center;color:var(--muted);font-size:.8rem">لا توجد نتائج لـ "${q}"</div>`
     : filtered.slice(0,15).map(p => `
       <div class="pos-dropdown-item"
-        onclick="addToPOSById('${p.id}');document.getElementById('posSearchInput').value='';document.getElementById('posDropdown').classList.remove('open')">
+        onclick="addToPOSById('${p.id}');const si=document.getElementById('posSearchInput');if(si){si.value='';si.focus();}document.getElementById('posDropdown').classList.remove('open');_posDropdownIndex=-1">
         <div style="flex:1;min-width:0">
           <div style="font-weight:700;font-size:.85rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
           <div style="font-size:.68rem;color:var(--muted)">${p.ref}${p.barcode?' • '+p.barcode:''}${p.category?' • '+p.category:''}</div>
@@ -1743,25 +1746,31 @@ let _posDropdownIndex = -1;
 
 function handlePOSSearchKey(e) {
   const dropdown = document.getElementById('posDropdown');
-  const items = dropdown ? dropdown.querySelectorAll('.pos-dropdown-item') : [];
+  const isOpen = dropdown?.classList.contains('open');
+  const items = (isOpen && dropdown) ? dropdown.querySelectorAll('.pos-dropdown-item') : [];
 
   if (e.key === 'Escape') {
+    e.preventDefault();
     dropdown?.classList.remove('open');
     document.getElementById('posSearchInput').value = '';
     _posDropdownIndex = -1;
     return;
   }
 
+  if (!isOpen) return; // Only handle navigation when dropdown is open
+
   if (e.key === 'ArrowDown') {
     e.preventDefault();
-    _posDropdownIndex = Math.min(_posDropdownIndex + 1, items.length - 1);
+    if (items.length === 0) return;
+    _posDropdownIndex = _posDropdownIndex < items.length - 1 ? _posDropdownIndex + 1 : 0;
     updateDropdownHighlight(items);
     return;
   }
 
   if (e.key === 'ArrowUp') {
     e.preventDefault();
-    _posDropdownIndex = Math.max(_posDropdownIndex - 1, 0);
+    if (items.length === 0) return;
+    _posDropdownIndex = _posDropdownIndex > 0 ? _posDropdownIndex - 1 : items.length - 1;
     updateDropdownHighlight(items);
     return;
   }
@@ -1780,15 +1789,11 @@ function handlePOSSearchKey(e) {
 
 function updateDropdownHighlight(items) {
   items.forEach((el, i) => {
-    el.style.background = i === _posDropdownIndex
-      ? 'rgba(249,115,22,.2)'
-      : '';
-    el.style.outline = i === _posDropdownIndex
-      ? '2px solid var(--primary)'
-      : '';
-    if (i === _posDropdownIndex) {
-      el.scrollIntoView({ block: 'nearest' });
-    }
+    const active = i === _posDropdownIndex;
+    el.style.background = active ? 'rgba(249,115,22,.25)' : '';
+    el.style.outline = active ? '2px solid var(--primary)' : 'none';
+    el.style.borderRight = active ? '3px solid var(--primary)' : '';
+    if (active) el.scrollIntoView({ block: 'nearest', behavior:'smooth' });
   });
 }
 
@@ -1844,7 +1849,7 @@ window.addToPOS = (id, name, price, stock) => {
     if (existing.qty >= stock) { toast('لا يوجد مخزون كافٍ', 'error'); return; }
     existing.qty++;
   } else {
-    const p = (window._posAllProducts||[]).find(x=>x.id===id);
+    const p = (_posProducts||[]).find(x=>x.id===id);
     App.pos.items.push({ product_id:id, product_name:name, ref:p?.ref||'', price, qty:1, stock, unit:p?.unit||'قطعة' });
   }
   renderPOSItems();
@@ -1873,15 +1878,18 @@ window.recalcPOS = () => {
   if ($('pos_net'))      $('pos_net').textContent       = fmt(net);
   if ($('pos_paid'))     $('pos_paid').value            = Math.round(net);
 
-  // ★ Big green total at top — uses pos_total_big
-  if ($('pos_total_big')) {
-    $('pos_total_big').textContent = net.toLocaleString('fr-DZ', {minimumFractionDigits:2, maximumFractionDigits:2});
-    $('pos_total_big').style.color = net > 0 ? '#00ff88' : '#64748b';
-  }
-
   // Items count
   const qtyTotal = App.pos.items.reduce((s,i)=>s+i.qty,0);
   if ($('pos_count')) $('pos_count').textContent = qtyTotal;
+  if ($('pos_items_count')) $('pos_items_count').textContent = App.pos.items.length;
+
+  // Update total big immediately and prominently
+  if ($('pos_total_big')) {
+    const displayVal = net === 0 ? '0.00' : net.toLocaleString('fr-DZ', {minimumFractionDigits:2,maximumFractionDigits:2});
+    $('pos_total_big').textContent = displayVal;
+    $('pos_total_big').style.color = net > 0 ? '#00ff88' : '#64748b';
+    $('pos_total_big').style.textShadow = net > 0 ? '0 0 20px rgba(0,255,136,.4)' : 'none';
+  }
 
   updateReste();
 };
@@ -3480,6 +3488,43 @@ function applyTheme() {
 }
 
 // =====================================================
+// THEME / DARK-LIGHT MODE
+// =====================================================
+let _isDarkMode = true;
+
+function toggleTheme() {
+  _isDarkMode = !_isDarkMode;
+  applyTheme(_isDarkMode);
+  try { localStorage.setItem('dzvs_theme', _isDarkMode ? 'dark' : 'light'); } catch(e){}
+}
+
+function applyTheme(dark) {
+  _isDarkMode = dark;
+  if (dark) {
+    document.body.classList.remove('light-mode');
+    const btn = document.getElementById('themeToggleBtn');
+    if (btn) btn.textContent = '🌙';
+    if (btn) btn.title = 'التبديل للوضع النهاري';
+  } else {
+    document.body.classList.add('light-mode');
+    const btn = document.getElementById('themeToggleBtn');
+    if (btn) btn.textContent = '☀️';
+    if (btn) btn.title = 'التبديل للوضع الليلي';
+  }
+}
+
+// Load saved theme on startup
+(function() {
+  try {
+    const saved = localStorage.getItem('dzvs_theme');
+    if (saved === 'light') {
+      _isDarkMode = false;
+      document.body.classList.add('light-mode');
+    }
+  } catch(e) {}
+})();
+
+// =====================================================
 // TOPBAR QUICK TOOLS
 // =====================================================
 function refreshCurrentScreen() {
@@ -3668,6 +3713,8 @@ async function startup() {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'flex';
     await init();
+    // Apply saved theme after UI is ready
+    applyTheme(_isDarkMode);
   }
 }
 
