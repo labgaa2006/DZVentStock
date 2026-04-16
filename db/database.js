@@ -158,7 +158,7 @@ class DB {
         amount REAL DEFAULT 0, notes TEXT DEFAULT '',
         date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now'))
       );
-    \`);
+    `);
 
     const defaults = [
       ['company_name','محل الأغواط للإلكترونيات'],['company_phone','0550 000 000'],
@@ -374,7 +374,6 @@ class DB {
     this.save();
     return { success:true };
   }
-}
 
   // ===== QUOTES =====
   getAllQuotes() { return this.all(`SELECT * FROM quotes WHERE is_deleted=0 ORDER BY created_at DESC LIMIT 200`); }
@@ -589,6 +588,6 @@ class DB {
     this.save();
     return { success: true, user: { id:user.id, name:user.name, username:user.username, role:user.role } };
   }
-
+}
 
 module.exports = DB;
