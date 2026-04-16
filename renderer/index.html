@@ -12,7 +12,36 @@
   --primary:#f97316;--primary-dark:#ea580c;
   --success:#10b981;--danger:#ef4444;--warning:#f59e0b;--info:#38bdf8;
   --text:#e2e8f0;--muted:#94a3b8;--accent:#f97316;
+  --transition-theme:.25s;
 }
+/* ===== LIGHT MODE ===== */
+body.light-mode{
+  --bg:#f1f5f9;--sidebar:#fff;--card:#fff;--border:#e2e8f0;
+  --text:#1e293b;--muted:#64748b;
+}
+body.light-mode .titlebar{background:#e2e8f0;border-bottom-color:#cbd5e1}
+body.light-mode .titlebar-logo{color:var(--primary)}
+body.light-mode .titlebar-title{color:#64748b}
+body.light-mode .tb-btn{color:#64748b}
+body.light-mode .tb-btn:hover{background:rgba(0,0,0,.07);color:#1e293b}
+body.light-mode thead th{background:#f8fafc;color:#64748b}
+body.light-mode .company-box{background:#f8fafc;border-color:#e2e8f0}
+body.light-mode .company-name,.light-mode .user-name{color:#1e293b}
+body.light-mode .nav-item{color:#64748b}
+body.light-mode .nav-item:hover{background:rgba(0,0,0,.05);color:#1e293b}
+body.light-mode .form-input,body.light-mode .form-select{background:#f8fafc;border-color:#e2e8f0;color:#1e293b}
+body.light-mode .card-search-input{background:#f8fafc;border-color:#e2e8f0;color:#1e293b}
+body.light-mode .modal{background:#fff}
+body.light-mode .modal-overlay{background:rgba(0,0,0,.4)}
+body.light-mode code{background:#f1f5f9!important;color:#0369a1!important}
+body.light-mode .pos-dropdown{background:#fff}
+body.light-mode .pos-dropdown-item:hover{background:rgba(249,115,22,.08)}
+body.light-mode tbody tr:hover td{background:rgba(0,0,0,.02)}
+body.light-mode .quick-nav{background:#fff}
+body.light-mode .topbar{background:#fff}
+body.light-mode .notif-panel{background:#fff}
+body{transition:background var(--transition-theme),color var(--transition-theme)}
+.sidebar,.card,.modal,.topbar,.quick-nav,.pos-dropdown,.notif-panel{transition:background var(--transition-theme),border-color var(--transition-theme)}
 /* ===== LIGHT MODE ===== */
 body.light-mode{
   --bg:#f1f5f9;--sidebar:#ffffff;--card:#ffffff;--border:#e2e8f0;
@@ -559,6 +588,7 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(255,255,255,.02)}
         <button class="topbar-btn" onclick="refreshCurrentScreen()" title="تحديث الصفحة">🔄 تحديث</button>
         <button class="topbar-btn" onclick="openGlobalSearch()" title="بحث شامل (Ctrl+K)">🔍 بحث عام</button>
         <button class="topbar-btn" onclick="printCurrentScreen()" title="طباعة">🖨️ طباعة</button>
+        <button class="topbar-btn" id="themeToggleBtn" onclick="toggleTheme()" title="تبديل الوضع">🌙</button>
         <!-- Notification Bell -->
         <div style="position:relative">
           <button class="notif-btn" id="notifBtn" onclick="toggleNotifPanel()" title="الإشعارات">
@@ -3420,6 +3450,36 @@ function doLogout() {
 }
 
 // =====================================================
+// THEME TOGGLE — Dark / Light Mode
+// =====================================================
+let _isDarkMode = true;
+
+function initTheme() {
+  try {
+    const saved = localStorage.getItem('dzvs_theme');
+    _isDarkMode = saved !== 'light';
+  } catch(e) { _isDarkMode = true; }
+  applyTheme();
+}
+
+function toggleTheme() {
+  _isDarkMode = !_isDarkMode;
+  try { localStorage.setItem('dzvs_theme', _isDarkMode ? 'dark' : 'light'); } catch(e) {}
+  applyTheme();
+  toast(_isDarkMode ? '🌙 الوضع الليلي' : '☀️ الوضع النهاري', 'info', 1500);
+}
+
+function applyTheme() {
+  if (_isDarkMode) {
+    document.body.classList.remove('light-mode');
+  } else {
+    document.body.classList.add('light-mode');
+  }
+  const btn = document.getElementById('themeToggleBtn');
+  if (btn) btn.textContent = _isDarkMode ? '🌙' : '☀️';
+}
+
+// =====================================================
 // TOPBAR QUICK TOOLS
 // =====================================================
 function refreshCurrentScreen() {
@@ -3584,6 +3644,8 @@ applyTheme();
 
 // ===== STARTUP =====
 async function startup() {
+  // Init theme first (before anything renders)
+  initTheme();
   // Always ensure currentUser is set (admin by default)
   App.currentUser = { id:'user-admin', name:'مدير النظام', username:'admin', role:'admin' };
 
