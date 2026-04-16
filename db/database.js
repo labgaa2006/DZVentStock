@@ -108,7 +108,7 @@ class DB {
       ['company_name','محل الأغواط للإلكترونيات'],['company_phone','0550 000 000'],
       ['company_address','الأغواط، الجزائر'],['tva','19'],['currency','DA'],
       ['paper_size','A4'],['stock_alert','1'],['vente_num_prefix','F'],
-      ['vente_num_counter','1'],['achat_num_prefix','A'],['achat_num_counter','1'],
+      ['vente_num_counter','1'],['achat_num_prefix','A'],['achat_num_counter','1'],['tva_enabled','0'],
     ];
     defaults.forEach(([k,v]) => {
       this.db.run(`INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)`, [k,v]);

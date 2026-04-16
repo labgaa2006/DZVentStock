@@ -1066,12 +1066,16 @@ window.addToPOS = (id, name, price, stock) => {
 window.recalcPOS = () => {
   const total = App.pos.items.reduce((s,i) => s + i.qty * i.price, 0);
   const disc = parseFloat(document.getElementById('pos_disc')?.value) || 0;
-  const tvaRate = parseFloat(document.getElementById('pos_tva_rate')?.value) || 19;
+  const tvaEnabled = App.settings.tva_enabled === '1';
+  const tvaRate = tvaEnabled ? (parseFloat(document.getElementById('pos_tva_rate')?.value) || 0) : 0;
   const discAmt = total * disc / 100;
   const afterDisc = total - discAmt;
-  const tvaAmt = afterDisc * tvaRate / 100;
+  const tvaAmt = tvaEnabled ? (afterDisc * tvaRate / 100) : 0;
   const net = afterDisc + tvaAmt;
-  document.getElementById('pos_ht').textContent = fmt(afterDisc / (1 + tvaRate/100));
+  // إخفاء/إظهار سطر TVA
+  const tvaRow = document.getElementById('pos_tva_row');
+  if (tvaRow) tvaRow.style.display = tvaEnabled ? '' : 'none';
+  document.getElementById('pos_ht').textContent = tvaEnabled ? fmt(afterDisc / (1 + tvaRate/100)) : fmt(afterDisc);
   document.getElementById('pos_tva').textContent = fmt(tvaAmt);
   document.getElementById('pos_disc_amt').textContent = fmt(discAmt);
   document.getElementById('pos_net').textContent = fmt(net);
@@ -1143,11 +1147,12 @@ window.confirmPOSSale = async () => {
   const net = parseFloat(netText.replace(/[^\d.]/g,''));
   const paid = parseFloat(document.getElementById('pos_paid').value) || 0;
   const disc = parseFloat(document.getElementById('pos_disc').value) || 0;
-  const tvaRate = parseFloat(document.getElementById('pos_tva_rate').value) || 19;
+  const tvaEnabled = App.settings.tva_enabled === '1';
+  const tvaRate = tvaEnabled ? (parseFloat(document.getElementById('pos_tva_rate').value) || 0) : 0;
   const total = App.pos.items.reduce((s,i) => s + i.qty*i.price, 0);
   const discAmt = total * disc / 100;
   const afterDisc = total - discAmt;
-  const tvaAmt = afterDisc * tvaRate / 100;
+  const tvaAmt = tvaEnabled ? (afterDisc * tvaRate / 100) : 0;
   const clientSel = document.getElementById('pos_client');
 
   const data = {
@@ -1222,6 +1227,7 @@ async function renderReports() {
 // =====================================================
 async function renderSettings() {
   const s = App.settings;
+  const tvaOn = s.tva_enabled === '1';
   const c = document.getElementById('mainContent');
   c.innerHTML = `
     <div class="grid-2">
@@ -1237,7 +1243,21 @@ async function renderSettings() {
       <div class="card">
         <div class="card-header"><div class="card-title">⚙️ إعدادات النظام</div></div>
         <div class="card-body">
-          <div class="form-group"><label class="form-label">TVA الافتراضية (%)</label><input class="form-input" id="s_tva" type="number" value="${s.tva||19}"></div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);margin-bottom:14px">
+            <div>
+              <div style="font-size:.85rem;font-weight:600">البيع بـ TVA</div>
+              <div style="font-size:.7rem;color:var(--muted)">مفعّل = يُضاف TVA فوق سعر البيع — مُعطّل = سعر البيع هو الصافي</div>
+            </div>
+            <div onclick="toggleTVA()" id="tva_toggle"
+              style="width:48px;height:26px;border-radius:13px;cursor:pointer;transition:.2s;position:relative;background:${tvaOn ? 'var(--primary)' : 'var(--border)'}">
+              <div id="tva_knob" style="position:absolute;top:3px;${tvaOn ? 'right:3px' : 'left:3px'};width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s"></div>
+            </div>
+          </div>
+
+          <div id="tva_rate_group" style="display:${tvaOn ? 'block' : 'none'}">
+            <div class="form-group"><label class="form-label">نسبة TVA (%)</label><input class="form-input" id="s_tva" type="number" value="${s.tva||19}"></div>
+          </div>
           <div class="form-group"><label class="form-label">بادئة فاتورة البيع</label><input class="form-input" id="s_vprefix" value="${s.vente_num_prefix||'F'}"></div>
           <div class="form-group"><label class="form-label">بادئة فاتورة الشراء</label><input class="form-input" id="s_aprefix" value="${s.achat_num_prefix||'A'}"></div>
           <button class="btn btn-primary" onclick="saveSettings()">✅ حفظ</button>
@@ -1247,12 +1267,25 @@ async function renderSettings() {
   `;
 }
 
+let _tvaState = App.settings.tva_enabled === '1';
+function toggleTVA() {
+  _tvaState = !_tvaState;
+  const toggle = document.getElementById('tva_toggle');
+  const knob = document.getElementById('tva_knob');
+  const group = document.getElementById('tva_rate_group');
+  toggle.style.background = _tvaState ? 'var(--primary)' : 'var(--border)';
+  knob.style.right = _tvaState ? '3px' : '';
+  knob.style.left  = _tvaState ? '' : '3px';
+  group.style.display = _tvaState ? 'block' : 'none';
+}
+
 async function saveSettings() {
   const data = {
     company_name: document.getElementById('s_name')?.value || App.settings.company_name,
     company_address: document.getElementById('s_addr')?.value || App.settings.company_address,
     company_phone: document.getElementById('s_phone')?.value || App.settings.company_phone,
     tva: document.getElementById('s_tva')?.value || App.settings.tva,
+    tva_enabled: (typeof _tvaState !== 'undefined') ? (_tvaState ? '1' : '0') : App.settings.tva_enabled,
     vente_num_prefix: document.getElementById('s_vprefix')?.value || App.settings.vente_num_prefix,
     achat_num_prefix: document.getElementById('s_aprefix')?.value || App.settings.achat_num_prefix,
   };
