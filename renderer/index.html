@@ -579,7 +579,8 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(255,255,255,.02)}
 const App = {
   settings: {},
   currentScreen: 'dashboard',
-  currentUser: null,  // { id, name, username, role }
+  // Always default to admin — login screen can restrict later
+  currentUser: { id:'user-admin', name:'مدير النظام', username:'admin', role:'admin' },
   lastScreen: localStorage.getItem('lastScreen') || 'dashboard',
   pos: { items: [], discount: 0, tvaRate: 19 }
 };
@@ -598,7 +599,14 @@ function canAccess(screen) {
 }
 
 function applyPermissions() {
-  if (!App.currentUser) return;
+  if (!App.currentUser) {
+    // No user = open all (default admin mode)
+    document.querySelectorAll('.nav-item[data-screen]').forEach(item => {
+      item.style.opacity=''; item.style.pointerEvents=''; item.title='';
+    });
+    document.querySelectorAll('.qnav-btn[data-screen]').forEach(btn => btn.style.display='');
+    return;
+  }
   const role = App.currentUser.role;
   document.querySelectorAll('.nav-item[data-screen]').forEach(item => {
     const screen = item.dataset.screen;
@@ -677,8 +685,8 @@ const screens = {
 };
 
 async function navigate(name, el) {
-  // Permission check
-  if (!canAccess(name)) {
+  // Permission check — only block if user explicitly has no access (not just null)
+  if (App.currentUser && !canAccess(name)) {
     toast('⛔ لا تملك صلاحية الوصول لهذه الصفحة', 'error');
     return;
   }
@@ -3215,12 +3223,14 @@ async function init() {
     document.getElementById('footerCompany').textContent = App.settings.company_name;
   }
 
-  // إذا تسجيل الدخول معطل: مستخدم افتراضي = مدير
-  if (App.settings.login_enabled !== '1') {
-    App.currentUser = { id:'user-admin', name:'مدير النظام', username:'admin', role:'admin' };
-    document.getElementById('userName').textContent = 'مدير النظام';
-    document.getElementById('userAvatar').textContent = 'م';
-    document.getElementById('userRole').textContent = '🔑 مدير';
+  // Update sidebar user info from App.currentUser
+  if (App.currentUser) {
+    const el = document.getElementById('userName');
+    const av = document.getElementById('userAvatar');
+    const ro = document.getElementById('userRole');
+    if (el) el.textContent = App.currentUser.name || 'مدير النظام';
+    if (av) av.textContent = (App.currentUser.name||'م').charAt(0);
+    if (ro) ro.textContent = App.currentUser.role==='admin'?'🔑 مدير':App.currentUser.role==='manager'?'📋 مشرف':'💼 كاشير';
   }
 
   // تحميل الإشعارات
@@ -3411,7 +3421,7 @@ function resumePOS() {
 
 // اختصارات لوحة المفاتيح
 document.addEventListener('keydown', e => {
-  if (!App.currentUser) return;
+  if (!App.currentUser || !document.getElementById('mainApp') || document.getElementById('mainApp').style.display==='none') return;
   // Global search: Ctrl+K or Ctrl+F
   if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'f')) {
     e.preventDefault();
@@ -3435,29 +3445,25 @@ document.addEventListener('keydown', e => {
 
 // ===== STARTUP =====
 async function startup() {
-  // Load settings first
-  try {
-    const settings = await window.api.settings.get();
-    App.settings = settings;
+  // Always ensure currentUser is set (admin by default)
+  App.currentUser = { id:'user-admin', name:'مدير النظام', username:'admin', role:'admin' };
 
-    if (settings.login_enabled === '1') {
-      // Show login screen
-      document.getElementById('mainApp').style.display = 'none';
-      document.getElementById('loginScreen').style.display = 'flex';
-      setTimeout(() => {
-        const u = document.getElementById('loginUsername');
-        if (u) u.focus();
-      }, 100);
-    } else {
-      // Skip login — open directly as admin
-      App.currentUser = { id:'user-admin', name:'مدير النظام', username:'admin', role:'admin' };
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('mainApp').style.display = 'flex';
-      await init();
-    }
+  try {
+    App.settings = await window.api.settings.get();
   } catch(e) {
-    // Fallback: open directly
-    App.currentUser = { id:'user-admin', name:'مدير النظام', username:'admin', role:'admin' };
+    App.settings = {};
+  }
+
+  const loginEnabled = App.settings.login_enabled === '1';
+
+  if (loginEnabled) {
+    // Show login screen
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    App.currentUser = null; // Require real login
+    setTimeout(() => document.getElementById('loginUsername')?.focus(), 100);
+  } else {
+    // Open directly as admin — no login needed
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'flex';
     await init();
