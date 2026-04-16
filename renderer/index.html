@@ -377,6 +377,11 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(255,255,255,.02)}
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid #334155;font-size:.7rem;color:#64748b;text-align:center">
       مستخدم افتراضي: <code style="color:#f97316">admin</code> / <code style="color:#f97316">admin123</code>
     </div>
+    <div style="margin-top:10px;text-align:center">
+      <button onclick="resetAndLogin()" style="background:transparent;border:none;color:#475569;font-size:.68rem;cursor:pointer;font-family:'Cairo',sans-serif;text-decoration:underline">
+        مشكلة في الدخول؟ إعادة تعيين حساب المدير
+      </button>
+    </div>
   </div>
 </div>
 
@@ -3192,6 +3197,19 @@ async function init() {
 }
 
 // ===== LOGIN SYSTEM =====
+async function resetAndLogin() {
+  try {
+    // Force recreate admin via a special IPC call
+    await window.api.auth.resetAdmin();
+    document.getElementById('loginUsername').value = 'admin';
+    document.getElementById('loginPassword').value = 'admin123';
+    document.getElementById('loginError').style.display = 'none';
+    await doLogin();
+  } catch(e) {
+    alert('خطأ: ' + e.message);
+  }
+}
+
 async function doLogin() {
   const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value;

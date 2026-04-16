@@ -33,7 +33,8 @@ contextBridge.exposeInMainWorld('api', {
 
   // ===== تسجيل الدخول =====
   auth: {
-    login: (username, password) => ipcRenderer.invoke('auth:login', username, password),
+    login:      (username, password) => ipcRenderer.invoke('auth:login', username, password),
+    resetAdmin: ()                    => ipcRenderer.invoke('auth:resetAdmin'),
   },
   // ===== الإشعارات =====
   notif: {

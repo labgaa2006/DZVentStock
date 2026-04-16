@@ -53,129 +53,126 @@ class DB {
   }
 
   init() {
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
-      CREATE TABLE IF NOT EXISTS products (
+    // Use exec() for multi-statement DDL — sql.js supports multiple statements in exec()
+    const tables = [
+      `CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)`,
+      `CREATE TABLE IF NOT EXISTS products (
         id TEXT PRIMARY KEY, ref TEXT UNIQUE, name TEXT NOT NULL,
         category TEXT DEFAULT '', unit TEXT DEFAULT 'قطعة',
         buy_price REAL DEFAULT 0, sell_price REAL DEFAULT 0,
         stock INTEGER DEFAULT 0, stock_min INTEGER DEFAULT 5,
         barcode TEXT DEFAULT '', notes TEXT DEFAULT '',
         created_at TEXT DEFAULT (datetime('now')),
-        updated_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0
-      );
-      CREATE TABLE IF NOT EXISTS clients (
+        updated_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0)`,
+      `CREATE TABLE IF NOT EXISTS clients (
         id TEXT PRIMARY KEY, name TEXT NOT NULL, phone TEXT DEFAULT '',
         address TEXT DEFAULT '', notes TEXT DEFAULT '', balance REAL DEFAULT 0,
         created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')),
-        is_deleted INTEGER DEFAULT 0
-      );
-      CREATE TABLE IF NOT EXISTS fournisseurs (
+        is_deleted INTEGER DEFAULT 0)`,
+      `CREATE TABLE IF NOT EXISTS fournisseurs (
         id TEXT PRIMARY KEY, name TEXT NOT NULL, phone TEXT DEFAULT '',
         address TEXT DEFAULT '', notes TEXT DEFAULT '',
         created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')),
-        is_deleted INTEGER DEFAULT 0
-      );
-      CREATE TABLE IF NOT EXISTS ventes (
+        is_deleted INTEGER DEFAULT 0)`,
+      `CREATE TABLE IF NOT EXISTS ventes (
         id TEXT PRIMARY KEY, num TEXT UNIQUE, client_id TEXT, client_name TEXT DEFAULT 'عميل نقدي',
         total REAL DEFAULT 0, discount REAL DEFAULT 0, tva REAL DEFAULT 0,
         net REAL DEFAULT 0, paid REAL DEFAULT 0, reste REAL DEFAULT 0,
         payment_type TEXT DEFAULT 'نقداً', notes TEXT DEFAULT '',
         date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')),
-        updated_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0
-      );
-      CREATE TABLE IF NOT EXISTS vente_items (
+        updated_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0)`,
+      `CREATE TABLE IF NOT EXISTS vente_items (
         id TEXT PRIMARY KEY, vente_id TEXT, product_id TEXT,
         product_name TEXT, ref TEXT, qty INTEGER DEFAULT 1,
-        price REAL DEFAULT 0, total REAL DEFAULT 0
-      );
-      CREATE TABLE IF NOT EXISTS achats (
+        price REAL DEFAULT 0, total REAL DEFAULT 0)`,
+      `CREATE TABLE IF NOT EXISTS achats (
         id TEXT PRIMARY KEY, num TEXT UNIQUE, fournisseur_id TEXT,
         fournisseur_name TEXT DEFAULT '', total REAL DEFAULT 0,
         paid REAL DEFAULT 0, reste REAL DEFAULT 0,
         payment_type TEXT DEFAULT 'نقداً', notes TEXT DEFAULT '',
         date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')),
-        updated_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0
-      );
-      CREATE TABLE IF NOT EXISTS achat_items (
+        updated_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0)`,
+      `CREATE TABLE IF NOT EXISTS achat_items (
         id TEXT PRIMARY KEY, achat_id TEXT, product_id TEXT,
         product_name TEXT, ref TEXT, qty INTEGER DEFAULT 1,
-        price REAL DEFAULT 0, total REAL DEFAULT 0
-      );
-      CREATE TABLE IF NOT EXISTS quotes (
+        price REAL DEFAULT 0, total REAL DEFAULT 0)`,
+      `CREATE TABLE IF NOT EXISTS quotes (
         id TEXT PRIMARY KEY, num TEXT UNIQUE, client_id TEXT, client_name TEXT DEFAULT '',
         total REAL DEFAULT 0, discount REAL DEFAULT 0, tva REAL DEFAULT 0, net REAL DEFAULT 0,
         status TEXT DEFAULT 'معلق', notes TEXT DEFAULT '', validity_days INTEGER DEFAULT 30,
-        date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0
-      );
-      CREATE TABLE IF NOT EXISTS quote_items (
+        date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0)`,
+      `CREATE TABLE IF NOT EXISTS quote_items (
         id TEXT PRIMARY KEY, quote_id TEXT, product_id TEXT,
-        product_name TEXT, ref TEXT, qty INTEGER DEFAULT 1, price REAL DEFAULT 0, total REAL DEFAULT 0
-      );
-      CREATE TABLE IF NOT EXISTS caisse (
+        product_name TEXT, ref TEXT, qty INTEGER DEFAULT 1, price REAL DEFAULT 0, total REAL DEFAULT 0)`,
+      `CREATE TABLE IF NOT EXISTS caisse (
         id TEXT PRIMARY KEY, type TEXT DEFAULT 'entrée', montant REAL DEFAULT 0,
         description TEXT DEFAULT '', ref_id TEXT DEFAULT '', ref_type TEXT DEFAULT '',
-        date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now'))
-      );
-      CREATE TABLE IF NOT EXISTS retours (
+        date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')))`,
+      `CREATE TABLE IF NOT EXISTS retours (
         id TEXT PRIMARY KEY, num TEXT UNIQUE, vente_id TEXT, client_name TEXT DEFAULT '',
         total REAL DEFAULT 0, notes TEXT DEFAULT '',
-        date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0
-      );
-      CREATE TABLE IF NOT EXISTS retour_items (
+        date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0)`,
+      `CREATE TABLE IF NOT EXISTS retour_items (
         id TEXT PRIMARY KEY, retour_id TEXT, product_id TEXT,
-        product_name TEXT, qty INTEGER DEFAULT 1, price REAL DEFAULT 0, total REAL DEFAULT 0
-      );
-      CREATE TABLE IF NOT EXISTS loyalty (
+        product_name TEXT, qty INTEGER DEFAULT 1, price REAL DEFAULT 0, total REAL DEFAULT 0)`,
+      `CREATE TABLE IF NOT EXISTS loyalty (
         id TEXT PRIMARY KEY, client_id TEXT UNIQUE, client_name TEXT,
         points INTEGER DEFAULT 0, total_spent REAL DEFAULT 0, level TEXT DEFAULT 'عادي',
-        created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
-      );
-      CREATE TABLE IF NOT EXISTS expiry (
+        created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')))`,
+      `CREATE TABLE IF NOT EXISTS expiry (
         id TEXT PRIMARY KEY, product_id TEXT, product_name TEXT,
         batch_num TEXT DEFAULT '', qty INTEGER DEFAULT 0,
         expiry_date TEXT NOT NULL, notes TEXT DEFAULT '',
-        created_at TEXT DEFAULT (datetime('now'))
-      );
-      CREATE TABLE IF NOT EXISTS branches (
+        created_at TEXT DEFAULT (datetime('now')))`,
+      `CREATE TABLE IF NOT EXISTS branches (
         id TEXT PRIMARY KEY, name TEXT NOT NULL, address TEXT DEFAULT '',
         phone TEXT DEFAULT '', manager TEXT DEFAULT '', is_active INTEGER DEFAULT 1,
-        created_at TEXT DEFAULT (datetime('now'))
-      );
-      CREATE TABLE IF NOT EXISTS users (
+        created_at TEXT DEFAULT (datetime('now')))`,
+      `CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY, username TEXT UNIQUE NOT NULL, name TEXT NOT NULL,
         role TEXT DEFAULT 'cashier', password TEXT DEFAULT '1234',
         is_active INTEGER DEFAULT 1, last_login TEXT DEFAULT '',
-        created_at TEXT DEFAULT (datetime('now'))
-      );
-      CREATE TABLE IF NOT EXISTS notifications (
+        created_at TEXT DEFAULT (datetime('now')))`,
+      `CREATE TABLE IF NOT EXISTS notifications (
         id TEXT PRIMARY KEY, type TEXT DEFAULT 'info', title TEXT NOT NULL,
         message TEXT DEFAULT '', is_read INTEGER DEFAULT 0, ref_id TEXT DEFAULT '',
-        ref_screen TEXT DEFAULT '', created_at TEXT DEFAULT (datetime('now'))
-      );
-      CREATE TABLE IF NOT EXISTS debt_payments (
+        ref_screen TEXT DEFAULT '', created_at TEXT DEFAULT (datetime('now')))`,
+      `CREATE TABLE IF NOT EXISTS debt_payments (
         id TEXT PRIMARY KEY, vente_id TEXT, client_name TEXT,
         amount REAL DEFAULT 0, notes TEXT DEFAULT '',
-        date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now'))
-      );
-    `);
+        date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')))`,
+    ];
 
+    // Run each CREATE TABLE separately — guaranteed to work in sql.js
+    tables.forEach(sql => {
+      try { this.db.run(sql); } catch(e) { console.error('Table create error:', e.message); }
+    });
+
+    // Settings defaults
     const defaults = [
       ['company_name','محل الأغواط للإلكترونيات'],['company_phone','0550 000 000'],
       ['company_address','الأغواط، الجزائر'],['tva','19'],['currency','DA'],
       ['paper_size','A4'],['stock_alert','1'],['vente_num_prefix','F'],
-      ['vente_num_counter','1'],['achat_num_prefix','A'],['achat_num_counter','1'],['tva_enabled','0'],['quote_num_prefix','D'],['quote_num_counter','1'],
+      ['vente_num_counter','1'],['achat_num_prefix','A'],['achat_num_counter','1'],
+      ['tva_enabled','0'],['quote_num_prefix','D'],['quote_num_counter','1'],
       ['retour_num_prefix','R'],['retour_num_counter','1'],
     ];
     defaults.forEach(([k,v]) => {
-      this.db.run(`INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)`, [k,v]);
+      try { this.db.run(`INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)`, [k,v]); } catch(e) {}
     });
+
     // Default branch
-    this.db.run(`INSERT OR IGNORE INTO branches(id,name,address,phone,manager) VALUES(?,?,?,?,?)`,
-      ['branch-main','الفرع الرئيسي','الأغواط','0550 000 000','المدير']);
-    // Default admin user
-    this.db.run(`INSERT OR IGNORE INTO users(id,username,name,role,password) VALUES(?,?,?,?,?)`,
-      ['user-admin','admin','مدير النظام','admin','admin123']);
+    try {
+      this.db.run(`INSERT OR IGNORE INTO branches(id,name,address,phone,manager) VALUES(?,?,?,?,?)`,
+        ['branch-main','الفرع الرئيسي','الأغواط','0550 000 000','المدير']);
+    } catch(e) {}
+
+    // Default admin user — always ensure it exists
+    try {
+      this.db.run(`INSERT OR IGNORE INTO users(id,username,name,role,password,is_active) VALUES(?,?,?,?,?,?)`,
+        ['user-admin','admin','مدير النظام','admin','admin123',1]);
+    } catch(e) { console.error('Admin insert error:', e.message); }
+
     this.save();
   }
 
@@ -526,6 +523,21 @@ class DB {
   }
   deleteUser(id) { this.run(`DELETE FROM users WHERE id!=? AND id=?`,['user-admin',id]); return {success:true}; }
 
+
+  // ===== RESET ADMIN =====
+  resetAdmin() {
+    try {
+      // Delete and re-insert admin user
+      this.db.run(`DELETE FROM users WHERE id='user-admin'`);
+      this.db.run(`INSERT INTO users(id,username,name,role,password,is_active) VALUES(?,?,?,?,?,?)`,
+        ['user-admin','admin','مدير النظام','admin','admin123',1]);
+      this.save();
+      return { success: true };
+    } catch(e) {
+      console.error('resetAdmin error:', e.message);
+      return { success: false, error: e.message };
+    }
+  }
 
   // ===== NOTIFICATIONS =====
   getNotifications() {

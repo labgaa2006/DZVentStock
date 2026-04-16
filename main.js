@@ -110,7 +110,8 @@ ipcMain.handle('settings:get',     ()        => db.getSettings());
 ipcMain.handle('settings:save',    (_, d)    => db.saveSettings(d));
 
 // Auth
-ipcMain.handle('auth:login',    (_, u, p) => db.loginUser(u, p));
+ipcMain.handle('auth:login',      (_, u, p) => db.loginUser(u, p));
+ipcMain.handle('auth:resetAdmin', ()         => db.resetAdmin());
 
 // Notifications
 ipcMain.handle('notif:getAll',    ()    => db.getNotifications());
