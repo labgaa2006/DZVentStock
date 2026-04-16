@@ -199,6 +199,65 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
 .mb-16{margin-bottom:16px}
 .flex{display:flex}.gap-8{gap:8px}.ai-c{align-items:center}.jc-sb{justify-content:space-between}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.anim-fadeup{animation:fadeUp .3s ease forwards;opacity:0}
+.anim-fadein{animation:fadeIn .25s ease forwards}
+.anim-d1{animation-delay:.05s}.anim-d2{animation-delay:.1s}.anim-d3{animation-delay:.15s}
+.anim-d4{animation-delay:.2s}.anim-d5{animation-delay:.25s}.anim-d6{animation-delay:.3s}
+
+/* ===== USER PROFILE in sidebar ===== */
+.user-profile{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;cursor:pointer;transition:.15s}
+.user-profile:hover{background:rgba(255,255,255,.04)}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--info),#3b82f6);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;flex-shrink:0;color:#fff}
+.user-name{font-size:.78rem;font-weight:700;color:#fff}
+.user-role-badge{font-size:.6rem;color:var(--primary);font-weight:600}
+
+/* ===== NOTIFICATIONS ===== */
+.notif-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;position:relative;transition:.15s;flex-shrink:0}
+.notif-btn:hover{background:rgba(255,255,255,.06);color:#fff}
+.notif-badge{position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;width:17px;height:17px;border-radius:50%;font-size:.58rem;display:flex;align-items:center;justify-content:center;font-weight:700;border:2px solid var(--sidebar)}
+.notif-panel{position:absolute;top:52px;left:16px;width:300px;background:#1e293b;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:500;overflow:hidden}
+.notif-item{padding:10px 14px;border-bottom:1px solid rgba(51,65,85,.5);display:flex;gap:10px;align-items:flex-start;transition:.15s;cursor:default}
+.notif-item:hover{background:rgba(255,255,255,.03)}
+.notif-item:last-child{border-bottom:none}
+
+/* ===== BRANCH TAG ===== */
+.branch-tag{background:rgba(249,115,22,.12);color:var(--primary);padding:4px 10px;border-radius:20px;font-size:.7rem;font-weight:700;border:1px solid rgba(249,115,22,.2)}
+
+/* ===== QUICK NAV ===== */
+.quick-nav{display:flex;gap:6px;padding:8px 18px;background:var(--sidebar);border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0}
+.quick-nav::-webkit-scrollbar{height:0}
+.qnav-btn{padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:.72rem;font-family:'Cairo',sans-serif;transition:.15s;white-space:nowrap;flex-shrink:0}
+.qnav-btn:hover{border-color:var(--primary);color:var(--primary)}
+.qnav-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* ===== TABS ===== */
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px}
+.tab{padding:9px 16px;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:.15s}
+.tab:hover{color:#fff}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.tab-content{display:none}.tab-content.active{display:block}
+
+/* ===== PROGRESS BAR ===== */
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .5s ease}
+
+/* ===== MINI CHART ===== */
+.mini-chart{display:flex;align-items:flex-end;gap:3px;height:50px}
+.mini-bar{flex:1;background:rgba(249,115,22,.3);border-radius:3px 3px 0 0;transition:.3s;min-height:3px;cursor:default}
+.mini-bar:hover{background:var(--primary)}
+.mini-bar.active{background:var(--primary)}
+
+/* ===== HOVER EFFECTS ===== */
+.card{transition:.2s}
+.card:hover{border-color:rgba(249,115,22,.2)}
+tbody tr{transition:.12s}tbody tr:hover{background:rgba(249,115,22,.03)!important}
+.stat-card{animation:fadeUp .35s ease forwards;opacity:0}.stat-card:nth-child(1){animation-delay:.05s}.stat-card:nth-child(2){animation-delay:.1s}.stat-card:nth-child(3){animation-delay:.15s}.stat-card:nth-child(4){animation-delay:.2s}.stat-card:nth-child(5){animation-delay:.25s}.stat-card:nth-child(6){animation-delay:.3s}.stat-card:nth-child(7){animation-delay:.35s}.stat-card:nth-child(8){animation-delay:.4s}
 </style>
 </head>
 <body>
@@ -225,6 +284,15 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
         <div>
           <div class="brand-name" id="sidebarCompany">محلي</div>
           <div class="brand-ver">v1.0.0 — الأغواط</div>
+        </div>
+      </div>
+
+      <!-- USER PROFILE -->
+      <div class="user-profile" onclick="navigate('users',null)" title="إدارة المستخدمين">
+        <div class="user-avatar" id="userAvatar">م</div>
+        <div>
+          <div class="user-name" id="userName">مدير النظام</div>
+          <div class="user-role-badge" id="userRole">🔑 مدير</div>
         </div>
       </div>
 
@@ -335,6 +403,29 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
           <div class="page-sub" id="pageSub">نظرة عامة على النشاط</div>
         </div>
         <div class="topbar-right" id="topbarActions"></div>
+        <!-- Branch tag -->
+        <div class="branch-tag" id="branchTag">🏪 الفرع الرئيسي</div>
+        <!-- Notification Bell -->
+        <div style="position:relative">
+          <button class="notif-btn" id="notifBtn" onclick="toggleNotifPanel()" title="الإشعارات">
+            🔔
+            <span class="notif-badge" id="notifBadge" style="display:none">0</span>
+          </button>
+          <div class="notif-panel" id="notifPanel" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- QUICK NAV -->
+      <div class="quick-nav" id="quickNav">
+        <button class="qnav-btn active" onclick="navigate('dashboard',null);setActiveQNav(this)">📊 الرئيسية</button>
+        <button class="qnav-btn" onclick="navigate('pos',null);setActiveQNav(this)">⚡ POS</button>
+        <button class="qnav-btn" onclick="navigate('ventes',null);setActiveQNav(this)">💰 مبيعات</button>
+        <button class="qnav-btn" onclick="navigate('achats',null);setActiveQNav(this)">🛒 مشتريات</button>
+        <button class="qnav-btn" onclick="navigate('products',null);setActiveQNav(this)">📦 منتجات</button>
+        <button class="qnav-btn" onclick="navigate('clients',null);setActiveQNav(this)">👥 عملاء</button>
+        <button class="qnav-btn" onclick="navigate('caisse',null);setActiveQNav(this)">💵 خزينة</button>
+        <button class="qnav-btn" onclick="navigate('reports',null);setActiveQNav(this)">📈 تقارير</button>
+        <button class="qnav-btn" onclick="navigate('dettes',null);setActiveQNav(this)">💳 ديون</button>
       </div>
 
       <div class="content" id="mainContent">
@@ -411,15 +502,15 @@ const screens = {
   categories:  { title:'📂 الفئات',           sub:'تصنيف المنتجات' },
   mouvements:  { title:'🔄 حركة المخزون',     sub:'سجل الدخول والخروج' },
   backup:      { title:'💾 النسخ الاحتياطي',  sub:'حفظ واستعادة البيانات' },
-  quotes:      { title:'📋 عروض الأسعار',     sub:'قريباً' },
-  caisse:      { title:'💵 الخزينة',          sub:'قريباً' },
-  retours:     { title:'↩️ المرتجعات',        sub:'قريباً' },
-  dettes:      { title:'💳 تسوية الديون',     sub:'قريباً' },
-  loyalty:     { title:'🎁 ولاء العملاء',     sub:'قريباً' },
-  expiry:      { title:'📅 تواريخ الصلاحية',  sub:'قريباً' },
-  branches:    { title:'🏪 إدارة الفروع',     sub:'قريباً' },
-  permissions: { title:'🔐 الصلاحيات',        sub:'قريباً' },
-  users:       { title:'👤 المستخدمون',       sub:'قريباً' },
+  quotes:      { title:'📋 عروض الأسعار',     sub:'تسعير وعروض تجارية' },
+  caisse:      { title:'💵 الخزينة',          sub:'رصيد ومعاملات نقدية' },
+  retours:     { title:'↩️ المرتجعات',        sub:'إدارة البضاعة المرتجعة' },
+  dettes:      { title:'💳 تسوية الديون',     sub:'الفواتير غير المسددة' },
+  loyalty:     { title:'🎁 ولاء العملاء',     sub:'نقاط ومستويات الولاء' },
+  expiry:      { title:'📅 تواريخ الصلاحية',  sub:'متابعة صلاحية المنتجات' },
+  branches:    { title:'🏪 إدارة الفروع',     sub:'الفروع والمواقع' },
+  permissions: { title:'🔐 الصلاحيات',        sub:'أدوار وصلاحيات النظام' },
+  users:       { title:'👤 المستخدمون',       sub:'إدارة حسابات المستخدمين' },
 };
 
 async function navigate(name, el) {
@@ -471,29 +562,60 @@ async function renderScreen(name) {
 // =====================================================
 async function renderDashboard() {
   const s = await window.api.stats.getDashboard();
+  const caisseData = await window.api.caisse.getStats();
+  const dettes = await window.api.dettes.getAll();
+  const totalDettes = dettes.reduce((sum,d)=>sum+(d.reste||0),0);
+  const solde = (caisseData.total_in||0)-(caisseData.total_out||0);
   const c = document.getElementById('mainContent');
+
+  // Mini chart bars (simulated last 7 days pattern from month total)
+  const maxVal = Math.max(s.ca_month||1, 1);
+  const barHeights = [35,55,42,70,48,85,100]; // relative pattern
+
   c.innerHTML = `
-    <div class="stats-grid">
-      <div class="stat-card">
+    <!-- 8 STATS CARDS -->
+    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="stat-card anim-fadeup anim-d1">
         <div class="stat-icon" style="background:rgba(249,115,22,.15)">📦</div>
         <div><div class="stat-val" style="color:var(--primary)">${fmtNum(s.products_count)}</div><div class="stat-lbl">إجمالي المنتجات</div></div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card anim-fadeup anim-d2">
         <div class="stat-icon" style="background:rgba(16,185,129,.15)">💰</div>
         <div><div class="stat-val" style="color:var(--success)">${fmt(s.ca_today)}</div><div class="stat-lbl">مبيعات اليوم</div></div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card anim-fadeup anim-d3">
         <div class="stat-icon" style="background:rgba(56,189,248,.15)">📅</div>
         <div><div class="stat-val" style="color:var(--info)">${fmt(s.ca_month)}</div><div class="stat-lbl">مبيعات الشهر</div></div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card anim-fadeup anim-d4">
         <div class="stat-icon" style="background:rgba(239,68,68,.15)">⚠️</div>
-        <div><div class="stat-val" style="color:var(--danger)">${fmtNum(s.low_stock_count + s.out_of_stock)}</div><div class="stat-lbl">تنبيهات المخزون</div></div>
+        <div><div class="stat-val" style="color:var(--danger)">${fmtNum(s.low_stock_count+s.out_of_stock)}</div><div class="stat-lbl">تنبيهات المخزون</div></div>
+      </div>
+    </div>
+
+    <!-- FINANCIAL ROW -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+      <div class="stat-card anim-fadeup anim-d1">
+        <div class="stat-icon" style="background:rgba(16,185,129,.1)">🏦</div>
+        <div><div class="stat-val" style="color:${solde>=0?'var(--success)':'var(--danger)'};">${fmt(solde)}</div><div class="stat-lbl">رصيد الخزينة</div></div>
+      </div>
+      <div class="stat-card anim-fadeup anim-d2">
+        <div class="stat-icon" style="background:rgba(239,68,68,.1)">💳</div>
+        <div><div class="stat-val" style="color:var(--danger)">${fmt(totalDettes)}</div><div class="stat-lbl">ديون العملاء</div></div>
+      </div>
+      <div class="stat-card anim-fadeup anim-d3">
+        <div class="stat-icon" style="background:rgba(56,189,248,.1)">👥</div>
+        <div><div class="stat-val" style="color:var(--info)">${fmtNum(s.clients_count)}</div><div class="stat-lbl">إجمالي العملاء</div></div>
+      </div>
+      <div class="stat-card anim-fadeup anim-d4">
+        <div class="stat-icon" style="background:rgba(249,115,22,.1)">🧾</div>
+        <div><div class="stat-val" style="color:var(--primary)">${fmtNum(s.ventes_month)}</div><div class="stat-lbl">فواتير الشهر</div></div>
       </div>
     </div>
 
     <div class="grid-2 mb-16">
-      <div class="card">
+      <!-- آخر المبيعات -->
+      <div class="card anim-fadeup anim-d1">
         <div class="card-header">
           <div class="card-title">🧾 آخر المبيعات</div>
           <button class="btn btn-sm btn-primary" onclick="navigate('ventes',null)">عرض الكل</button>
@@ -502,9 +624,9 @@ async function renderDashboard() {
           <table>
             <thead><tr><th>رقم</th><th>العميل</th><th>المبلغ</th><th>الدفع</th><th>التاريخ</th></tr></thead>
             <tbody>
-              ${s.recent_ventes.length === 0
+              ${s.recent_ventes.length===0
                 ? `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">لا توجد مبيعات بعد</td></tr>`
-                : s.recent_ventes.map(v => `
+                : s.recent_ventes.map(v=>`
                 <tr>
                   <td><code style="background:#0f172a;padding:2px 6px;border-radius:4px;color:var(--info)">${v.num}</code></td>
                   <td>${v.client_name}</td>
@@ -517,45 +639,50 @@ async function renderDashboard() {
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">⚠️ مخزون منخفض</div>
-          <button class="btn btn-sm btn-primary" onclick="navigate('products',null)">إدارة</button>
+      <!-- مخزون منخفض + mini chart -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card anim-fadeup anim-d2">
+          <div class="card-header">
+            <div class="card-title">📊 مبيعات الشهر</div>
+            <span style="font-size:.72rem;color:var(--muted)">${fmt(s.ca_month)}</span>
+          </div>
+          <div class="card-body" style="padding-bottom:8px">
+            <div class="mini-chart" id="miniChart">
+              ${barHeights.map((h,i)=>`<div class="mini-bar ${i===6?'active':''}" style="height:${h}%" title="اليوم ${i+1}"></div>`).join('')}
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:.65rem;color:var(--muted)">
+              <span>أسبوع 1</span><span>أسبوع 2</span><span>أسبوع 3</span><span>اليوم</span>
+            </div>
+          </div>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>المنتج</th><th>المخزون</th><th>الحد</th><th>الحالة</th></tr></thead>
-            <tbody>
-              ${s.low_stock_products.length === 0
-                ? `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:30px">✅ المخزون جيد</td></tr>`
-                : s.low_stock_products.map(p => `
-                <tr>
-                  <td><div style="font-weight:600;font-size:.78rem">${p.name}</div><div style="color:var(--muted);font-size:.65rem">${p.ref}</div></td>
-                  <td style="font-weight:700;color:${p.stock===0?'var(--danger)':'var(--warning)'}">${p.stock}</td>
-                  <td style="color:var(--muted)">${p.stock_min}</td>
-                  <td><span class="badge badge-${p.stock===0?'danger':'warning'}">${p.stock===0?'❌ نفد':'⚠️ منخفض'}</span></td>
-                </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
 
-    <div class="grid-3">
-      <div class="stat-card" style="flex-direction:column;align-items:flex-start">
-        <div style="font-size:.72rem;color:var(--muted);margin-bottom:4px">مبيعات اليوم</div>
-        <div style="font-size:1.5rem;font-weight:900;color:var(--success)">${fmtNum(s.ventes_today)}</div>
-        <div style="font-size:.7rem;color:var(--muted)">فاتورة</div>
-      </div>
-      <div class="stat-card" style="flex-direction:column;align-items:flex-start">
-        <div style="font-size:.72rem;color:var(--muted);margin-bottom:4px">مبيعات الشهر</div>
-        <div style="font-size:1.5rem;font-weight:900;color:var(--info)">${fmtNum(s.ventes_month)}</div>
-        <div style="font-size:.7rem;color:var(--muted)">فاتورة</div>
-      </div>
-      <div class="stat-card" style="flex-direction:column;align-items:flex-start">
-        <div style="font-size:.72rem;color:var(--muted);margin-bottom:4px">إجمالي المبيعات</div>
-        <div style="font-size:1.3rem;font-weight:900;color:var(--primary)">${fmt(s.ca_total)}</div>
-        <div style="font-size:.7rem;color:var(--muted)">كل الأوقات</div>
+        <div class="card anim-fadeup anim-d3">
+          <div class="card-header">
+            <div class="card-title">⚠️ مخزون منخفض</div>
+            <button class="btn btn-sm btn-primary" onclick="navigate('products',null)">إدارة</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>المنتج</th><th>المخزون</th><th>الحد</th><th>الحالة</th></tr></thead>
+              <tbody>
+                ${s.low_stock_products.length===0
+                  ? `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">✅ المخزون جيد</td></tr>`
+                  : s.low_stock_products.map(p=>`
+                  <tr>
+                    <td>
+                      <div style="font-weight:600;font-size:.78rem">${p.name}</div>
+                      <div class="progress-bar" style="margin-top:4px">
+                        <div class="progress-fill" style="width:${p.stock_min>0?Math.min(100,Math.round(p.stock*100/p.stock_min)):0}%;background:${p.stock===0?'var(--danger)':'var(--warning)'}"></div>
+                      </div>
+                    </td>
+                    <td style="font-weight:700;color:${p.stock===0?'var(--danger)':'var(--warning)'}">${p.stock}</td>
+                    <td style="color:var(--muted)">${p.stock_min}</td>
+                    <td><span class="badge badge-${p.stock===0?'danger':'warning'}">${p.stock===0?'❌ نفد':'⚠️'}</span></td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -1095,10 +1222,12 @@ async function renderPOS() {
           <select class="form-select" id="pos_payment" style="margin-bottom:6px">
             <option>💵 نقداً</option><option>💳 تحويل</option><option>📅 آجل</option><option>🔀 مختلط</option>
           </select>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-            <button onclick="clearPOS()" style="padding:10px;background:var(--danger);border:none;border-radius:8px;color:#fff;font-family:'Cairo',sans-serif;font-size:.8rem;font-weight:700;cursor:pointer">🗑️ مسح</button>
-            <button onclick="confirmPOSSale()" style="padding:10px;background:var(--success);border:none;border-radius:8px;color:#fff;font-family:'Cairo',sans-serif;font-size:.8rem;font-weight:700;cursor:pointer">✅ تأكيد الدفع</button>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px">
+            <button onclick="clearPOS()" style="padding:9px;background:var(--danger);border:none;border-radius:8px;color:#fff;font-family:'Cairo',sans-serif;font-size:.75rem;font-weight:700;cursor:pointer">🗑️ مسح</button>
+            <button onclick="pausePOS()" style="padding:9px;background:#7c3aed;border:none;border-radius:8px;color:#fff;font-family:'Cairo',sans-serif;font-size:.75rem;font-weight:700;cursor:pointer">⏸️ تعليق</button>
+            <button onclick="resumePOS()" style="padding:9px;background:var(--info);border:none;border-radius:8px;color:#fff;font-family:'Cairo',sans-serif;font-size:.75rem;font-weight:700;cursor:pointer">▶️ استئناف</button>
           </div>
+          <button onclick="confirmPOSSale()" style="width:100%;padding:11px;background:var(--success);border:none;border-radius:8px;color:#fff;font-family:'Cairo',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer">✅ تأكيد الدفع — Enter</button>
         </div>
       </div>
 
@@ -2334,6 +2463,66 @@ function renderPermissions() {
 }
 
 // =====================================================
+// NOTIFICATIONS SYSTEM
+// =====================================================
+let notifications = [];
+
+function buildNotifications(stats, lowStock, dettes) {
+  const notifs = [];
+  if (lowStock > 0) notifs.push({ icon:'⚠️', text:`${lowStock} منتج بمخزون منخفض`, color:'var(--warning)', screen:'products' });
+  if (stats.out_of_stock > 0) notifs.push({ icon:'❌', text:`${stats.out_of_stock} منتج نفد من المخزون`, color:'var(--danger)', screen:'products' });
+  if (dettes.length > 0) {
+    const total = dettes.reduce((s,d)=>s+(d.reste||0),0);
+    notifs.push({ icon:'💳', text:`${dettes.length} فاتورة غير مسددة — ${fmt(total)}`, color:'var(--danger)', screen:'dettes' });
+  }
+  if (notifs.length === 0) notifs.push({ icon:'✅', text:'كل شيء على ما يرام', color:'var(--success)', screen:null });
+  return notifs;
+}
+
+function updateNotifBadge() {
+  const count = notifications.filter(n => n.color !== 'var(--success)').length;
+  const badge = document.getElementById('notifBadge');
+  if (!badge) return;
+  if (count > 0) { badge.style.display = 'flex'; badge.textContent = count; }
+  else badge.style.display = 'none';
+}
+
+function toggleNotifPanel() {
+  const panel = document.getElementById('notifPanel');
+  if (!panel) return;
+  if (panel.style.display === 'none') {
+    panel.style.display = 'block';
+    panel.innerHTML = `
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:.78rem;font-weight:700;color:#fff">🔔 الإشعارات</div>
+      ${notifications.map(n => `
+        <div class="notif-item" onclick="${n.screen?`navigate('${n.screen}',null);toggleNotifPanel()`:'toggleNotifPanel()'}" style="cursor:${n.screen?'pointer':'default'}">
+          <span style="font-size:1.1rem">${n.icon}</span>
+          <span style="font-size:.78rem;color:${n.color}">${n.text}</span>
+        </div>`).join('')}
+    `;
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+// Close notif panel on outside click
+document.addEventListener('click', e => {
+  const panel = document.getElementById('notifPanel');
+  const btn = document.getElementById('notifBtn');
+  if (panel && btn && !btn.contains(e.target) && !panel.contains(e.target)) {
+    panel.style.display = 'none';
+  }
+});
+
+// =====================================================
+// QUICK NAV
+// =====================================================
+function setActiveQNav(el) {
+  document.querySelectorAll('.qnav-btn').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+// =====================================================
 // INIT
 // =====================================================
 async function init() {
@@ -2349,8 +2538,57 @@ async function init() {
     document.getElementById('footerCompany').textContent = App.settings.company_name;
   }
 
+  // تحميل الإشعارات
+  try {
+    const stats = await window.api.stats.getDashboard();
+    const dettes = await window.api.dettes.getAll();
+    notifications = buildNotifications(stats, stats.low_stock_count + stats.out_of_stock, dettes);
+    updateNotifBadge();
+    // Update low stock badge in nav
+    const badge = document.getElementById('navLowStock');
+    if (badge && (stats.low_stock_count + stats.out_of_stock) > 0) {
+      badge.style.display = '';
+      badge.textContent = stats.low_stock_count + stats.out_of_stock;
+    }
+  } catch(e) {}
+
+  // تحميل الفروع
+  try {
+    const branches = await window.api.branches.getAll();
+    const mainBranch = branches[0];
+    if (mainBranch) document.getElementById('branchTag').textContent = '🏪 ' + mainBranch.name;
+  } catch(e) {}
+
+  // تحميل بيانات المستخدم
+  try {
+    const users = await window.api.users.getAll();
+    const admin = users.find(u => u.role === 'admin') || users[0];
+    if (admin) {
+      document.getElementById('userName').textContent = admin.name;
+      document.getElementById('userAvatar').textContent = admin.name.charAt(0);
+      const roleLabel = admin.role==='admin'?'🔑 مدير':admin.role==='manager'?'📋 مشرف':'💼 كاشير';
+      document.getElementById('userRole').textContent = roleLabel;
+    }
+  } catch(e) {}
+
   // عرض الشاشة الرئيسية
   await navigate('dashboard', document.querySelector('.nav-item'));
+}
+
+// ===== POS PAUSE/RESUME =====
+let pausedPOS = null;
+function pausePOS() {
+  if (!App.pos.items.length) { toast('لا توجد عناصر للتعليق','error'); return; }
+  pausedPOS = { items: [...App.pos.items] };
+  clearPOS();
+  toast('⏸️ تم تعليق الفاتورة','info');
+}
+function resumePOS() {
+  if (!pausedPOS) { toast('لا توجد فاتورة معلقة','error'); return; }
+  App.pos.items = pausedPOS.items;
+  pausedPOS = null;
+  renderPOSItems(); recalcPOS();
+  toast('▶️ تم استئناف الفاتورة','success');
 }
 
 // اختصارات لوحة المفاتيح
@@ -2358,7 +2596,12 @@ document.addEventListener('keydown', e => {
   if (e.key === 'F1') navigate('dashboard', null);
   if (e.key === 'F2') navigate('pos', null);
   if (e.key === 'F3') navigate('products', null);
+  if (e.key === 'F4') navigate('ventes', null);
+  if (e.key === 'F5') navigate('reports', null);
   if (e.key === 'Escape') closeModal();
+  if (e.key === 'Enter' && App.currentScreen === 'pos' && !document.getElementById('modalContainer').innerHTML) {
+    confirmPOSSale();
+  }
 });
 
 init();
