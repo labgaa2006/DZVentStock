@@ -55,6 +55,7 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);overf
 .nav-item.active{background:rgba(249,115,22,.12);color:var(--primary);border-right-color:var(--primary);font-weight:700}
 .nav-icon{font-size:.9rem;width:18px;text-align:center}
 .nav-badge{margin-right:auto;background:var(--danger);color:#fff;font-size:.6rem;padding:1px 6px;border-radius:10px;font-weight:700}
+.nav-badge-soon{margin-right:auto;background:rgba(100,116,139,.3);color:#64748b;font-size:.58rem;padding:1px 5px;border-radius:10px;font-weight:600}
 
 .sidebar-footer{padding:10px 14px;border-top:1px solid var(--border)}
 .company-box{background:#0f172a;border:1px solid var(--border);border-radius:8px;padding:8px 10px}
@@ -233,7 +234,19 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
           <span class="nav-icon">📊</span> لوحة التحكم
         </div>
         <div class="nav-item" onclick="navigate('pos',this)">
-          <span class="nav-icon">⚡</span> نقطة البيع
+          <span class="nav-icon">⚡</span> نقطة البيع POS
+        </div>
+
+        <div class="nav-section">التجارة</div>
+        <div class="nav-item" onclick="navigate('ventes',this)">
+          <span class="nav-icon">💰</span> المبيعات
+        </div>
+        <div class="nav-item" onclick="navigate('achats',this)">
+          <span class="nav-icon">🛒</span> المشتريات
+        </div>
+        <div class="nav-item" onclick="navigate('quotes',this)">
+          <span class="nav-icon">📋</span> عروض الأسعار
+          <span class="nav-badge-soon">قريباً</span>
         </div>
 
         <div class="nav-section">المخزون</div>
@@ -241,26 +254,68 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
           <span class="nav-icon">📦</span> المنتجات
           <span class="nav-badge" id="navLowStock" style="display:none">!</span>
         </div>
+        <div class="nav-item" onclick="navigate('categories',this)">
+          <span class="nav-icon">📂</span> الفئات
+        </div>
+        <div class="nav-item" onclick="navigate('mouvements',this)">
+          <span class="nav-icon">🔄</span> حركة المخزون
+        </div>
 
-        <div class="nav-section">المعاملات</div>
-        <div class="nav-item" onclick="navigate('ventes',this)">
-          <span class="nav-icon">💰</span> المبيعات
-        </div>
-        <div class="nav-item" onclick="navigate('achats',this)">
-          <span class="nav-icon">🛒</span> المشتريات
-        </div>
+        <div class="nav-section">العلاقات</div>
         <div class="nav-item" onclick="navigate('clients',this)">
           <span class="nav-icon">👥</span> العملاء
         </div>
+        <div class="nav-item" onclick="navigate('fournisseurs',this)">
+          <span class="nav-icon">🏭</span> الموردون
+        </div>
 
-        <div class="nav-section">التقارير</div>
+        <div class="nav-section">المالية</div>
+        <div class="nav-item" onclick="navigate('caisse',this)">
+          <span class="nav-icon">💵</span> الخزينة
+          <span class="nav-badge-soon">قريباً</span>
+        </div>
         <div class="nav-item" onclick="navigate('reports',this)">
           <span class="nav-icon">📈</span> التقارير
         </div>
 
-        <div class="nav-section">النظام</div>
+        <div class="nav-section">إضافي</div>
+        <div class="nav-item" onclick="navigate('retours',this)">
+          <span class="nav-icon">↩️</span> المرتجعات
+          <span class="nav-badge-soon">قريباً</span>
+        </div>
+        <div class="nav-item" onclick="navigate('dettes',this)">
+          <span class="nav-icon">💳</span> تسوية الديون
+          <span class="nav-badge-soon">قريباً</span>
+        </div>
+        <div class="nav-item" onclick="navigate('loyalty',this)">
+          <span class="nav-icon">🎁</span> ولاء العملاء
+          <span class="nav-badge-soon">قريباً</span>
+        </div>
+        <div class="nav-item" onclick="navigate('expiry',this)">
+          <span class="nav-icon">📅</span> تواريخ الصلاحية
+          <span class="nav-badge-soon">قريباً</span>
+        </div>
+
+        <div class="nav-section">الفروع</div>
+        <div class="nav-item" onclick="navigate('branches',this)">
+          <span class="nav-icon">🏪</span> إدارة الفروع
+          <span class="nav-badge-soon">قريباً</span>
+        </div>
+
+        <div class="nav-section">الإعدادات</div>
         <div class="nav-item" onclick="navigate('settings',this)">
           <span class="nav-icon">⚙️</span> الإعدادات
+        </div>
+        <div class="nav-item" onclick="navigate('permissions',this)">
+          <span class="nav-icon">🔐</span> الصلاحيات
+          <span class="nav-badge-soon">قريباً</span>
+        </div>
+        <div class="nav-item" onclick="navigate('users',this)">
+          <span class="nav-icon">👤</span> المستخدمون
+          <span class="nav-badge-soon">قريباً</span>
+        </div>
+        <div class="nav-item" onclick="navigate('backup',this)">
+          <span class="nav-icon">💾</span> النسخ الاحتياطي
         </div>
       </nav>
 
@@ -344,14 +399,27 @@ function closeModal() {
 // NAVIGATION
 // =====================================================
 const screens = {
-  dashboard: { title:'📊 لوحة التحكم', sub:'نظرة عامة على النشاط' },
-  products:  { title:'📦 المنتجات',     sub:'إدارة المخزون والأسعار' },
-  ventes:    { title:'💰 المبيعات',     sub:'فواتير البيع' },
-  achats:    { title:'🛒 المشتريات',    sub:'فواتير الشراء' },
-  clients:   { title:'👥 العملاء',      sub:'قائمة العملاء' },
-  pos:       { title:'⚡ نقطة البيع',   sub:'كاشير سريع' },
-  reports:   { title:'📈 التقارير',     sub:'إحصائيات وتحليلات' },
-  settings:  { title:'⚙️ الإعدادات',   sub:'إعدادات البرنامج' },
+  dashboard:   { title:'📊 لوحة التحكم',      sub:'نظرة عامة على النشاط' },
+  products:    { title:'📦 المنتجات',          sub:'إدارة المخزون والأسعار' },
+  ventes:      { title:'💰 المبيعات',          sub:'فواتير البيع' },
+  achats:      { title:'🛒 المشتريات',         sub:'فواتير الشراء' },
+  clients:     { title:'👥 العملاء',           sub:'قائمة العملاء' },
+  fournisseurs:{ title:'🏭 الموردون',          sub:'قائمة الموردين' },
+  pos:         { title:'⚡ نقطة البيع POS',    sub:'كاشير سريع' },
+  reports:     { title:'📈 التقارير',          sub:'إحصائيات وتحليلات' },
+  settings:    { title:'⚙️ الإعدادات',        sub:'إعدادات البرنامج' },
+  categories:  { title:'📂 الفئات',           sub:'تصنيف المنتجات' },
+  mouvements:  { title:'🔄 حركة المخزون',     sub:'سجل الدخول والخروج' },
+  backup:      { title:'💾 النسخ الاحتياطي',  sub:'حفظ واستعادة البيانات' },
+  quotes:      { title:'📋 عروض الأسعار',     sub:'قريباً' },
+  caisse:      { title:'💵 الخزينة',          sub:'قريباً' },
+  retours:     { title:'↩️ المرتجعات',        sub:'قريباً' },
+  dettes:      { title:'💳 تسوية الديون',     sub:'قريباً' },
+  loyalty:     { title:'🎁 ولاء العملاء',     sub:'قريباً' },
+  expiry:      { title:'📅 تواريخ الصلاحية',  sub:'قريباً' },
+  branches:    { title:'🏪 إدارة الفروع',     sub:'قريباً' },
+  permissions: { title:'🔐 الصلاحيات',        sub:'قريباً' },
+  users:       { title:'👤 المستخدمون',       sub:'قريباً' },
 };
 
 async function navigate(name, el) {
@@ -370,14 +438,19 @@ async function renderScreen(name) {
   c.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">⏳ جار التحميل...</div>';
   try {
     switch(name) {
-      case 'dashboard': await renderDashboard(); break;
-      case 'products':  await renderProducts();  break;
-      case 'ventes':    await renderVentes();    break;
-      case 'achats':    await renderAchats();    break;
-      case 'clients':   await renderClients();   break;
-      case 'pos':       await renderPOS();       break;
-      case 'reports':   await renderReports();   break;
-      case 'settings':  await renderSettings();  break;
+      case 'dashboard':    await renderDashboard();    break;
+      case 'products':     await renderProducts();     break;
+      case 'ventes':       await renderVentes();       break;
+      case 'achats':       await renderAchats();       break;
+      case 'clients':      await renderClients();      break;
+      case 'fournisseurs': await renderFournisseurs(); break;
+      case 'pos':          await renderPOS();          break;
+      case 'reports':      await renderReports();      break;
+      case 'settings':     await renderSettings();     break;
+      case 'categories':   await renderCategories();   break;
+      case 'mouvements':   await renderMouvements();   break;
+      case 'backup':       await renderBackup();       break;
+      default:             renderComingSoon(name);     break;
     }
   } catch(e) {
     c.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
@@ -1294,6 +1367,236 @@ async function saveSettings() {
   document.getElementById('sidebarCompany').textContent = data.company_name;
   document.getElementById('footerCompany').textContent = data.company_name;
   toast('✅ تم حفظ الإعدادات', 'success');
+}
+
+
+// =====================================================
+// FOURNISSEURS
+// =====================================================
+async function renderFournisseurs() {
+  document.getElementById('topbarActions').innerHTML = `
+    <button class="topbar-btn primary" onclick="showAddFournisseurModal()">➕ مورد جديد</button>
+  `;
+  const list = await window.api.fournisseurs.getAll();
+  document.getElementById('mainContent').innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🏭 الموردون <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${list.length})</span></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>الاسم</th><th>الهاتف</th><th>العنوان</th><th>ملاحظات</th></tr></thead>
+          <tbody>
+            ${list.length === 0
+              ? `<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">لا يوجد موردون بعد</td></tr>`
+              : list.map(f => `
+              <tr>
+                <td style="font-weight:600">${f.name}</td>
+                <td style="color:var(--muted)">${f.phone||'—'}</td>
+                <td style="color:var(--muted)">${f.address||'—'}</td>
+                <td style="color:var(--muted);font-size:.75rem">${f.notes||'—'}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function showAddFournisseurModal() {
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">➕ مورد جديد</div>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group"><label class="form-label">الاسم *</label><input class="form-input" id="f_name" placeholder="اسم المورد"></div>
+          <div class="form-group"><label class="form-label">الهاتف</label><input class="form-input" id="f_phone" placeholder="05xxxxxxxx"></div>
+          <div class="form-group"><label class="form-label">العنوان</label><input class="form-input" id="f_addr" placeholder="الولاية، المدينة"></div>
+          <div class="form-group"><label class="form-label">ملاحظات</label><input class="form-input" id="f_notes" placeholder="اختياري"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" style="background:var(--border);color:#fff" onclick="closeModal()">إلغاء</button>
+          <button class="btn btn-primary" onclick="addFournisseur()">✅ حفظ</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+async function addFournisseur() {
+  const name = document.getElementById('f_name').value.trim();
+  if (!name) { toast('الاسم مطلوب', 'error'); return; }
+  await window.api.fournisseurs.add({
+    name, phone: document.getElementById('f_phone').value,
+    address: document.getElementById('f_addr').value,
+    notes: document.getElementById('f_notes').value,
+  });
+  closeModal(); toast('✅ تم إضافة المورد', 'success'); await renderFournisseurs();
+}
+
+// =====================================================
+// CATEGORIES
+// =====================================================
+async function renderCategories() {
+  document.getElementById('topbarActions').innerHTML = `
+    <button class="topbar-btn primary" onclick="showAddCategoryModal()">➕ فئة جديدة</button>
+  `;
+  const products = await window.api.products.getAll();
+  const cats = {};
+  products.forEach(p => {
+    const c = p.category || 'بدون فئة';
+    if (!cats[c]) cats[c] = { count: 0, stock: 0 };
+    cats[c].count++;
+    cats[c].stock += p.stock;
+  });
+
+  document.getElementById('mainContent').innerHTML = `
+    <div class="card">
+      <div class="card-header"><div class="card-title">📂 الفئات <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${Object.keys(cats).length})</span></div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>الفئة</th><th>عدد المنتجات</th><th>إجمالي المخزون</th></tr></thead>
+          <tbody>
+            ${Object.keys(cats).length === 0
+              ? `<tr><td colspan="3" style="text-align:center;padding:40px;color:var(--muted)">لا توجد فئات بعد — أضف منتجات أولاً</td></tr>`
+              : Object.entries(cats).map(([cat, info]) => `
+              <tr>
+                <td><span style="font-weight:600">📂 ${cat}</span></td>
+                <td style="color:var(--info);font-weight:700">${info.count} منتج</td>
+                <td style="color:var(--success);font-weight:700">${info.stock} وحدة</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function showAddCategoryModal() {
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">📂 فئة جديدة</div>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group"><label class="form-label">اسم الفئة *</label><input class="form-input" id="cat_name" placeholder="مثال: إلكترونيات، هواتف، تكييف..."></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" style="background:var(--border);color:#fff" onclick="closeModal()">إلغاء</button>
+          <button class="btn btn-primary" onclick="closeModal();toast('✅ الفئة ستُضاف عند إضافة منتج بهذا الاسم','info')">✅ حفظ</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+// =====================================================
+// MOUVEMENTS (حركة المخزون)
+// =====================================================
+async function renderMouvements() {
+  const products = await window.api.products.getAll();
+  document.getElementById('mainContent').innerHTML = `
+    <div class="card">
+      <div class="card-header"><div class="card-title">🔄 حركة المخزون</div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>المنتج</th><th>المرجع</th><th>الفئة</th><th>المخزون الحالي</th><th>الحد الأدنى</th><th>الحالة</th></tr></thead>
+          <tbody>
+            ${products.length === 0
+              ? `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">لا توجد منتجات</td></tr>`
+              : products.map(p => `
+              <tr>
+                <td style="font-weight:600">${p.name}</td>
+                <td><code style="background:#0f172a;padding:2px 6px;border-radius:4px;color:var(--info)">${p.ref}</code></td>
+                <td style="color:var(--muted)">${p.category||'—'}</td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-weight:700;color:${p.stock===0?'var(--danger)':p.stock<=p.stock_min?'var(--warning)':'var(--success)'}">${p.stock}</span>
+                    <div style="flex:1;height:5px;background:var(--border);border-radius:3px;min-width:60px">
+                      <div style="height:100%;border-radius:3px;background:${p.stock===0?'var(--danger)':p.stock<=p.stock_min?'var(--warning)':'var(--success)'};width:${Math.min(100, p.stock_min>0 ? Math.round(p.stock*100/Math.max(p.stock,p.stock_min*2)) : 100)}%"></div>
+                    </div>
+                  </div>
+                </td>
+                <td style="color:var(--muted)">${p.stock_min}</td>
+                <td><span class="badge badge-${p.stock===0?'danger':p.stock<=p.stock_min?'warning':'success'}">
+                  ${p.stock===0?'❌ نفد':p.stock<=p.stock_min?'⚠️ منخفض':'✅ جيد'}
+                </span></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// =====================================================
+// BACKUP
+// =====================================================
+async function renderBackup() {
+  const s = await window.api.settings.get();
+  document.getElementById('mainContent').innerHTML = `
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><div class="card-title">💾 تصدير البيانات</div></div>
+        <div class="card-body" style="display:grid;gap:12px">
+          <p style="font-size:.82rem;color:var(--muted)">ملف قاعدة البيانات محفوظ في:</p>
+          <code style="background:#0f172a;padding:10px;border-radius:8px;font-size:.75rem;color:var(--info);word-break:break-all">
+            %APPDATA%\dz-vent-stock\dzventstock.db
+          </code>
+          <p style="font-size:.78rem;color:var(--muted)">انسخ هذا الملف لمكان آمن للحصول على نسخة احتياطية.</p>
+          <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:12px">
+            <div style="font-size:.8rem;color:var(--success);font-weight:600;margin-bottom:4px">✅ البيانات محفوظة تلقائياً</div>
+            <div style="font-size:.72rem;color:var(--muted)">كل عملية تُحفظ فوراً في قاعدة البيانات</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">ℹ️ معلومات النظام</div></div>
+        <div class="card-body" style="display:grid;gap:10px">
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:.82rem;color:var(--muted)">اسم الشركة</span>
+            <span style="font-size:.82rem;font-weight:600">${s.company_name||'—'}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:.82rem;color:var(--muted)">إصدار البرنامج</span>
+            <span style="font-size:.82rem;font-weight:600;color:var(--primary)">v1.0.0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:.82rem;color:var(--muted)">البيع بـ TVA</span>
+            <span class="badge badge-${s.tva_enabled==='1'?'success':'warning'}">${s.tva_enabled==='1'?'مفعّل':'معطّل'}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0">
+            <span style="font-size:.82rem;color:var(--muted)">نسبة TVA</span>
+            <span style="font-size:.82rem;font-weight:600">${s.tva||19}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// =====================================================
+// COMING SOON
+// =====================================================
+function renderComingSoon(name) {
+  const info = screens[name] || { title: name };
+  document.getElementById('mainContent').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;height:60vh">
+      <div style="text-align:center">
+        <div style="font-size:4rem;margin-bottom:16px">🔜</div>
+        <div style="font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:8px">${info.title}</div>
+        <div style="font-size:.85rem;color:var(--muted)">هذه الميزة قيد التطوير وستكون متاحة قريباً</div>
+        <div style="margin-top:20px">
+          <span style="background:rgba(249,115,22,.1);color:var(--primary);border:1px solid rgba(249,115,22,.2);padding:6px 16px;border-radius:20px;font-size:.78rem">قريباً</span>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // =====================================================
