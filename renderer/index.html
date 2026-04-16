@@ -3577,42 +3577,7 @@ function toggleSidebar() {
   } catch(e) {}
 })();
 
-// =====================================================
-// THEME / DARK-LIGHT MODE
-// =====================================================
-let _isDarkMode = true;
 
-function toggleTheme() {
-  _isDarkMode = !_isDarkMode;
-  applyTheme(_isDarkMode);
-  try { localStorage.setItem('dzvs_theme', _isDarkMode ? 'dark' : 'light'); } catch(e){}
-}
-
-function applyTheme(dark) {
-  _isDarkMode = dark;
-  if (dark) {
-    document.body.classList.remove('light-mode');
-    const btn = document.getElementById('themeToggleBtn');
-    if (btn) btn.textContent = '🌙';
-    if (btn) btn.title = 'التبديل للوضع النهاري';
-  } else {
-    document.body.classList.add('light-mode');
-    const btn = document.getElementById('themeToggleBtn');
-    if (btn) btn.textContent = '☀️';
-    if (btn) btn.title = 'التبديل للوضع الليلي';
-  }
-}
-
-// Load saved theme on startup
-(function() {
-  try {
-    const saved = localStorage.getItem('dzvs_theme');
-    if (saved === 'light') {
-      _isDarkMode = false;
-      document.body.classList.add('light-mode');
-    }
-  } catch(e) {}
-})();
 
 // =====================================================
 // TOPBAR QUICK TOOLS
