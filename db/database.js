@@ -156,6 +156,7 @@ class DB {
       ['vente_num_counter','1'],['achat_num_prefix','A'],['achat_num_counter','1'],
       ['tva_enabled','0'],['quote_num_prefix','D'],['quote_num_counter','1'],
       ['retour_num_prefix','R'],['retour_num_counter','1'],
+      ['login_enabled','0'],
     ];
     defaults.forEach(([k,v]) => {
       try { this.db.run(`INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)`, [k,v]); } catch(e) {}
