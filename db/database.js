@@ -271,7 +271,7 @@ class DB {
     else if (period==='year') f = `AND date LIKE '${now.getFullYear()}%'`;
     return {
       total_ventes:  this.get(`SELECT COALESCE(SUM(net),0) as s FROM ventes WHERE is_deleted=0 ${f}`)?.s || 0,
-      total_achats:  this.get(`SELECT COALESCE(SUM(total),0) as s FROM achats WHERE is_deleted=0 ${f}`)?.s || 0,
+      total_achats:  this.get(`SELECT COALESCE(SUM(achats.total),0) as s FROM achats WHERE is_deleted=0 ${f}`)?.s || 0,
       top_products:  this.all(`SELECT product_name, SUM(qty) as total_qty, SUM(total) as total_amount
         FROM vente_items vi JOIN ventes v ON v.id=vi.vente_id WHERE v.is_deleted=0 ${f}
         GROUP BY product_name ORDER BY total_qty DESC LIMIT 10`),
