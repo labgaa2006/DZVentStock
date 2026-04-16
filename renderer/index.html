@@ -1440,96 +1440,288 @@ async function updateClientFromModal(id) {
 // =====================================================
 async function renderPOS() {
   App.pos.items = [];
-  const products = await window.api.products.getAll();
+  _posProducts = await window.api.products.getAll();
   const clients = await window.api.clients.getAll();
-  const cats = [...new Set(products.map(p => p.category).filter(Boolean))];
+  const cats = [...new Set(_posProducts.map(p => p.category).filter(Boolean))];
+  const venteCounter = App.settings.vente_num_counter || '1';
+  const ventePrefix  = App.settings.vente_num_prefix  || 'F';
+  const venteNum     = `${ventePrefix}${String(venteCounter).padStart(5,'0')}`;
 
-  document.getElementById('mainContent').style.padding = '0';
-  document.getElementById('mainContent').innerHTML = `
-    <div class="pos-layout" style="height:calc(100vh - 38px - 58px - 42px)">
+  const mc = document.getElementById('mainContent');
+  mc.style.padding = '0';
+  mc.style.overflow = 'hidden';
 
-      <!-- INVOICE PANEL -->
-      <div class="pos-invoice">
-        <div class="pos-invoice-header" style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <div style="color:var(--primary);font-weight:700;font-size:.85rem">🧾 فاتورة جديدة</div>
-            <select id="pos_client" class="form-select" style="margin-top:4px;padding:3px 8px;font-size:.72rem">
-              <option value="">👤 عميل عابر (نقدي)</option>
-              ${clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+  mc.innerHTML = `
+  <div style="display:flex;flex-direction:column;height:100%;overflow:hidden;background:var(--bg)">
+
+    <!-- TOP INFO BAR -->
+    <div style="background:#111827;border-bottom:2px solid var(--border);padding:6px 14px;display:flex;align-items:center;gap:14px;flex-shrink:0">
+      <div>
+        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;margin-bottom:2px">وضع البيع</div>
+        <select id="pos_mode" style="background:#1e293b;border:1px solid var(--border);border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.78rem;padding:3px 8px">
+          <option value="detail">تجزئة (Détail)</option>
+          <option value="gros">جملة (Gros)</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;margin-bottom:2px">الخصم %</div>
+        <input id="pos_disc" type="number" value="0" min="0" max="100" onchange="recalcPOS()"
+          style="width:65px;padding:3px 6px;background:#1e293b;border:1px solid var(--border);border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.82rem;text-align:center">
+      </div>
+      <div style="border-right:1px solid var(--border);padding-right:14px;margin-right:0">
+        <div style="font-size:.72rem;color:var(--muted)">فاتورة رقم: <strong style="color:var(--info)">${venteNum}</strong></div>
+        <div style="font-size:.72rem;color:var(--muted)">عدد الأصناف: <span id="pos_count" style="color:#fff;font-weight:700">0</span></div>
+      </div>
+      <div style="margin-right:auto;text-align:center">
+        <div style="font-size:.6rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase">TOTAL</div>
+        <div id="pos_total_big" style="font-size:2.6rem;font-weight:900;color:#00ff88;font-family:monospace;letter-spacing:3px;line-height:1">0.00</div>
+      </div>
+      <div style="text-align:left;font-size:.7rem;color:var(--muted)">
+        <div id="pos_clock" style="font-size:.85rem;color:#fff;font-weight:600"></div>
+        <div>${new Date().toLocaleDateString('fr-DZ',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+      </div>
+    </div>
+
+    <!-- MAIN BODY -->
+    <div style="display:grid;grid-template-columns:1fr 410px;flex:1;overflow:hidden">
+
+      <!-- LEFT: PRODUCTS SIDE -->
+      <div style="display:flex;flex-direction:column;overflow:hidden;border-left:1px solid var(--border)">
+
+        <!-- Autocomplete Search -->
+        <div class="pos-search-zone" style="padding:9px;background:var(--sidebar);border-bottom:1px solid var(--border);position:relative;flex-shrink:0">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">Rechercher Par:</span>
+            <select id="pos_search_by" style="padding:5px 8px;background:#0f172a;border:1px solid var(--border);border-radius:7px;color:#fff;font-family:'Cairo',sans-serif;font-size:.75rem">
+              <option value="name">الاسم / Désignation</option>
+              <option value="ref">المرجع / Référence</option>
+              <option value="barcode">الباركود</option>
+            </select>
+            <input id="posSearchInput"
+              placeholder="F5 — اكتب للبحث الفوري..."
+              style="flex:1;padding:8px 14px;background:#0f172a;border:2px solid var(--border);border-radius:9px;color:#fff;font-size:.9rem;font-family:'Cairo',sans-serif;outline:none;transition:.15s"
+              oninput="handlePOSSearch(this.value)"
+              onkeydown="handlePOSSearchKey(event)"
+              onfocus="if(this.value)handlePOSSearch(this.value)">
+          </div>
+          <!-- Dropdown -->
+          <div class="pos-dropdown" id="posDropdown">
+            <div id="posDropdownList"></div>
+          </div>
+        </div>
+
+        <!-- Category buttons -->
+        <div class="pos-cats" id="pos_cats">
+          <button class="pos-cat active" onclick="filterPOSGrid('','',this)" data-cat="">🏪 الكل</button>
+          ${cats.map(cat => `<button class="pos-cat" onclick="filterPOSGrid('','${cat.replace(/'/g,"\'")}',this)" data-cat="${cat.replace(/'/g,"\'")}">📂 ${cat}</button>`).join('')}
+        </div>
+
+        <!-- Product Grid -->
+        <div class="pos-grid" id="pos_grid">
+          ${_posProducts.map(p => buildPOSCard(p)).join('')}
+        </div>
+
+        <!-- Favorites bar -->
+        <div style="padding:5px 10px;background:#0d1117;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;overflow-x:auto;min-height:36px">
+          <span style="font-size:.7rem;color:var(--warning);white-space:nowrap;flex-shrink:0">⭐ قائمة المفضلة</span>
+          <div id="pos_favs" style="display:flex;gap:5px;flex-wrap:nowrap">
+            ${_posFavorites.length===0
+              ? '<span style="font-size:.68rem;color:var(--muted)">كليك يمين على منتج لإضافته</span>'
+              : _posFavorites.map(f=>`<button onclick="addToPOSById('${f.id}')" style="padding:3px 10px;border-radius:16px;border:1px solid var(--warning);background:rgba(245,158,11,.1);color:var(--warning);font-size:.7rem;cursor:pointer;white-space:nowrap;font-family:'Cairo',sans-serif">${f.name} ${fmtNum(f.price)}</button>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: INVOICE SIDE -->
+      <div style="display:flex;flex-direction:column;overflow:hidden;background:var(--sidebar)">
+
+        <!-- Client header -->
+        <div style="padding:7px 12px;border-bottom:1px solid var(--border);background:#0f172a;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:.72rem;color:var(--muted)">العميل:</span>
+            <select id="pos_client" style="background:#1e293b;border:1px solid var(--border);border-radius:6px;color:#fff;font-family:'Cairo',sans-serif;font-size:.75rem;padding:3px 8px;flex:1">
+              <option value="">👤 Comptoir</option>
+              ${clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
             </select>
           </div>
-          <button class="btn btn-sm" style="background:#334155;color:#fff" onclick="clearPOS()">🆕 جديد</button>
+          <button onclick="clearPOS()" style="padding:4px 10px;background:#374151;border:none;border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.7rem;cursor:pointer">🆕 جديد</button>
         </div>
 
-        <div style="padding:8px;border-bottom:1px solid var(--border)">
-          <input class="pos-search" id="posInvoiceSearch" placeholder="🔍 اكتب اسم أو ref..." oninput="filterPOSProducts(this.value)">
-        </div>
-
-        <div class="pos-invoice-list" id="pos_items_list">
-          <div style="text-align:center;padding:40px;color:var(--muted);font-size:.8rem">أضف منتجات من اليمين ←</div>
-        </div>
-
-        <div class="pos-totals">
-          <div class="pos-total-row"><span style="color:var(--muted)">المجموع HT:</span><span id="pos_ht">0 DA</span></div>
-          <div class="pos-total-row">
-            <span style="color:var(--muted)">TVA (<input id="pos_tva_rate" type="number" value="${App.settings.tva||19}" style="width:36px;background:transparent;border:none;border-bottom:1px solid var(--border);color:#fff;text-align:center;font-size:.8rem" onchange="recalcPOS()">%):</span>
-            <span id="pos_tva">0 DA</span>
+        <!-- Invoice table -->
+        <div style="flex:1;overflow-y:auto" id="pos_items_list">
+          <div style="text-align:center;padding:30px;color:var(--muted);font-size:.78rem">
+            ← اختر منتجاً من اليسار
           </div>
-          <div class="pos-total-row">
-            <span style="color:var(--muted)">خصم (<input id="pos_disc" type="number" value="0" min="0" max="100" style="width:36px;background:transparent;border:none;border-bottom:1px solid var(--border);color:#fff;text-align:center;font-size:.8rem" onchange="recalcPOS()">%):</span>
-            <span id="pos_disc_amt" style="color:var(--success)">0 DA</span>
-          </div>
-          <div class="pos-total-row pos-grand-total"><span>الصافي TTC:</span><span id="pos_net" style="color:var(--primary)">0 DA</span></div>
-          <div class="pos-total-row" style="margin-top:8px">
-            <span style="color:var(--muted)">المدفوع:</span>
-            <input id="pos_paid" type="number" value="0" style="width:110px;padding:5px 8px;background:#0f172a;border:1px solid var(--border);border-radius:6px;color:#fff;font-family:'Cairo',sans-serif;text-align:center" oninput="updateReste()">
-          </div>
-          <div class="pos-total-row"><span style="color:var(--muted)">الباقي:</span><span id="pos_reste" style="color:var(--warning);font-weight:700">0 DA</span></div>
         </div>
 
-        <div style="padding:8px 10px;border-top:1px solid var(--border)">
-          <select class="form-select" id="pos_payment" style="margin-bottom:6px">
+        <!-- Totals -->
+        <div style="padding:8px 12px;background:#0f172a;flex-shrink:0;border-top:1px solid var(--border)">
+          <table style="width:100%;font-size:.75rem">
+            <tr><td style="color:var(--muted);padding:1px 0">المجموع HT:</td><td style="text-align:left;color:#fff" id="pos_ht">0 DA</td></tr>
+            <tr id="pos_tva_row"><td style="color:var(--muted);padding:1px 0">TVA (<input id="pos_tva_rate" type="number" value="${App.settings.tva||19}" onchange="recalcPOS()" style="width:30px;background:transparent;border:none;border-bottom:1px solid var(--border);color:#fff;text-align:center;font-size:.72rem">%):</td><td style="text-align:left" id="pos_tva">0 DA</td></tr>
+            <tr><td style="color:var(--success);padding:1px 0">الخصم:</td><td style="text-align:left;color:var(--success)" id="pos_disc_amt">0 DA</td></tr>
+          </table>
+          <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:900;color:var(--primary);border-top:1px solid var(--border);padding-top:5px;margin-top:3px">
+            <span>الصافي TTC:</span><span id="pos_net">0 DA</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
+            <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">المدفوع:</span>
+            <input id="pos_paid" type="number" value="0" oninput="updateReste()"
+              style="flex:1;padding:5px 8px;background:#1e293b;border:1px solid var(--border);border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;text-align:center;font-size:.88rem">
+            <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">الباقي:</span>
+            <span id="pos_reste" style="color:var(--success);font-weight:700;font-size:.82rem;white-space:nowrap">0 DA</span>
+          </div>
+          <select id="pos_payment" style="width:100%;margin-top:6px;padding:5px 8px;background:#1e293b;border:1px solid var(--border);border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.78rem">
             <option>💵 نقداً</option><option>💳 تحويل</option><option>📅 آجل</option><option>🔀 مختلط</option>
           </select>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px">
-            <button onclick="clearPOS()" style="padding:9px;background:var(--danger);border:none;border-radius:8px;color:#fff;font-family:'Cairo',sans-serif;font-size:.75rem;font-weight:700;cursor:pointer">🗑️ مسح</button>
-            <button onclick="pausePOS()" style="padding:9px;background:#7c3aed;border:none;border-radius:8px;color:#fff;font-family:'Cairo',sans-serif;font-size:.75rem;font-weight:700;cursor:pointer">⏸️ تعليق</button>
-            <button onclick="resumePOS()" style="padding:9px;background:var(--info);border:none;border-radius:8px;color:#fff;font-family:'Cairo',sans-serif;font-size:.75rem;font-weight:700;cursor:pointer">▶️ استئناف</button>
-          </div>
-          <button onclick="confirmPOSSale()" style="width:100%;padding:11px;background:var(--success);border:none;border-radius:8px;color:#fff;font-family:'Cairo',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer">✅ تأكيد الدفع — Enter</button>
         </div>
-      </div>
 
-      <!-- PRODUCTS PANEL -->
-      <div class="pos-products">
-        <div style="padding:8px;border-bottom:1px solid var(--border);background:var(--sidebar)">
-          <input class="pos-search" id="posGridSearch" placeholder="🔍 ابحث في المنتجات..." oninput="filterPOSGrid(this.value,currentCat)">
+        <!-- Action buttons — exactly like the screenshot -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;flex-shrink:0;border-top:2px solid #000">
+          <button onclick="pausePOS()" style="padding:10px 4px;background:#4c1d95;border:none;border-left:1px solid rgba(0,0,0,.4);color:#fff;font-family:'Cairo',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">⏸️ تعليق (F3)</button>
+          <button onclick="changePOSLastQty(1)" style="padding:10px 4px;background:#1e40af;border:none;border-left:1px solid rgba(0,0,0,.4);color:#fff;font-family:'Cairo',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">Qté ＋</button>
+          <button onclick="changePOSLastQty(-1)" style="padding:10px 4px;background:#991b1b;border:none;color:#fff;font-family:'Cairo',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">Qté －</button>
         </div>
-        <div class="pos-cats" id="pos_cats">
-          <button class="pos-cat active" onclick="filterPOSGrid('','')" data-cat="">🏪 الكل</button>
-          ${cats.map(cat => `<button class="pos-cat" onclick="filterPOSGrid('','${cat}')" data-cat="${cat}">${cat}</button>`).join('')}
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;flex-shrink:0">
+          <button onclick="confirmPOSSale()" style="padding:12px 4px;background:#166534;border:none;border-left:1px solid rgba(0,0,0,.4);border-top:1px solid rgba(0,0,0,.4);color:#fff;font-family:'Cairo',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">✅ تأكيد</button>
+          <button onclick="confirmAndPrint()" style="padding:12px 4px;background:#064e3b;border:none;border-left:1px solid rgba(0,0,0,.4);border-top:1px solid rgba(0,0,0,.4);color:#fff;font-family:'Cairo',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">🖨️+طباعة</button>
+          <button onclick="removePOSLast()" style="padding:12px 4px;background:#7f1d1d;border:none;border-left:1px solid rgba(0,0,0,.4);border-top:1px solid rgba(0,0,0,.4);color:#fff;font-family:'Cairo',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">🗑️ حذف سطر</button>
+          <button onclick="clearPOS()" style="padding:12px 4px;background:#374151;border:none;border-top:1px solid rgba(0,0,0,.4);color:#fff;font-family:'Cairo',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">❌ إغلاق</button>
         </div>
-        <div class="pos-grid" id="pos_grid">
-          ${products.map(p => `
-            <div class="pos-product" onclick="addToPOS('${p.id}','${p.name.replace(/'/g,"\\'")}',${p.sell_price},${p.stock})" 
-                 data-name="${p.name.toLowerCase()}" data-cat="${p.category||''}" data-id="${p.id}"
-                 style="${p.stock===0?'opacity:.4;pointer-events:none':''}">
-              <div style="font-size:1.5rem;margin-bottom:4px">📦</div>
-              <div class="pos-product-name">${p.name}</div>
-              <div class="pos-product-ref">${p.ref}</div>
-              <div class="pos-product-price">${fmtNum(p.sell_price)} DA</div>
-              <div class="pos-product-stock" style="color:${p.stock===0?'var(--danger)':p.stock<=p.stock_min?'var(--warning)':'var(--success)'}">
-                ${p.stock===0?'❌ نفد':p.stock<=p.stock_min?`⚠️ ${p.stock}`:`✅ ${p.stock}`}
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
 
+      </div>
     </div>
+  </div>
   `;
+
   window.currentCat = '';
+  // Live clock
+  window._posClock = setInterval(() => {
+    const el = document.getElementById('pos_clock');
+    if (el) el.textContent = new Date().toLocaleTimeString('fr-DZ');
+    else clearInterval(window._posClock);
+  }, 1000);
+  document.getElementById('pos_clock').textContent = new Date().toLocaleTimeString('fr-DZ');
+  setTimeout(() => document.getElementById('posSearchInput')?.focus(), 150);
 }
+
+let _posProducts = [];
+let _posFavorites = (() => { try { return JSON.parse(localStorage.getItem('pos_favorites')||'[]'); } catch(e){return[];} })();
+
+function buildPOSCard(p) {
+  const stockColor = p.stock===0?'#ef4444':p.stock<=p.stock_min?'#f59e0b':'#10b981';
+  const priceBarBg  = p.stock===0?'rgba(127,29,29,.9)':p.stock<=p.stock_min?'rgba(120,53,15,.9)':'rgba(20,83,45,.9)';
+  const cardBg      = p.stock===0?'linear-gradient(135deg,#2d1515,#1a0a0a)':
+                      p.stock<=p.stock_min?'linear-gradient(135deg,#2d2005,#1a1202)':
+                      'linear-gradient(135deg,#0f2d1f,#071a12)';
+  const words = p.name.split(' ');
+  const shortId = words.length>1 ? words.slice(-1)[0] : p.name.substring(0,8);
+  return `
+<div class="pos-product ${p.stock===0?'out-of-stock':''}"
+  onclick="addToPOS('${p.id}','${p.name.replace(/'/g,"\'").replace(/\/g,'\\').replace(/"/g,'&quot;')}',${p.sell_price},${p.stock})"
+  oncontextmenu="togglePOSFavorite('${p.id}','${p.name.replace(/'/g,"\'").replace(/"/g,'&quot;')}',${p.sell_price});return false"
+  data-name="${p.name.toLowerCase()}" data-ref="${(p.ref||'').toLowerCase()}"
+  data-barcode="${(p.barcode||'').toLowerCase()}" data-cat="${(p.category||'').replace(/"/g,'')}" data-id="${p.id}"
+  style="background:${cardBg}">
+  <div class="pos-product-price-bar" style="background:${priceBarBg};display:flex;justify-content:space-between;padding:5px 8px">
+    <span style="font-size:.8rem;font-weight:900;color:#fff">${fmtNum(p.sell_price)}</span>
+    <span style="font-size:.6rem;color:rgba(255,255,255,.6)">${p.ref}</span>
+  </div>
+  <div class="pos-product-body" style="padding:6px;text-align:center">
+    <div style="font-size:1.5rem;font-weight:900;color:${stockColor};line-height:1;margin-bottom:2px">${shortId}</div>
+    <div style="font-size:.68rem;color:#cbd5e1;line-height:1.2">${p.name}</div>
+  </div>
+  <div style="background:rgba(0,0,0,.35);padding:3px 6px;font-size:.62rem;font-weight:700;color:${stockColor};text-align:center">
+    ${p.stock===0?'❌ نفد':p.stock<=p.stock_min?`⚠️ ${p.stock} ${p.unit||''}`:` ${p.stock} ${p.unit||'قطعة'}`}
+  </div>
+</div>`;
+}
+
+function handlePOSSearch(q) {
+  const dropdown = document.getElementById('posDropdown');
+  const list     = document.getElementById('posDropdownList');
+  if (!q || !q.trim()) {
+    dropdown.classList.remove('open');
+    document.querySelectorAll('.pos-grid .pos-product').forEach(el => el.style.display='');
+    return;
+  }
+  const by  = document.getElementById('pos_search_by')?.value || 'name';
+  const ql  = q.toLowerCase();
+  const filtered = _posProducts.filter(p => {
+    if (by==='ref')     return (p.ref||'').toLowerCase().includes(ql);
+    if (by==='barcode') return (p.barcode||'').toLowerCase().includes(ql);
+    return p.name.toLowerCase().includes(ql);
+  });
+  list.innerHTML = filtered.length===0
+    ? `<div style="padding:16px;text-align:center;color:var(--muted);font-size:.8rem">لا توجد نتائج لـ "${q}"</div>`
+    : filtered.slice(0,15).map(p => `
+      <div class="pos-dropdown-item"
+        onclick="addToPOS('${p.id}','${p.name.replace(/'/g,"\'").replace(/"/g,'&quot;')}',${p.sell_price},${p.stock});document.getElementById('posSearchInput').value='';document.getElementById('posDropdown').classList.remove('open')">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:.85rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+          <div style="font-size:.68rem;color:var(--muted)">${p.ref}${p.barcode?' • '+p.barcode:''}${p.category?' • '+p.category:''}</div>
+        </div>
+        <span class="pos-dropdown-price">${fmtNum(p.sell_price)} DA</span>
+        <span class="pos-dropdown-stock" style="color:${p.stock===0?'var(--danger)':p.stock<=p.stock_min?'var(--warning)':'var(--success)'};padding:2px 8px;border-radius:10px;background:rgba(0,0,0,.3)">
+          ${p.stock===0?'❌ نفد':p.stock+' '+(p.unit||'قطعة')}
+        </span>
+      </div>`).join('');
+  dropdown.classList.add('open');
+}
+
+function handlePOSSearchKey(e) {
+  if (e.key==='Escape') {
+    document.getElementById('posDropdown').classList.remove('open');
+    document.getElementById('posSearchInput').value='';
+  } else if (e.key==='Enter') {
+    const first = document.querySelector('.pos-dropdown-item');
+    if (first) first.click();
+  }
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#posDropdown') && !e.target.closest('#posSearchInput')) {
+    document.getElementById('posDropdown')?.classList.remove('open');
+  }
+});
+
+window.addToPOSById = (id) => {
+  const p = _posProducts.find(x=>x.id===id);
+  if (p) window.addToPOS(p.id, p.name, p.sell_price, p.stock);
+};
+
+function togglePOSFavorite(id, name, price) {
+  const idx = _posFavorites.findIndex(f=>f.id===id);
+  if (idx>=0) { _posFavorites.splice(idx,1); toast('تم حذفه من المفضلة','info'); }
+  else { _posFavorites.push({id,name,price}); toast('⭐ تم إضافته للمفضلة','success'); }
+  try { localStorage.setItem('pos_favorites', JSON.stringify(_posFavorites)); } catch(e){}
+  const el = document.getElementById('pos_favs');
+  if (el) el.innerHTML = _posFavorites.length===0
+    ? '<span style="font-size:.68rem;color:var(--muted)">كليك يمين على منتج لإضافته</span>'
+    : _posFavorites.map(f=>`<button onclick="addToPOSById('${f.id}')" style="padding:3px 10px;border-radius:16px;border:1px solid var(--warning);background:rgba(245,158,11,.1);color:var(--warning);font-size:.7rem;cursor:pointer;white-space:nowrap;font-family:'Cairo',sans-serif">${f.name} ${fmtNum(f.price)}</button>`).join('');
+}
+
+window.changePOSLastQty = (d) => {
+  if (!App.pos.items.length) return;
+  const last = App.pos.items[App.pos.items.length-1];
+  const nq = last.qty + d;
+  if (nq < 1) { App.pos.items.pop(); }
+  else if (nq > last.stock) { toast('لا يوجد مخزون كافٍ','error'); return; }
+  else { last.qty = nq; }
+  renderPOSItems(); recalcPOS();
+};
+
+window.removePOSLast = () => {
+  if (!App.pos.items.length) return;
+  App.pos.items.pop();
+  renderPOSItems(); recalcPOS();
+};
+
+window.confirmAndPrint = async () => {
+  if (!App.pos.items.length) { toast('أضف منتجاً على الأقل','error'); return; }
+  await window.confirmPOSSale();
+};
+
 
 window.addToPOS = (id, name, price, stock) => {
   if (stock === 0) { toast('المنتج نفد من المخزون', 'error'); return; }
