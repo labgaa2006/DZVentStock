@@ -341,6 +341,7 @@ class DB {
       ca_total:        this.get(`SELECT COALESCE(SUM(net),0) as s FROM ventes WHERE is_deleted=0`)?.s || 0,
       recent_ventes:   this.all(`SELECT v.* FROM ventes v WHERE v.is_deleted=0 ORDER BY v.created_at DESC LIMIT 5`),
       low_stock_products: this.all(`SELECT * FROM products WHERE is_deleted=0 AND stock<=stock_min ORDER BY stock ASC LIMIT 5`),
+      supplier_debts: this.get(`SELECT COALESCE(SUM(reste),0) as s FROM achats WHERE is_deleted=0 AND reste>0`)?.s||0,
     };
   }
 
