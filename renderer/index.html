@@ -86,11 +86,27 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);overf
 
 /* ===== LAYOUT ===== */
 .body-wrap{display:flex;flex:1;overflow:hidden}
+/* ===== SIDEBAR AUTO-HIDE ===== */
 .sidebar{
   width:240px;background:var(--sidebar);display:flex;flex-direction:column;
   border-left:1px solid var(--border);flex-shrink:0;
-  animation:slideIn .4s ease;
+  position:fixed;right:0;top:38px;bottom:0;z-index:300;
+  transform:translateX(100%);
+  transition:transform .3s cubic-bezier(.4,0,.2,1), box-shadow .3s;
+  box-shadow:none;
+  overflow:hidden;
 }
+.sidebar.sidebar-visible{
+  transform:translateX(0);
+  box-shadow:-4px 0 24px rgba(0,0,0,.4);
+}
+/* Hover trigger zone - right edge */
+.sidebar-trigger{
+  position:fixed;right:0;top:38px;bottom:0;width:12px;z-index:299;
+  cursor:pointer;
+}
+/* Main body adjusts - no gap for sidebar */
+.body-wrap{display:flex;flex:1;overflow:hidden}
 .brand{padding:18px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
 .brand-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
 .brand-name{font-size:.85rem;font-weight:700;color:#fff;line-height:1.3}
@@ -443,6 +459,9 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(255,255,255,.02)}
   <!-- TITLEBAR -->
   <div class="titlebar">
     <div class="titlebar-logo">🏪 DZ Vent & Stock</div>
+    <button id="sidebarToggleBtn" onclick="toggleSidebar()"
+      style="padding:0 12px;height:38px;background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:1rem;-webkit-app-region:no-drag;transition:.15s"
+      title="القائمة (Alt+M)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--muted)'">☰</button>
     <div class="titlebar-title" id="titlebarTitle">نظام المبيعات والمخزون</div>
     <div class="titlebar-btns" style="-webkit-app-region:no-drag">
       <button class="tb-btn" id="themeToggleBtn" onclick="toggleTheme()" title="وضع ليلي/نهاري" style="font-size:.8rem">🌙</button>
@@ -455,8 +474,11 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(255,255,255,.02)}
   <!-- BODY -->
   <div class="body-wrap">
 
-    <!-- SIDEBAR -->
-    <div class="sidebar">
+    <!-- SIDEBAR TRIGGER ZONE (right edge hover) -->
+    <div class="sidebar-trigger" id="sidebarTrigger" onmouseenter="showSidebar()"></div>
+
+    <!-- SIDEBAR (auto-hide) -->
+    <div class="sidebar" id="mainSidebar" onmouseenter="keepSidebar()" onmouseleave="startHideTimer()">
       <div class="brand">
         <div class="brand-icon">🏪</div>
         <div>
@@ -1522,7 +1544,7 @@ async function renderPOS() {
   mc.style.overflow = 'hidden';
 
   mc.innerHTML = `
-  <div style="display:flex;flex-direction:column;height:100%;overflow:hidden;background:var(--bg)">
+  <div style="display:flex;flex-direction:column;height:100%;overflow:hidden;background:var(--bg);position:relative">
 
     <!-- TOP INFO BAR -->
     <div style="background:#111827;border-bottom:2px solid var(--border);padding:6px 14px;display:flex;align-items:center;gap:14px;flex-shrink:0">
@@ -1553,115 +1575,146 @@ async function renderPOS() {
       </div>
     </div>
 
-    <!-- MAIN BODY -->
-    <div style="display:grid;grid-template-columns:1fr 410px;flex:1;overflow:hidden">
+    <!-- MAIN BODY: invoice left + controls right -->
+    <div style="display:grid;grid-template-columns:1fr 380px;flex:1;overflow:hidden">
 
-      <!-- LEFT: PRODUCTS SIDE -->
-      <div style="display:flex;flex-direction:column;overflow:hidden;border-left:1px solid var(--border)">
+      <!-- CENTER: INVOICE ITEMS (main focus) -->
+      <div style="display:flex;flex-direction:column;overflow:hidden">
 
-        <!-- Autocomplete Search -->
-        <div class="pos-search-zone" style="padding:9px;background:var(--sidebar);border-bottom:1px solid var(--border);position:relative;flex-shrink:0">
+        <!-- Search bar always visible at top -->
+        <div class="pos-search-zone" style="padding:8px 12px;background:var(--sidebar);border-bottom:1px solid var(--border);position:relative;flex-shrink:0">
           <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">Rechercher Par:</span>
-            <select id="pos_search_by" style="padding:5px 8px;background:#0f172a;border:1px solid var(--border);border-radius:7px;color:#fff;font-family:'Cairo',sans-serif;font-size:.75rem">
-              <option value="name">الاسم / Désignation</option>
-              <option value="ref">المرجع / Référence</option>
+            <button onclick="togglePOSGrid()" id="pos_grid_toggle_btn"
+              style="padding:6px 12px;background:rgba(249,115,22,.15);border:1px solid var(--primary);border-radius:7px;color:var(--primary);font-size:.75rem;cursor:pointer;font-family:'Cairo',sans-serif;white-space:nowrap;font-weight:700;flex-shrink:0">
+              📦 الشبكة
+            </button>
+            <select id="pos_search_by" style="padding:6px 8px;background:#0f172a;border:1px solid var(--border);border-radius:7px;color:#fff;font-family:'Cairo',sans-serif;font-size:.75rem;flex-shrink:0">
+              <option value="name">الاسم</option>
+              <option value="ref">المرجع</option>
               <option value="barcode">الباركود</option>
             </select>
             <input id="posSearchInput"
-              placeholder="F5 — اكتب للبحث الفوري..."
-              style="flex:1;padding:8px 14px;background:#0f172a;border:2px solid var(--border);border-radius:9px;color:#fff;font-size:.9rem;font-family:'Cairo',sans-serif;outline:none;transition:.15s"
+              placeholder="🔍 ابحث عن سلعة — ↑↓ للتنقل — Enter للاختيار — ESC للإغلاق"
+              style="flex:1;padding:8px 14px;background:#0f172a;border:2px solid var(--primary);border-radius:9px;color:#fff;font-size:.9rem;font-family:'Cairo',sans-serif;outline:none"
               oninput="handlePOSSearch(this.value)"
               onkeydown="handlePOSSearchKey(event)"
               onfocus="if(this.value)handlePOSSearch(this.value)">
           </div>
-          <!-- Dropdown -->
+          <!-- Autocomplete Dropdown -->
           <div class="pos-dropdown" id="posDropdown">
             <div id="posDropdownList"></div>
           </div>
         </div>
 
-        <!-- Category buttons -->
-        <div class="pos-cats" id="pos_cats">
-          <button class="pos-cat active" onclick="filterPOSGrid('','',this)" data-cat="">🏪 الكل</button>
-          ${cats.map(cat => `<button class="pos-cat" onclick="filterPOSGrid('','${cat.replace(/'/g,"\'")}',this)" data-cat="${cat.replace(/'/g,"\'")}">📂 ${cat}</button>`).join('')}
+        <!-- INVOICE ITEMS TABLE — main focus -->
+        <div style="flex:1;overflow-y:auto;background:var(--bg)" id="pos_items_list">
+          <div style="text-align:center;padding:50px 20px;color:var(--muted)">
+            <div style="font-size:3rem;margin-bottom:12px">🛒</div>
+            <div style="font-size:.9rem;font-weight:600;margin-bottom:6px">ابدأ بالبحث أو اختر من الشبكة</div>
+            <div style="font-size:.75rem">اكتب اسم السلعة في خانة البحث أعلاه ← أو اضغط "📦 الشبكة"</div>
+          </div>
         </div>
 
-        <!-- Product Grid -->
-        <div class="pos-grid" id="pos_grid">
-          ${_posProducts.map(p => buildPOSCard(p)).join('')}
-        </div>
-
-        <!-- Favorites bar -->
-        <div style="padding:5px 10px;background:#0d1117;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;overflow-x:auto;min-height:36px">
-          <span style="font-size:.7rem;color:var(--warning);white-space:nowrap;flex-shrink:0">⭐ قائمة المفضلة</span>
+        <!-- Favorites bar at bottom of invoice -->
+        <div style="padding:5px 12px;background:#0d1117;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;overflow-x:auto;min-height:38px">
+          <span style="font-size:.7rem;color:var(--warning);white-space:nowrap;flex-shrink:0">⭐ المفضلة:</span>
           <div id="pos_favs" style="display:flex;gap:5px;flex-wrap:nowrap">
             ${_posFavorites.length===0
-              ? '<span style="font-size:.68rem;color:var(--muted)">كليك يمين على منتج لإضافته</span>'
-              : _posFavorites.map(f=>`<button onclick="addToPOSById('${f.id}')" style="padding:3px 10px;border-radius:16px;border:1px solid var(--warning);background:rgba(245,158,11,.1);color:var(--warning);font-size:.7rem;cursor:pointer;white-space:nowrap;font-family:'Cairo',sans-serif">${f.name} ${fmtNum(f.price)}</button>`).join('')}
+              ? '<span style="font-size:.68rem;color:var(--muted)">كليك يمين على بطاقة المنتج لإضافته للمفضلة</span>'
+              : _posFavorites.map(f=>`<button onclick="addToPOSById('${f.id}')" style="padding:3px 10px;border-radius:16px;border:1px solid var(--warning);background:rgba(245,158,11,.1);color:var(--warning);font-size:.7rem;cursor:pointer;white-space:nowrap;font-family:'Cairo',sans-serif">${f.name} — ${fmtNum(f.price)}</button>`).join('')}
           </div>
         </div>
       </div>
 
-      <!-- RIGHT: INVOICE SIDE -->
-      <div style="display:flex;flex-direction:column;overflow:hidden;background:var(--sidebar)">
+      <!-- RIGHT: TOTALS + ACTIONS -->
+      <div style="display:flex;flex-direction:column;overflow:hidden;background:var(--sidebar);border-right:1px solid var(--border)">
 
-        <!-- Client header -->
-        <div style="padding:7px 12px;border-bottom:1px solid var(--border);background:#0f172a;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:.72rem;color:var(--muted)">العميل:</span>
-            <select id="pos_client" style="background:#1e293b;border:1px solid var(--border);border-radius:6px;color:#fff;font-family:'Cairo',sans-serif;font-size:.75rem;padding:3px 8px;flex:1">
-              <option value="">👤 Comptoir</option>
-              ${clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
-            </select>
-          </div>
-          <button onclick="clearPOS()" style="padding:4px 10px;background:#374151;border:none;border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.7rem;cursor:pointer">🆕 جديد</button>
-        </div>
-
-        <!-- Invoice table -->
-        <div style="flex:1;overflow-y:auto" id="pos_items_list">
-          <div style="text-align:center;padding:30px;color:var(--muted);font-size:.78rem">
-            ← اختر منتجاً من اليسار
-          </div>
+        <!-- Client -->
+        <div style="padding:7px 10px;border-bottom:1px solid var(--border);background:#0f172a;flex-shrink:0;display:flex;align-items:center;gap:8px">
+          <span style="font-size:.7rem;color:var(--muted);white-space:nowrap">العميل:</span>
+          <select id="pos_client" style="flex:1;background:#1e293b;border:1px solid var(--border);border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.73rem;padding:3px 6px">
+            <option value="">👤 Comptoir</option>
+            ${clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
+          </select>
+          <button onclick="clearPOS()" style="padding:3px 8px;background:#374151;border:none;border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.68rem;cursor:pointer;white-space:nowrap">🆕 جديد</button>
         </div>
 
         <!-- Totals -->
-        <div style="padding:8px 12px;background:#0f172a;flex-shrink:0;border-top:1px solid var(--border)">
-          <table style="width:100%;font-size:.75rem">
-            <tr><td style="color:var(--muted);padding:1px 0">المجموع HT:</td><td style="text-align:left;color:#fff" id="pos_ht">0 DA</td></tr>
-            <tr id="pos_tva_row"><td style="color:var(--muted);padding:1px 0">TVA (<input id="pos_tva_rate" type="number" value="${App.settings.tva||19}" onchange="recalcPOS()" style="width:30px;background:transparent;border:none;border-bottom:1px solid var(--border);color:#fff;text-align:center;font-size:.72rem">%):</td><td style="text-align:left" id="pos_tva">0 DA</td></tr>
-            <tr><td style="color:var(--success);padding:1px 0">الخصم:</td><td style="text-align:left;color:var(--success)" id="pos_disc_amt">0 DA</td></tr>
+        <div style="padding:10px 12px;flex-shrink:0">
+          <table style="width:100%;font-size:.78rem">
+            <tr><td style="color:var(--muted);padding:2px 0">المجموع HT:</td><td style="text-align:left;font-weight:700" id="pos_ht">0 DA</td></tr>
+            <tr id="pos_tva_row"><td style="color:var(--muted);padding:2px 0">TVA (<input id="pos_tva_rate" type="number" value="${App.settings.tva||19}" onchange="recalcPOS()" style="width:28px;background:transparent;border:none;border-bottom:1px solid var(--border);color:#fff;text-align:center;font-size:.72rem">%):</td><td style="text-align:left" id="pos_tva">0 DA</td></tr>
+            <tr><td style="color:var(--success);padding:2px 0">الخصم:</td><td style="text-align:left;color:var(--success)" id="pos_disc_amt">0 DA</td></tr>
           </table>
-          <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:900;color:var(--primary);border-top:1px solid var(--border);padding-top:5px;margin-top:3px">
+          <div style="display:flex;justify-content:space-between;font-size:1.05rem;font-weight:900;color:var(--primary);border-top:2px solid var(--border);padding-top:8px;margin-top:6px">
             <span>الصافي TTC:</span><span id="pos_net">0 DA</span>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
-            <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">المدفوع:</span>
-            <input id="pos_paid" type="number" value="0" oninput="updateReste()"
-              style="flex:1;padding:5px 8px;background:#1e293b;border:1px solid var(--border);border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;text-align:center;font-size:.88rem">
-            <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">الباقي:</span>
-            <span id="pos_reste" style="color:var(--success);font-weight:700;font-size:.82rem;white-space:nowrap">0 DA</span>
+          <div style="margin-top:8px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+              <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">المدفوع:</span>
+              <input id="pos_paid" type="number" value="0" oninput="updateReste()"
+                style="flex:1;padding:5px 8px;background:#0f172a;border:1px solid var(--border);border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;text-align:center;font-size:.9rem">
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">الباقي:</span>
+              <span id="pos_reste" style="color:var(--success);font-weight:700;font-size:.9rem;white-space:nowrap">0 DA</span>
+            </div>
           </div>
-          <select id="pos_payment" style="width:100%;margin-top:6px;padding:5px 8px;background:#1e293b;border:1px solid var(--border);border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.78rem">
+          <select id="pos_payment" style="width:100%;margin-top:8px;padding:6px 8px;background:#0f172a;border:1px solid var(--border);border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.78rem">
             <option>💵 نقداً</option><option>💳 تحويل</option><option>📅 آجل</option><option>🔀 مختلط</option>
           </select>
         </div>
 
-        <!-- Action buttons — exactly like the screenshot -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;flex-shrink:0;border-top:2px solid #000">
-          <button onclick="pausePOS()" style="padding:10px 4px;background:#4c1d95;border:none;border-left:1px solid rgba(0,0,0,.4);color:#fff;font-family:'Cairo',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">⏸️ تعليق (F3)</button>
-          <button onclick="changePOSLastQty(1)" style="padding:10px 4px;background:#1e40af;border:none;border-left:1px solid rgba(0,0,0,.4);color:#fff;font-family:'Cairo',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">Qté ＋</button>
-          <button onclick="changePOSLastQty(-1)" style="padding:10px 4px;background:#991b1b;border:none;color:#fff;font-family:'Cairo',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">Qté －</button>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;flex-shrink:0">
-          <button onclick="confirmPOSSale()" style="padding:12px 4px;background:#166534;border:none;border-left:1px solid rgba(0,0,0,.4);border-top:1px solid rgba(0,0,0,.4);color:#fff;font-family:'Cairo',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">✅ تأكيد</button>
-          <button onclick="confirmAndPrint()" style="padding:12px 4px;background:#064e3b;border:none;border-left:1px solid rgba(0,0,0,.4);border-top:1px solid rgba(0,0,0,.4);color:#fff;font-family:'Cairo',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">🖨️+طباعة</button>
-          <button onclick="removePOSLast()" style="padding:12px 4px;background:#7f1d1d;border:none;border-left:1px solid rgba(0,0,0,.4);border-top:1px solid rgba(0,0,0,.4);color:#fff;font-family:'Cairo',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">🗑️ حذف سطر</button>
-          <button onclick="clearPOS()" style="padding:12px 4px;background:#374151;border:none;border-top:1px solid rgba(0,0,0,.4);color:#fff;font-family:'Cairo',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">❌ إغلاق</button>
-        </div>
+        <!-- Spacer -->
+        <div style="flex:1"></div>
 
+        <!-- Action buttons -->
+        <div style="flex-shrink:0">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #000">
+            <button onclick="pausePOS()" style="padding:11px 4px;background:#4c1d95;border:none;border-left:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">⏸️ تعليق (F3)</button>
+            <button onclick="resumePOS()" style="padding:11px 4px;background:#1e3a5f;border:none;color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">▶️ استئناف</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+            <button onclick="changePOSLastQty(1)" style="padding:10px 4px;background:#1e40af;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">Qté ＋</button>
+            <button onclick="changePOSLastQty(-1)" style="padding:10px 4px;background:#991b1b;border:none;border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">Qté －</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+            <button onclick="removePOSLast()" style="padding:10px 4px;background:#7f1d1d;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">🗑️ حذف سطر</button>
+            <button onclick="clearPOS()" style="padding:10px 4px;background:#374151;border:none;border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">❌ مسح الكل</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+            <button onclick="confirmPOSSale()" style="padding:14px 4px;background:#166534;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.8rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">✅ تأكيد — Enter</button>
+            <button onclick="confirmAndPrint()" style="padding:14px 4px;background:#064e3b;border:none;border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.75rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">🖨️ تأكيد+طباعة</button>
+          </div>
+        </div>
       </div>
     </div>
+
+    <!-- PRODUCT GRID OVERLAY (slides from bottom when clicking "الشبكة") -->
+    <div id="posGridOverlay" style="position:absolute;inset:0;top:auto;bottom:0;height:0;overflow:hidden;transition:height .3s cubic-bezier(.4,0,.2,1);z-index:50;background:var(--bg);border-top:2px solid var(--primary)">
+      <div style="display:flex;flex-direction:column;height:100%">
+        <!-- Grid header -->
+        <div style="padding:8px 12px;background:var(--sidebar);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:.82rem;font-weight:700;color:var(--primary)">📦 شبكة المنتجات</span>
+            <span style="font-size:.72rem;color:var(--muted)">(كليك يمين على منتج لإضافته للمفضلة)</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <!-- Categories -->
+            <div class="pos-cats" id="pos_cats" style="padding:0;border:none;background:transparent;flex:1">
+              <button class="pos-cat active" onclick="filterPOSGrid('','',this)" data-cat="">🏪 الكل</button>
+              ${cats.map(cat => `<button class="pos-cat" onclick="filterPOSGrid('','${cat.replace(/'/g,"\'")}',this)" data-cat="${cat.replace(/'/g,"\'")}">📂 ${cat}</button>`).join('')}
+            </div>
+            <button onclick="togglePOSGrid()" style="padding:5px 12px;background:var(--danger);border:none;border-radius:6px;color:#fff;font-size:.75rem;cursor:pointer;font-family:'Cairo',sans-serif;font-weight:700">✕ إغلاق</button>
+          </div>
+        </div>
+        <!-- Grid -->
+        <div class="pos-grid" id="pos_grid" style="flex:1;overflow-y:auto;padding:10px">
+          ${_posProducts.map(p => buildPOSCard(p)).join('')}
+        </div>
+      </div>
+    </div>
+
   </div>
   `;
 
@@ -1807,6 +1860,22 @@ window.addToPOSById = (id) => {
   const p = _posProducts.find(x=>x.id===id);
   if (!p) return;
   window.addToPOS(p.id, p.name, p.sell_price, p.stock, p.ref);
+};
+
+// Toggle POS product grid overlay
+let _posGridOpen = false;
+window.togglePOSGrid = () => {
+  _posGridOpen = !_posGridOpen;
+  const overlay = document.getElementById('posGridOverlay');
+  const btn = document.getElementById('pos_grid_toggle_btn');
+  if (overlay) {
+    overlay.style.height = _posGridOpen ? '65%' : '0';
+  }
+  if (btn) {
+    btn.style.background = _posGridOpen ? 'var(--primary)' : 'rgba(249,115,22,.15)';
+    btn.style.color = _posGridOpen ? '#fff' : 'var(--primary)';
+    btn.textContent = _posGridOpen ? '✕ أغلق الشبكة' : '📦 الشبكة';
+  }
 };
 
 function togglePOSFavorite(id, name, price) {
@@ -3488,6 +3557,61 @@ function applyTheme() {
 }
 
 // =====================================================
+// SIDEBAR AUTO-HIDE
+// =====================================================
+let _sidebarTimer = null;
+let _sidebarPinned = false;
+
+function showSidebar() {
+  const sb = document.getElementById('mainSidebar');
+  if (sb) sb.classList.add('sidebar-visible');
+  clearTimeout(_sidebarTimer);
+}
+
+function keepSidebar() {
+  clearTimeout(_sidebarTimer);
+}
+
+function startHideTimer() {
+  if (_sidebarPinned) return;
+  clearTimeout(_sidebarTimer);
+  _sidebarTimer = setTimeout(hideSidebar, 5000);
+}
+
+function hideSidebar() {
+  if (_sidebarPinned) return;
+  const sb = document.getElementById('mainSidebar');
+  if (sb) sb.classList.remove('sidebar-visible');
+}
+
+function toggleSidebar() {
+  const sb = document.getElementById('mainSidebar');
+  if (!sb) return;
+  const isVisible = sb.classList.contains('sidebar-visible');
+  if (isVisible) {
+    _sidebarPinned = false;
+    hideSidebar();
+  } else {
+    _sidebarPinned = true;
+    showSidebar();
+  }
+  const btn = document.getElementById('sidebarToggleBtn');
+  if (btn) btn.style.color = _sidebarPinned ? 'var(--primary)' : 'var(--muted)';
+}
+
+// Click outside sidebar to close
+document.addEventListener('click', e => {
+  const sb = document.getElementById('mainSidebar');
+  const trigger = document.getElementById('sidebarTrigger');
+  const toggleBtn = document.getElementById('sidebarToggleBtn');
+  if (sb && sb.classList.contains('sidebar-visible') && !_sidebarPinned) {
+    if (!sb.contains(e.target) && !trigger?.contains(e.target) && !toggleBtn?.contains(e.target)) {
+      hideSidebar();
+    }
+  }
+});
+
+// =====================================================
 // THEME / DARK-LIGHT MODE
 // =====================================================
 let _isDarkMode = true;
@@ -3644,6 +3768,7 @@ document.addEventListener('keydown', e => {
     if (document.getElementById('globalSearchOverlay')) { closeGlobalSearch(); return; }
     closeModal();
   }
+  if ((e.altKey || e.metaKey) && e.key === 'm') { e.preventDefault(); toggleSidebar(); return; }
   if (e.key === 'F1') { e.preventDefault(); navigate('dashboard', null); }
   if (e.key === 'F2') { e.preventDefault(); navigate('pos', null); }
   if (e.key === 'F3') { e.preventDefault(); navigate('products', null); }
