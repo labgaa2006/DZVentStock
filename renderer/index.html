@@ -658,7 +658,9 @@ const ROLE_PERMISSIONS = {
 };
 
 function canAccess(screen) {
-  if (!App.currentUser) return false;
+  // No login system or admin = full access
+  if (!App.currentUser) return true;
+  if (App.currentUser.role === 'admin') return true;
   const perms = ROLE_PERMISSIONS[App.currentUser.role] || [];
   return perms.includes(screen);
 }
@@ -672,20 +674,14 @@ function applyPermissions() {
     document.querySelectorAll('.qnav-btn[data-screen]').forEach(btn => btn.style.display='');
     return;
   }
-  const role = App.currentUser.role;
+  // Admin or no role = full access, clear all restrictions
   document.querySelectorAll('.nav-item[data-screen]').forEach(item => {
     const screen = item.dataset.screen;
-    if (!canAccess(screen)) {
-      item.style.opacity = '.35';
-      item.style.pointerEvents = 'none';
-      item.title = 'لا تملك صلاحية الوصول';
-    } else {
-      item.style.opacity = '';
-      item.style.pointerEvents = '';
-      item.title = '';
-    }
+    const ok = canAccess(screen);
+    item.style.opacity = ok ? '' : '.35';
+    item.style.pointerEvents = ok ? '' : 'none';
+    item.title = ok ? '' : 'لا تملك صلاحية الوصول';
   });
-  // Hide quick nav buttons based on permissions
   document.querySelectorAll('.qnav-btn[data-screen]').forEach(btn => {
     btn.style.display = canAccess(btn.dataset.screen) ? '' : 'none';
   });
@@ -750,8 +746,8 @@ const screens = {
 };
 
 async function navigate(name, el) {
-  // Permission check — only block if user explicitly has no access (not just null)
-  if (App.currentUser && !canAccess(name)) {
+  // Permission check
+  if (App.currentUser && App.currentUser.role !== 'admin' && !canAccess(name)) {
     toast('⛔ لا تملك صلاحية الوصول لهذه الصفحة', 'error');
     return;
   }
@@ -826,7 +822,15 @@ async function renderScreen(name) {
       case 'branches':     await renderBranches();     break;
       case 'users':        await renderUsers();        break;
       case 'permissions':  renderPermissions();        break;
-      default:             renderComingSoon(name);     break;
+      default:
+        // If screen name is valid but not in switch, try to show error
+        document.getElementById('mainContent').innerHTML = `
+          <div style="text-align:center;padding:60px;color:var(--muted)">
+            <div style="font-size:2rem;margin-bottom:12px">🔜</div>
+            <div style="font-size:.9rem;font-weight:600;color:#fff;margin-bottom:6px">${screens[name]?.title||name}</div>
+            <div style="font-size:.78rem">هذه الميزة قيد التطوير</div>
+          </div>`;
+        break;
     }
   } catch(e) {
     showError(e.message || 'خطأ غير معروف', `renderScreen.bind(null,'${name}')`);
