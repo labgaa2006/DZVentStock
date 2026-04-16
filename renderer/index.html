@@ -13,6 +13,30 @@
   --success:#10b981;--danger:#ef4444;--warning:#f59e0b;--info:#38bdf8;
   --text:#e2e8f0;--muted:#94a3b8;--accent:#f97316;
 }
+/* ===== LIGHT MODE ===== */
+body.light-mode{
+  --bg:#f1f5f9;--sidebar:#ffffff;--card:#ffffff;--border:#e2e8f0;
+  --text:#1e293b;--muted:#64748b;
+}
+body.light-mode .titlebar{background:#fff;border-bottom:1px solid #e2e8f0}
+body.light-mode .titlebar-logo{color:var(--primary)}
+body.light-mode .titlebar-title{color:var(--muted)}
+body.light-mode .tb-btn{color:var(--muted)}
+body.light-mode .nav-item{color:var(--muted)}
+body.light-mode .nav-item:hover{background:rgba(249,115,22,.06);color:#1e293b}
+body.light-mode thead th{background:#f8fafc;color:var(--muted)}
+body.light-mode tbody td{color:#1e293b}
+body.light-mode .form-input,.light-mode .form-select{background:#f8fafc;color:#1e293b;border-color:#e2e8f0}
+body.light-mode .modal{background:#fff}
+body.light-mode .modal-header,.light-mode .modal-footer{border-color:#e2e8f0}
+body.light-mode code{background:#f1f5f9!important;color:#0284c7!important}
+body.light-mode .pos-dropdown{background:#fff;border-color:var(--primary)}
+body.light-mode .pos-ac-item:hover,.light-mode .pos-dropdown-item:hover{background:rgba(249,115,22,.08)}
+body.light-mode .quick-nav{background:#fff}
+body.light-mode .topbar{background:#fff}
+body.light-mode .badge-success{background:rgba(16,185,129,.15)}
+body.light-mode .badge-danger{background:rgba(239,68,68,.15)}
+body.light-mode .notif-panel{background:#fff}
 body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;user-select:none}
 .app{display:flex;height:100vh;overflow:hidden;flex-direction:column}
 
@@ -391,7 +415,8 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(255,255,255,.02)}
   <div class="titlebar">
     <div class="titlebar-logo">🏪 DZ Vent & Stock</div>
     <div class="titlebar-title" id="titlebarTitle">نظام المبيعات والمخزون</div>
-    <div class="titlebar-btns">
+    <div class="titlebar-btns" style="-webkit-app-region:no-drag">
+      <button class="tb-btn" id="themeToggleBtn" onclick="toggleTheme()" title="وضع ليلي/نهاري" style="font-size:.8rem">🌙</button>
       <button class="tb-btn" onclick="window.api.minimize()" title="تصغير">─</button>
       <button class="tb-btn" onclick="window.api.maximize()" title="تكبير">□</button>
       <button class="tb-btn close" onclick="window.api.close()" title="إغلاق">✕</button>
@@ -1652,6 +1677,7 @@ function buildPOSCard(p) {
 }
 
 function handlePOSSearch(q) {
+  _posDropdownIndex = -1; // Reset selection on new search
   const dropdown = document.getElementById('posDropdown');
   const list     = document.getElementById('posDropdownList');
   if (!q || !q.trim()) {
@@ -1683,14 +1709,57 @@ function handlePOSSearch(q) {
   dropdown.classList.add('open');
 }
 
+let _posDropdownIndex = -1;
+
 function handlePOSSearchKey(e) {
-  if (e.key==='Escape') {
-    document.getElementById('posDropdown').classList.remove('open');
-    document.getElementById('posSearchInput').value='';
-  } else if (e.key==='Enter') {
-    const first = document.querySelector('.pos-dropdown-item');
-    if (first) first.click();
+  const dropdown = document.getElementById('posDropdown');
+  const items = dropdown ? dropdown.querySelectorAll('.pos-dropdown-item') : [];
+
+  if (e.key === 'Escape') {
+    dropdown?.classList.remove('open');
+    document.getElementById('posSearchInput').value = '';
+    _posDropdownIndex = -1;
+    return;
   }
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _posDropdownIndex = Math.min(_posDropdownIndex + 1, items.length - 1);
+    updateDropdownHighlight(items);
+    return;
+  }
+
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _posDropdownIndex = Math.max(_posDropdownIndex - 1, 0);
+    updateDropdownHighlight(items);
+    return;
+  }
+
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (_posDropdownIndex >= 0 && items[_posDropdownIndex]) {
+      items[_posDropdownIndex].click();
+    } else if (items.length > 0) {
+      items[0].click();
+    }
+    _posDropdownIndex = -1;
+    return;
+  }
+}
+
+function updateDropdownHighlight(items) {
+  items.forEach((el, i) => {
+    el.style.background = i === _posDropdownIndex
+      ? 'rgba(249,115,22,.2)'
+      : '';
+    el.style.outline = i === _posDropdownIndex
+      ? '2px solid var(--primary)'
+      : '';
+    if (i === _posDropdownIndex) {
+      el.scrollIntoView({ block: 'nearest' });
+    }
+  });
 }
 
 document.addEventListener('click', e => {
@@ -1761,27 +1830,29 @@ window.recalcPOS = () => {
   const afterDisc = total - discAmt;
   const tvaAmt = tvaEnabled ? (afterDisc * tvaRate / 100) : 0;
   const net = afterDisc + tvaAmt;
+
+  // TVA row visibility
   const tvaRow = document.getElementById('pos_tva_row');
   if (tvaRow) tvaRow.style.display = tvaEnabled ? '' : 'none';
-  const htEl = document.getElementById('pos_ht');
-  if (htEl) htEl.textContent = tvaEnabled ? fmt(afterDisc / (1 + tvaRate/100)) : fmt(afterDisc);
-  const tvaEl = document.getElementById('pos_tva');
-  if (tvaEl) tvaEl.textContent = fmt(tvaAmt);
-  // Update disc display
-  const discPct = document.getElementById('pos_disc_pct');
-  if (discPct) discPct.textContent = disc;
-  const discAmt2 = document.getElementById('pos_disc_amt');
-  if (discAmt2) discAmt2.textContent = fmt(discAmt);
-  const netEl = document.getElementById('pos_net');
-  if (netEl) netEl.textContent = fmt(net);
-  // Big green total display
-  const display = document.getElementById('pos_total_display');
-  if (display) display.textContent = net.toLocaleString('fr-DZ', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+  // Update all totals (using correct IDs)
+  const $ = id => document.getElementById(id);
+  if ($('pos_ht'))       $('pos_ht').textContent       = tvaEnabled ? fmt(afterDisc/(1+tvaRate/100)) : fmt(afterDisc);
+  if ($('pos_tva'))      $('pos_tva').textContent       = fmt(tvaAmt);
+  if ($('pos_disc_amt')) $('pos_disc_amt').textContent  = fmt(discAmt);
+  if ($('pos_net'))      $('pos_net').textContent       = fmt(net);
+  if ($('pos_paid'))     $('pos_paid').value            = Math.round(net);
+
+  // ★ Big green total at top — uses pos_total_big
+  if ($('pos_total_big')) {
+    $('pos_total_big').textContent = net.toLocaleString('fr-DZ', {minimumFractionDigits:2, maximumFractionDigits:2});
+    $('pos_total_big').style.color = net > 0 ? '#00ff88' : '#64748b';
+  }
+
   // Items count
-  const countEl = document.getElementById('pos_items_count');
-  if (countEl) countEl.textContent = App.pos.items.reduce((s,i)=>s+i.qty,0);
-  const paidEl = document.getElementById('pos_paid');
-  if (paidEl) paidEl.value = Math.round(net);
+  const qtyTotal = App.pos.items.reduce((s,i)=>s+i.qty,0);
+  if ($('pos_count')) $('pos_count').textContent = qtyTotal;
+
   updateReste();
 };
 
@@ -1794,30 +1865,65 @@ window.updateReste = () => {
 };
 
 function renderPOSItems() {
-  const tbody = document.getElementById('pos_items_list');
-  if (!tbody) return;
+  const wrap = document.getElementById('pos_items_list');
+  if (!wrap) return;
+
+  // Update count & total in topbar
+  const qtyTotal = App.pos.items.reduce((s,i)=>s+i.qty,0);
+  const el = document.getElementById('pos_count');
+  if (el) el.textContent = qtyTotal;
+
   if (!App.pos.items.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--muted);font-size:.8rem">— اختر منتجاً من الشبكة —</td></tr>';
+    wrap.innerHTML = `
+      <div style="text-align:center;padding:40px 20px;color:var(--muted)">
+        <div style="font-size:2rem;margin-bottom:8px">🛒</div>
+        <div style="font-size:.8rem">← اختر منتجاً من الشبكة</div>
+        <div style="font-size:.7rem;margin-top:6px;color:#475569">أو ابحث باسم المنتج أعلاه</div>
+      </div>`;
     return;
   }
-  tbody.innerHTML = App.pos.items.map((item, i) => `
-    <tr onclick="selectPOSRow(${i})" style="cursor:pointer;${window._posSelectedRow===i?'background:rgba(249,115,22,.1)':''}" id="pos_row_${i}">
-      <td style="font-size:.7rem;color:var(--info)">${item.ref||'—'}</td>
-      <td style="font-weight:600;max-width:100px">
-        <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.78rem">${item.product_name}</div>
-      </td>
-      <td>
-        <div style="display:flex;align-items:center;gap:3px">
-          <button class="pos-qty-btn" style="background:var(--danger);color:#fff;width:20px;height:20px;font-size:.75rem" onclick="event.stopPropagation();changePOSQty(${i},-1)">−</button>
-          <span class="pos-qty-num" style="font-size:.82rem;min-width:24px;font-weight:700">${item.qty}</span>
-          <button class="pos-qty-btn" style="background:var(--success);color:#fff;width:20px;height:20px;font-size:.75rem" onclick="event.stopPropagation();changePOSQty(${i},1)">+</button>
-        </div>
-      </td>
-      <td style="color:var(--muted);font-size:.78rem;white-space:nowrap">${fmtNum(item.price)}</td>
-      <td style="color:var(--primary);font-weight:700;font-size:.82rem;white-space:nowrap">${fmtNum(item.qty*item.price)}</td>
-      <td><button onclick="event.stopPropagation();removePOSItem(${i})" style="background:transparent;border:none;color:var(--danger);cursor:pointer;font-size:.9rem;padding:2px 4px">✕</button></td>
-    </tr>
-  `).join('');
+
+  wrap.innerHTML = `
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr style="background:#0f172a;position:sticky;top:0;z-index:1">
+          <th style="padding:6px 8px;text-align:right;color:var(--muted);font-size:.63rem;border-bottom:2px solid var(--border);font-weight:700">المرجع</th>
+          <th style="padding:6px 8px;text-align:right;color:var(--muted);font-size:.63rem;border-bottom:2px solid var(--border);font-weight:700">الاسم</th>
+          <th style="padding:6px 8px;text-align:center;color:var(--muted);font-size:.63rem;border-bottom:2px solid var(--border);font-weight:700">Qté</th>
+          <th style="padding:6px 8px;text-align:center;color:var(--muted);font-size:.63rem;border-bottom:2px solid var(--border);font-weight:700">PUV</th>
+          <th style="padding:6px 8px;text-align:center;color:var(--muted);font-size:.63rem;border-bottom:2px solid var(--border);font-weight:700">Montant</th>
+          <th style="padding:6px 2px;border-bottom:2px solid var(--border)"></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${App.pos.items.map((item, i) => `
+          <tr onclick="selectPOSRow(${i})"
+            style="cursor:pointer;border-bottom:1px solid rgba(51,65,85,.4);transition:.1s;${window._posSelectedRow===i?'background:rgba(249,115,22,.12);outline:2px solid var(--primary);outline-offset:-1px':''}"
+            id="pos_row_${i}">
+            <td style="padding:7px 8px;font-size:.68rem">
+              <code style="background:#0f172a;padding:1px 5px;border-radius:3px;color:var(--info)">${item.ref||'—'}</code>
+            </td>
+            <td style="padding:7px 8px;font-weight:700;font-size:.78rem;max-width:90px">
+              <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.product_name}</div>
+            </td>
+            <td style="padding:7px 4px;text-align:center">
+              <div style="display:flex;align-items:center;justify-content:center;gap:2px">
+                <button onclick="event.stopPropagation();changePOSQty(${i},-1)"
+                  style="width:20px;height:20px;background:var(--danger);border:none;border-radius:3px;color:#fff;cursor:pointer;font-weight:700;font-size:.75rem">−</button>
+                <span style="font-size:.9rem;font-weight:900;min-width:26px;text-align:center;color:#fff">${item.qty}</span>
+                <button onclick="event.stopPropagation();changePOSQty(${i},1)"
+                  style="width:20px;height:20px;background:var(--success);border:none;border-radius:3px;color:#fff;cursor:pointer;font-weight:700;font-size:.75rem">+</button>
+              </div>
+            </td>
+            <td style="padding:7px 8px;text-align:center;color:var(--muted);font-size:.75rem;white-space:nowrap">${fmtNum(item.price)}</td>
+            <td style="padding:7px 8px;text-align:center;font-weight:900;color:var(--primary);font-size:.82rem;white-space:nowrap">${fmtNum(item.qty*item.price)}</td>
+            <td style="padding:7px 4px;text-align:center">
+              <button onclick="event.stopPropagation();removePOSItem(${i})"
+                style="width:20px;height:20px;background:transparent;border:1px solid rgba(239,68,68,.4);color:var(--danger);cursor:pointer;font-size:.8rem;border-radius:3px;display:flex;align-items:center;justify-content:center">✕</button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
 }
 
 window.selectPOSRow = (i) => {
@@ -3442,6 +3548,39 @@ document.addEventListener('keydown', e => {
     confirmPOSSale();
   }
 });
+
+// ===== DARK / LIGHT MODE =====
+let _isLightMode = false;
+try { _isLightMode = localStorage.getItem('theme') === 'light'; } catch(e) {}
+
+function applyTheme() {
+  if (_isLightMode) {
+    document.body.classList.add('light-mode');
+    const btn = document.getElementById('themeToggleBtn');
+    if (btn) btn.textContent = '☀️';
+    // Fix POS dark backgrounds in light mode
+    document.querySelectorAll('[style*="background:#0f172a"]').forEach(el => {
+      el.style.background = '#f8fafc';
+    });
+    document.querySelectorAll('[style*="background:#111827"]').forEach(el => {
+      el.style.background = '#f1f5f9';
+    });
+  } else {
+    document.body.classList.remove('light-mode');
+    const btn = document.getElementById('themeToggleBtn');
+    if (btn) btn.textContent = '🌙';
+  }
+}
+
+function toggleTheme() {
+  _isLightMode = !_isLightMode;
+  try { localStorage.setItem('theme', _isLightMode ? 'light' : 'dark'); } catch(e) {}
+  applyTheme();
+  toast(_isLightMode ? '☀️ الوضع النهاري' : '🌙 الوضع الليلي', 'info', 1500);
+}
+
+// Apply saved theme on load
+applyTheme();
 
 // ===== STARTUP =====
 async function startup() {
