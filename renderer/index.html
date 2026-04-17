@@ -1076,7 +1076,7 @@ function drawBarcode(canvas, text, opts={}) {
     'S':11011101000, 'T':11011100010, 'U':11011101110,
     'V':11101011000, 'W':11101000110, 'X':11100010110,
     'Y':11101101000, 'Z':11101100010, '[':11100011010,
-    '\':11101111010, ']':11001000010, '^':11110001010,
+    '\\':11101111010, ']':11001000010, '^':11110001010,
     '_':10100110000, '`':10100001100, 'a':10010110000,
     'b':10010000110, 'c':10000101100, 'd':10000100110,
     'e':10110010000, 'f':10110000100, 'g':10011010000,
@@ -1509,7 +1509,7 @@ async function printBarcode() {
       @media print{body{margin:0}}
     </style></head>
     <body>${labelsHTML}
-    <script>window.onload=()=>{window.print();setTimeout(()=>window.close(),500)}<\/script>
+    <scr\ipt>window.onload=()=>{window.print();setTimeout(()=>window.close(),500)}</sc\ript>
     </body></html>`;
 
   await window.api.print.invoice(html);
@@ -2889,6 +2889,62 @@ async function deleteFournisseur(id, name) {
 // =====================================================
 // CATEGORIES
 // =====================================================
+async function renderUnits() {
+  document.getElementById('topbarActions').innerHTML = `
+    <button class="topbar-btn primary" onclick="addUnitFromScreen()">➕ وحدة جديدة</button>
+  `;
+  const units = await window.api.units.getAll();
+  document.getElementById('mainContent').innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📐 وحدات القياس <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${units.length})</span></div>
+        <button class="btn btn-primary btn-sm" onclick="addUnitFromScreen()">➕ إضافة وحدة</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>اسم الوحدة</th><th>تاريخ الإضافة</th><th>إجراءات</th></tr></thead>
+          <tbody>
+            ${units.length===0
+              ? '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">لا توجد وحدات — أضف أول وحدة</td></tr>'
+              : units.map((u,i) => `
+                <tr>
+                  <td style="color:var(--muted)">${i+1}</td>
+                  <td><strong style="font-size:.9rem">${u.name}</strong></td>
+                  <td style="color:var(--muted);font-size:.78rem">${u.created_at||'—'}</td>
+                  <td>
+                    <button class="btn btn-sm btn-danger" style="padding:3px 10px"
+                      onclick="deleteUnitFromScreen('${u.id}','${u.name}')">🗑️ حذف</button>
+                  </td>
+                </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div style="margin-top:12px;color:var(--muted);font-size:.78rem;padding:8px">
+      💡 الوحدات المضافة هنا تظهر في قائمة الوحدات عند إضافة أو تعديل المنتجات.
+    </div>
+  `;
+}
+
+async function addUnitFromScreen() {
+  const name = prompt('اسم الوحدة الجديدة:');
+  if (!name?.trim()) return;
+  const res = await window.api.units.add(name.trim());
+  if (res.success) {
+    toast('✅ تم إضافة: '+name.trim(),'success');
+    await renderUnits();
+  } else {
+    toast(res.error||'الوحدة موجودة مسبقاً','error');
+  }
+}
+
+async function deleteUnitFromScreen(id, name) {
+  if (!confirm('حذف وحدة "'+name+'"؟ ستبقى المنتجات كما هي.')) return;
+  await window.api.units.delete(id);
+  toast('🗑️ تم الحذف','info');
+  await renderUnits();
+}
+
 async function renderCategories() {
   document.getElementById('topbarActions').innerHTML = '';
   const products = await window.api.products.getAll();
