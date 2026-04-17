@@ -28,18 +28,45 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+app.on('before-quit', () => { if (db) db.saveNow(); });
+process.on('uncaughtException', (e) => { console.error('[Uncaught]', e); if (db) db.saveNow(); });
 
 // Window controls
 ipcMain.on('window:minimize', () => mainWindow.minimize());
 ipcMain.on('window:maximize', () => mainWindow.isMaximized() ? mainWindow.restore() : mainWindow.maximize());
 ipcMain.on('window:close', () => mainWindow.close());
 
+// Session user (set on login)
+let sessionUser = { role: 'admin' }; // default when login disabled
+
+// Safe IPC wrapper — catches all errors
+function safe(fn) {
+  return async (...args) => {
+    try {
+      return await fn(...args);
+    } catch(e) {
+      console.error('[IPC Error]', e.message);
+      return { error: e.message };
+    }
+  };
+}
+
+// Admin-only guard
+function adminOnly(fn) {
+  return async (...args) => {
+    if (sessionUser.role !== 'admin' && sessionUser.role !== 'manager') {
+      return { error: 'غير مصرح لك بهذه العملية' };
+    }
+    return safe(fn)(...args);
+  };
+}
+
 // Products
-ipcMain.handle('products:getAll',  ()        => db.getAllProducts());
-ipcMain.handle('products:add',     (_, d)    => db.addProduct(d));
-ipcMain.handle('products:update',  (_, i, d) => db.updateProduct(i, d));
-ipcMain.handle('products:delete',  (_, i)    => db.deleteProduct(i));
-ipcMain.handle('products:search',  (_, q)    => db.searchProducts(q));
+ipcMain.handle('products:getAll',  safe(()        => db.getAllProducts()));
+ipcMain.handle('products:add',     safe((_, d)    => db.addProduct(d)));
+ipcMain.handle('products:update',  safe((_, i, d) => db.updateProduct(i, d)));
+ipcMain.handle('products:delete',  safe((_, i)    => db.deleteProduct(i)));
+ipcMain.handle('products:search',  safe((_, q)    => db.searchProducts(q)));
 
 // Clients
 ipcMain.handle('clients:getAll',   ()        => db.getAllClients());

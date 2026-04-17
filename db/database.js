@@ -23,12 +23,31 @@ class DB {
   }
 
   save() {
-    const data = this.db.export();
-    fs.writeFileSync(this.dbPath, Buffer.from(data));
+    try {
+      const data = this.db.export();
+      fs.writeFileSync(this.dbPath, Buffer.from(data));
+    } catch(e) {
+      console.error('[DB] save error:', e.message);
+    }
+  }
+
+  // Debounced save — writes to disk max once per 300ms
+  scheduleSave() {
+    if (this._saveTimer) clearTimeout(this._saveTimer);
+    this._saveTimer = setTimeout(() => {
+      this.save();
+      this._saveTimer = null;
+    }, 300);
   }
 
   run(sql, params = []) {
     this.db.run(sql, params);
+    this.scheduleSave();
+  }
+
+  // Force immediate save (for critical ops: backup, close)
+  saveNow() {
+    if (this._saveTimer) { clearTimeout(this._saveTimer); this._saveTimer = null; }
     this.save();
   }
 
@@ -381,7 +400,7 @@ class DB {
       }
     });
     this.db.run(`UPDATE settings SET value=? WHERE key='vente_num_counter'`,[String(counter+1)]);
-    this.save();
+    this.saveNow();
     return { success:true, id, num };
   }
 
@@ -415,7 +434,7 @@ class DB {
       }
     });
     this.db.run(`UPDATE settings SET value=? WHERE key='achat_num_counter'`,[String(counter+1)]);
-    this.save();
+    this.saveNow();
     return { success:true, id, num };
   }
 
@@ -489,7 +508,7 @@ class DB {
     Object.entries(data).forEach(([k,v]) => {
       this.db.run(`INSERT OR REPLACE INTO settings(key,value) VALUES(?,?)`,[k,v]);
     });
-    this.save();
+    this.saveNow();
     return { success:true };
   }
 
@@ -515,7 +534,7 @@ class DB {
         [this.uuid(),id,item.product_id||null,item.product_name,item.ref||'',item.qty,item.price,item.qty*item.price]);
     });
     this.db.run(`UPDATE settings SET value=? WHERE key='quote_num_counter'`,[String(counter+1)]);
-    this.save();
+    this.saveNow();
     return {success:true,id,num};
   }
   updateQuoteStatus(id, status) {
