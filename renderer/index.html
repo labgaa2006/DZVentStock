@@ -207,7 +207,13 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
 .badge-primary{background:rgba(249,115,22,.12);color:#c2410c}
 
 /* ===== BUTTONS ===== */
+/* Global button defaults */
+button{cursor:pointer;font-family:'Cairo',sans-serif;transition:.15s}
+button:disabled{cursor:not-allowed;opacity:.6}
+button:active:not(:disabled){transform:scale(.97)}
+
 .btn{padding:7px 14px;border:none;border-radius:7px;cursor:pointer;font-weight:600;font-size:.78rem;font-family:'Cairo',sans-serif;transition:.15s;display:inline-flex;align-items:center;gap:5px}
+.btn:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
 .btn:active{transform:scale(.97)}
 .btn-primary{background:var(--primary);color:#fff}
 .btn-primary:hover{background:var(--primary-dark)}
@@ -575,6 +581,7 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
       <!-- Right side -->
       <div class="menubar-right">
         <button class="menubar-btn" onclick="openGlobalSearch()" title="Ctrl+K">🔍 بحث</button>
+        <button class="menubar-btn" onclick="showShortcutsHelp()" title="اختصارات (?)">⌨️</button>
         <button class="menubar-btn" onclick="refreshCurrentScreen()">🔄</button>
         <button class="menubar-btn" onclick="printCurrentScreen()">🖨️</button>
         <div style="width:1px;background:rgba(255,255,255,.1);height:24px;margin:0 4px"></div>
@@ -2386,7 +2393,7 @@ async function renderPOS() {
       </div>
       <div>
         <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;margin-bottom:2px">الخصم %</div>
-        <input id="pos_disc" type="number" value="0" min="0" max="100" onchange="recalcPOS()"
+        <input id="pos_disc" type="number" value="0" min="0" max="100" oninput="recalcPOS()"
           style="width:65px;padding:3px 6px;background:#1e293b;border:1px solid var(--border);border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.82rem;text-align:center">
       </div>
       <div style="border-right:1px solid var(--border);padding-right:14px;margin-right:0">
@@ -2472,7 +2479,7 @@ async function renderPOS() {
         <div style="padding:10px 12px;flex-shrink:0">
           <table style="width:100%;font-size:.78rem">
             <tr><td style="color:var(--muted);padding:2px 0">المجموع HT:</td><td style="text-align:left;font-weight:700" id="pos_ht">0 DA</td></tr>
-            <tr id="pos_tva_row"><td style="color:var(--muted);padding:2px 0">TVA (<input id="pos_tva_rate" type="number" value="${App.settings.tva||19}" onchange="recalcPOS()" style="width:28px;background:transparent;border:none;border-bottom:1px solid var(--border);color:#fff;text-align:center;font-size:.72rem">%):</td><td style="text-align:left" id="pos_tva">0 DA</td></tr>
+            <tr id="pos_tva_row"><td style="color:var(--muted);padding:2px 0">TVA (<input id="pos_tva_rate" type="number" value="${App.settings.tva||19}" oninput="recalcPOS()" style="width:28px;background:transparent;border:none;border-bottom:1px solid var(--border);color:#fff;text-align:center;font-size:.72rem">%):</td><td style="text-align:left" id="pos_tva">0 DA</td></tr>
             <tr><td style="color:var(--success);padding:2px 0">الخصم:</td><td style="text-align:left;color:var(--success)" id="pos_disc_amt">0 DA</td></tr>
           </table>
           <div style="display:flex;justify-content:space-between;font-size:1.05rem;font-weight:900;color:var(--primary);border-top:2px solid var(--border);padding-top:8px;margin-top:6px">
@@ -2595,21 +2602,19 @@ function buildPOSCard(p) {
 // Scanners type very fast then press Enter. If a match is found by exact barcode, auto-add immediately.
 let _lastBarcodeTime = 0;
 function tryBarcodeScan(q) {
-  const now = Date.now();
-  const fast = now - _lastBarcodeTime < 100;  // typing within 100ms = scanner
-  _lastBarcodeTime = now;
   if (!q || q.length < 3) return false;
-  // Check if exact match on barcode field
+  // Exact match on any barcode field
   const exact = (_posProducts||[]).find(p =>
-    (p.barcode && p.barcode === q) ||
+    (p.barcode  && p.barcode  === q) ||
     (p.barcode2 && p.barcode2 === q) ||
     (p.barcode3 && p.barcode3 === q)
   );
   if (exact) {
     window.addToPOS(exact.id, exact.name, exact.sell_price, exact.stock);
-    document.getElementById('posSearchInput').value = '';
+    const si = document.getElementById('posSearchInput');
+    if (si) si.value = '';
     document.getElementById('posDropdown')?.classList.remove('open');
-    toast('✅ ' + exact.name, 'success');
+    toast('🔖 ' + exact.name + ' +1', 'success', 1200);
     return true;
   }
   return false;
@@ -2624,6 +2629,8 @@ function handlePOSSearch(q) {
     document.querySelectorAll('.pos-grid .pos-product').forEach(el => el.style.display='');
     return;
   }
+  // Scanner auto-detect: numeric length >= 8 + exact barcode match = instant add
+  if (/^[0-9]{8,}$/.test(q.trim()) && tryBarcodeScan(q.trim())) return;
   const by  = document.getElementById('pos_search_by')?.value || 'name';
   const ql  = q.toLowerCase();
   const filtered = _posProducts.filter(p => {
@@ -4752,22 +4759,26 @@ function renderHome() {
   const company = App.settings?.company_name || 'DZ Vent & Stock';
 
   const tiles = [
-    { icon:'⚡', label:'نقطة البيع السريع', screen:'pos',         shortcut:'F3',  grad:'linear-gradient(135deg,#667eea,#764ba2)' },
-    { icon:'📊', label:'لوحة التحكم',            screen:'dashboard',   shortcut:'F2',  grad:'linear-gradient(135deg,#f093fb,#f5576c)' },
-    { icon:'💰', label:'المبيعات',               screen:'ventes',      shortcut:'F5',  grad:'linear-gradient(135deg,#4facfe,#00f2fe)' },
-    { icon:'🛒', label:'المشتريات',              screen:'achats',      shortcut:'F6',  grad:'linear-gradient(135deg,#43e97b,#38f9d7)' },
-    { icon:'📦', label:'المنتجات',               screen:'products',    shortcut:'F7',  grad:'linear-gradient(135deg,#fa709a,#fee140)' },
-    { icon:'👥', label:'الزبائن',                screen:'clients',     shortcut:'F8',  grad:'linear-gradient(135deg,#a18cd1,#fbc2eb)' },
-    { icon:'🏭', label:'الموردون',               screen:'fournisseurs',shortcut:'F9',  grad:'linear-gradient(135deg,#ffecd2,#fcb69f)' },
-    { icon:'📈', label:'التقارير',               screen:'reports',     shortcut:'F4',  grad:'linear-gradient(135deg,#a1c4fd,#c2e9fb)' },
-    { icon:'🏦', label:'الخزينة',                screen:'caisse',      shortcut:'',    grad:'linear-gradient(135deg,#d4fc79,#96e6a1)' },
-    { icon:'💳', label:'تسوية الديون',           screen:'dettes',      shortcut:'',    grad:'linear-gradient(135deg,#f77062,#fe5196)' },
-    { icon:'↩️', label:'المرتجعات',              screen:'retours',     shortcut:'',    grad:'linear-gradient(135deg,#5f72bd,#9b23ea)' },
-    { icon:'🔖', label:'طباعة الباركود',         screen:'products',    shortcut:'',    grad:'linear-gradient(135deg,#3a1c71,#d76d77)' },
-    { icon:'📋', label:'عروض الأسعار',           screen:'quotes',      shortcut:'',    grad:'linear-gradient(135deg,#fbc7d4,#9796f0)' },
-    { icon:'🎁', label:'ولاء الزبائن',           screen:'loyalty',     shortcut:'',    grad:'linear-gradient(135deg,#fddb92,#d1fdff)' },
-    { icon:'📅', label:'تواريخ الصلاحية',        screen:'expiry',      shortcut:'',    grad:'linear-gradient(135deg,#f3904f,#3b4371)' },
-    { icon:'⚙️', label:'الإعدادات',             screen:'settings',    shortcut:'',    grad:'linear-gradient(135deg,#868f96,#596164)' },
+    { icon:'⚡', label:'نقطة البيع السريع',    screen:'pos',         shortcut:'F3',  grad:'linear-gradient(135deg,#667eea,#764ba2)' },
+    { icon:'📊', label:'لوحة التحكم',          screen:'dashboard',   shortcut:'F2',  grad:'linear-gradient(135deg,#f093fb,#f5576c)' },
+    { icon:'💰', label:'المبيعات',             screen:'ventes',      shortcut:'F5',  grad:'linear-gradient(135deg,#4facfe,#00f2fe)' },
+    { icon:'🛒', label:'المشتريات',            screen:'achats',      shortcut:'F6',  grad:'linear-gradient(135deg,#43e97b,#38f9d7)' },
+    { icon:'📦', label:'المنتجات',             screen:'products',    shortcut:'F7',  grad:'linear-gradient(135deg,#fa709a,#fee140)' },
+    { icon:'👥', label:'الزبائن',              screen:'clients',     shortcut:'F8',  grad:'linear-gradient(135deg,#a18cd1,#fbc2eb)' },
+    { icon:'🏭', label:'الموردون',             screen:'fournisseurs',shortcut:'F9',  grad:'linear-gradient(135deg,#f6d365,#fda085)' },
+    { icon:'📈', label:'التقارير',             screen:'reports',     shortcut:'F4',  grad:'linear-gradient(135deg,#a1c4fd,#c2e9fb)' },
+    { icon:'🏦', label:'الخزينة',              screen:'caisse',      shortcut:'',    grad:'linear-gradient(135deg,#56ab2f,#a8e063)' },
+    { icon:'💳', label:'تسوية الديون',         screen:'dettes',      shortcut:'',    grad:'linear-gradient(135deg,#f77062,#fe5196)' },
+    { icon:'↩️', label:'المرتجعات',            screen:'retours',     shortcut:'',    grad:'linear-gradient(135deg,#5f72bd,#9b23ea)' },
+    { icon:'📋', label:'عروض الأسعار',         screen:'quotes',      shortcut:'',    grad:'linear-gradient(135deg,#ee9ca7,#ffdde1)' },
+    { icon:'📂', label:'الفئات',               screen:'categories',  shortcut:'',    grad:'linear-gradient(135deg,#2af598,#009efd)' },
+    { icon:'📐', label:'الوحدات',              screen:'units',       shortcut:'',    grad:'linear-gradient(135deg,#fbc2eb,#a6c1ee)' },
+    { icon:'🎁', label:'ولاء الزبائن',         screen:'loyalty',     shortcut:'',    grad:'linear-gradient(135deg,#ffecd2,#fcb69f)' },
+    { icon:'📅', label:'تواريخ الصلاحية',      screen:'expiry',      shortcut:'',    grad:'linear-gradient(135deg,#f3904f,#3b4371)' },
+    { icon:'🏪', label:'الفروع',               screen:'branches',    shortcut:'',    grad:'linear-gradient(135deg,#667eea,#f5576c)' },
+    { icon:'👤', label:'المستخدمون',           screen:'users',       shortcut:'',    grad:'linear-gradient(135deg,#a8c0ff,#3f2b96)' },
+    { icon:'💾', label:'النسخ الاحتياطي',      screen:'backup',      shortcut:'',    grad:'linear-gradient(135deg,#11998e,#38ef7d)' },
+    { icon:'⚙️', label:'الإعدادات',           screen:'settings',    shortcut:'',    grad:'linear-gradient(135deg,#868f96,#596164)' },
   ];
 
   mc.innerHTML = `
@@ -4906,6 +4917,78 @@ function resumePOS() {
   toast('▶️ تم استئناف الفاتورة','success');
 }
 
+// عرض قائمة اختصارات الكيبورد
+function showShortcutsHelp() {
+  const rows = [
+    ['التنقل', [
+      ['F1', '🏠 الرئيسية'],
+      ['F2', '📊 لوحة التحكم'],
+      ['F3', '⚡ نقطة البيع (POS)'],
+      ['F4', '📈 التقارير'],
+      ['F5', '💰 المبيعات'],
+      ['F6', '🛒 المشتريات'],
+      ['F7', '📦 المنتجات'],
+      ['F8', '👥 العملاء'],
+      ['F9', '🏭 الموردون'],
+    ]],
+    ['العمليات العامة', [
+      ['Ctrl+N', '➕ إضافة جديد (حسب الشاشة)'],
+      ['Ctrl+S', '💾 حفظ في النموذج المفتوح'],
+      ['Ctrl+K / Ctrl+F', '🔍 البحث الشامل'],
+      ['/', 'التركيز على خانة البحث'],
+      ['ESC', 'إغلاق المودال أو البحث'],
+      ['?  أو F11', 'عرض هذه النافذة'],
+    ]],
+    ['في نقطة البيع (POS)', [
+      ['Enter', 'تأكيد البيع'],
+      ['F12', '✅ تأكيد البيع (بديل)'],
+      ['Ctrl+P', '🖨️ تأكيد + طباعة فاتورة'],
+      ['Ctrl+Enter', 'نفس Ctrl+P'],
+      ['Ctrl+D', '🗑️ مسح السلة'],
+      ['↑ ↓', 'التنقل بين نتائج البحث'],
+      ['باركود+Enter', 'إضافة المنتج تلقائياً (سكانر)'],
+      ['+ / -', 'زيادة/نقص كمية آخر عنصر'],
+    ]],
+    ['في فاتورة الشراء', [
+      ['اكتب في البحث', 'autocomplete فوري'],
+      ['↑ ↓', 'التنقل بين النتائج'],
+      ['Enter (على نتيجة)', 'ينتقل للكمية'],
+      ['Enter (على الكمية)', 'ينتقل للسعر'],
+      ['Enter (على السعر)', 'يضيف العنصر + يعود للبحث'],
+      ['Ctrl+S', 'حفظ الفاتورة'],
+    ]],
+  ];
+
+  const html = rows.map(([section, items]) => `
+    <div style="margin-bottom:16px">
+      <div style="font-size:.85rem;font-weight:800;color:var(--primary);margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid var(--primary)">${section}</div>
+      <table style="width:100%;font-size:.85rem">
+        ${items.map(([key, desc]) => `
+          <tr>
+            <td style="padding:5px 0;width:140px;vertical-align:top">
+              <kbd style="background:#1e293b;color:#fff;padding:3px 10px;border-radius:5px;font-family:monospace;font-size:.78rem;font-weight:700;box-shadow:0 2px 0 #0f172a">${key}</kbd>
+            </td>
+            <td style="padding:5px 0;color:#334155;font-weight:500">${desc}</td>
+          </tr>`).join('')}
+      </table>
+    </div>`).join('');
+
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:620px;max-width:95vw;max-height:88vh">
+        <div class="modal-header" style="background:linear-gradient(135deg,#1e293b,#334155)">
+          <div class="modal-title" style="color:#fff">⌨️ اختصارات لوحة المفاتيح</div>
+          <button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button>
+        </div>
+        <div class="modal-body" style="overflow-y:auto;max-height:70vh">${html}</div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" onclick="closeModal()" style="padding:8px 24px">حسناً</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
 // اختصارات لوحة المفاتيح
 document.addEventListener('keydown', e => {
   if (!App.currentUser || !document.getElementById('mainApp') || document.getElementById('mainApp').style.display==='none') return;
@@ -4942,11 +5025,30 @@ document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
     e.preventDefault();
     const screen = App.currentScreen;
-    if (screen === 'achats') showAddAchatModal();
-    else if (screen === 'products') showAddProductModal();
-    else if (screen === 'clients') showAddClientModal();
-    else if (screen === 'fournisseurs') showAddFournisseurModal();
-    else if (screen === 'ventes') navigate('pos', null);
+    const actions = {
+      achats:       () => showAddAchatModal(),
+      products:     () => showAddProductModal(),
+      clients:      () => showAddClientModal(),
+      fournisseurs: () => showFournisseurModal(),
+      ventes:       () => navigate('pos', null),
+      pos:          () => navigate('pos', null),
+      retours:      () => showAddRetourModal(),
+      caisse:       () => showCaisseModal('entrée'),
+      expiry:       () => showAddExpiryModal(),
+      branches:     () => showBranchModal(),
+      users:        () => showUserModal(),
+      units:        () => addUnitFromScreen(),
+      categories:   () => toast('اضف الفئات من صفحة المنتجات','info'),
+    };
+    const act = actions[screen];
+    if (act) act();
+    return;
+  }
+
+  // `?` or F11 to show keyboard shortcuts help
+  if ((e.key === '?' || e.key === 'F11') && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) {
+    e.preventDefault();
+    showShortcutsHelp();
     return;
   }
 
