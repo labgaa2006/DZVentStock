@@ -296,8 +296,10 @@ class DB {
   searchProducts(q) {
     const like = `%${q}%`;
     return this.all(`SELECT * FROM products WHERE is_deleted=0
-      AND (name LIKE ? OR ref LIKE ? OR barcode LIKE ? OR category LIKE ?) ORDER BY name`,
-      [like,like,like,like]);
+      AND (name LIKE ? OR ref LIKE ? OR barcode LIKE ?
+           OR barcode2 LIKE ? OR barcode3 LIKE ?
+           OR category LIKE ? OR emplacement LIKE ?) ORDER BY name`,
+      [like,like,like,like,like,like,like]);
   }
 
   // ===== CLIENTS =====
@@ -385,7 +387,11 @@ class DB {
 
   // ===== ACHATS =====
   getAllAchats() {
-    return this.all(`SELECT * FROM achats WHERE is_deleted=0 ORDER BY created_at DESC LIMIT 200`);
+    const achats = this.all(`SELECT * FROM achats WHERE is_deleted=0 ORDER BY created_at DESC LIMIT 200`);
+    return achats.map(a => ({
+      ...a,
+      items: this.all(`SELECT * FROM achat_items WHERE achat_id=?`, [a.id])
+    }));
   }
   addAchat(data) {
     const id = this.uuid();

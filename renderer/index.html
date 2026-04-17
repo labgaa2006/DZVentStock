@@ -2339,15 +2339,18 @@ function filterClientsList(q) {
   });
 }
 
-function showEditClientModal(id, name, phone, address) {
+function showEditClientModal(id) {
+  const cl = allClients.find(c => c.id === id);
+  if (!cl) { toast('العميل غير موجود','error'); return; }
   showModal(`
     <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
       <div class="modal">
         <div class="modal-header"><div class="modal-title">✏️ تعديل العميل</div><button class="modal-close" onclick="closeModal()">✕</button></div>
         <div class="modal-body">
-          <div class="form-group"><label class="form-label">الاسم *</label><input class="form-input" id="ecl_name" value="${name}"></div>
-          <div class="form-group"><label class="form-label">الهاتف</label><input class="form-input" id="ecl_phone" value="${phone}"></div>
-          <div class="form-group"><label class="form-label">العنوان</label><input class="form-input" id="ecl_addr" value="${address}"></div>
+          <div class="form-group"><label class="form-label">الاسم *</label><input class="form-input" id="ecl_name" value="${(cl.name||'').replace(/"/g,'&quot;')}"></div>
+          <div class="form-group"><label class="form-label">الهاتف</label><input class="form-input" id="ecl_phone" value="${cl.phone||''}"></div>
+          <div class="form-group"><label class="form-label">العنوان</label><input class="form-input" id="ecl_addr" value="${cl.address||''}"></div>
+          <div class="form-group"><label class="form-label">ملاحظات</label><input class="form-input" id="ecl_notes" value="${cl.notes||''}"></div>
         </div>
         <div class="modal-footer">
           <button class="btn" style="background:var(--border);color:#fff" onclick="closeModal()">إلغاء</button>
@@ -2931,7 +2934,7 @@ window.clearPOS = () => {
   renderPOSItems(); recalcPOS();
 };
 
-window.filterPOSGrid = (q, cat) => {
+window.filterPOSGrid = (q, cat, btn) => {
   window.currentCat = cat;
   document.querySelectorAll('.pos-cat').forEach(b => {
     b.classList.toggle('active', b.dataset.cat === cat);
@@ -4645,11 +4648,8 @@ async function init() {
   // تحميل الإشعارات
   await loadNotifications();
   const unread = notifications.filter(n=>!n.is_read).length;
-  const badge = document.getElementById('navLowStock');
-  if (badge) {
-    const lowStockNotifs = notifications.filter(n=>n.type==='stock').length;
-    if (lowStockNotifs > 0) { badge.style.display=''; badge.textContent=lowStockNotifs; }
-  }
+  // Update notif badge on menubar bell
+  updateNotifBadge();
 
   // تحميل الفروع
   try {
