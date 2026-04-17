@@ -511,6 +511,9 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(255,255,255,.02)}
         <div class="nav-item" onclick="navigate('categories',this)" data-screen="categories">
           <span class="nav-icon">📂</span> الفئات
         </div>
+        <div class="nav-item" onclick="navigate('units',this)" data-screen="units">
+          <span class="nav-icon">📐</span> الوحدات
+        </div>
         <div class="nav-item" onclick="navigate('mouvements',this)" data-screen="mouvements">
           <span class="nav-icon">🔄</span> حركة المخزون
         </div>
@@ -1307,17 +1310,29 @@ async function showAddProductModal(editId = null) {
       <div style="padding:16px">
         <div style="font-size:.75rem;font-weight:700;color:var(--warning);margin-bottom:10px">🔖 رموز الباركود</div>
 
-        <!-- Barcodes 1-8 -->
-        <div style="display:grid;gap:6px;margin-bottom:14px">
-          ${[1,2,3,4,5,6,7,8].map(i => `
-          <div style="display:flex;align-items:center;gap:6px">
-            <span style="font-size:.68rem;color:var(--muted);width:14px;text-align:center">${i}</span>
-            <input class="form-input" id="p_bc${i}" value="${p?.[i===1?'barcode':'barcode'+i]||''}"
-              placeholder="${i===1?'كود الباركود الرئيسي...':'كود إضافي '+i}"
-              style="flex:1;font-size:.8rem" oninput="${i===1?'renderBarcodePreview()':''}">
-            ${i===1?`<button onclick="generateBarcode()" title="توليد تلقائي"
-              style="padding:5px 8px;background:#374151;border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:.75rem">🎲</button>`:''}
-          </div>`).join('')}
+        <!-- Barcodes: 1 رئيسي + 2 إضافيين -->
+        <div style="display:grid;gap:8px;margin-bottom:14px">
+          <div>
+            <label class="form-label">🔖 الباركود الرئيسي</label>
+            <div style="display:flex;gap:6px">
+              <input class="form-input" id="p_bc1" value="${p?.barcode||''}"
+                placeholder="امسح أو اكتب كود الباركود..."
+                style="flex:1;font-size:.88rem;font-weight:600;color:var(--info)"
+                oninput="renderBarcodePreview()">
+              <button onclick="generateBarcode()" title="توليد تلقائي"
+                style="padding:6px 10px;background:#374151;border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:.85rem">🎲</button>
+            </div>
+          </div>
+          <div>
+            <label class="form-label">باركود إضافي 1</label>
+            <input class="form-input" id="p_bc2" value="${p?.barcode2||''}"
+              placeholder="كود بديل أو دفعة مختلفة..." style="font-size:.82rem">
+          </div>
+          <div>
+            <label class="form-label">باركود إضافي 2</label>
+            <input class="form-input" id="p_bc3" value="${p?.barcode3||''}"
+              placeholder="كود بديل أو دفعة مختلفة..." style="font-size:.82rem">
+          </div>
         </div>
 
         <!-- معاينة الكود بار -->
@@ -1545,11 +1560,7 @@ async function saveProduct(editId) {
     barcode:  document.getElementById('p_bc1')?.value||'',
     barcode2: document.getElementById('p_bc2')?.value||'',
     barcode3: document.getElementById('p_bc3')?.value||'',
-    barcode4: document.getElementById('p_bc4')?.value||'',
-    barcode5: document.getElementById('p_bc5')?.value||'',
-    barcode6: document.getElementById('p_bc6')?.value||'',
-    barcode7: document.getElementById('p_bc7')?.value||'',
-    barcode8: document.getElementById('p_bc8')?.value||'',
+    barcode4: '', barcode5: '', barcode6: '', barcode7: '', barcode8: '',
     image_data: imageData,
     notes: document.getElementById('p_notes')?.value||'',
   };
