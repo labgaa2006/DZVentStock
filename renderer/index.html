@@ -632,6 +632,23 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
 
 <script>
 // =====================================================
+// GLOBAL ERROR HANDLER
+// =====================================================
+window.addEventListener('error', e => {
+  console.error('Global error:', e.error);
+  if (typeof toast === 'function') {
+    toast('⚠️ خطأ: ' + (e.message || 'حدث خطأ غير متوقع'), 'error', 4000);
+  }
+});
+window.addEventListener('unhandledrejection', e => {
+  console.error('Unhandled promise rejection:', e.reason);
+  if (typeof toast === 'function') {
+    const msg = e.reason?.message || String(e.reason).substring(0,120);
+    toast('⚠️ ' + msg, 'error', 4000);
+  }
+});
+
+// =====================================================
 // APP STATE
 // =====================================================
 const App = {
@@ -1073,11 +1090,6 @@ function filterProductsTable(q) {
 
 // Keep old function name for compat
 function searchProducts(q) { filterProductsTable(q); }
-
-function searchProducts(q) {
-  clearTimeout(window._searchT);
-  window._searchT = setTimeout(() => renderProducts(q), 300);
-}
 
 // ═══════════════════════════════════════════════
 // PRODUCT MODAL — كامل الخصائص
@@ -1618,13 +1630,6 @@ async function saveProduct(editId) {
     toast('✅ تم إضافة المنتج', 'success');
   }
   closeModal();
-  await renderProducts();
-}
-
-async function deleteProduct(id, name) {
-  if (!confirm(`هل تريد حذف "${name}"؟`)) return;
-  await window.api.products.delete(id);
-  toast('🗑️ تم الحذف', 'info');
   await renderProducts();
 }
 
@@ -2670,7 +2675,27 @@ function handlePOSSearchKey(e) {
     return;
   }
 
-  if (!isOpen) return; // Only handle navigation when dropdown is open
+  // Enter: scan barcode / select from dropdown / confirm sale if empty
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const val = document.getElementById('posSearchInput')?.value?.trim();
+    // If search has content, try barcode match first
+    if (val && tryBarcodeScan(val)) return;
+    // If dropdown is open, select from it
+    if (isOpen && items.length > 0) {
+      const idx = _posDropdownIndex >= 0 ? _posDropdownIndex : 0;
+      items[idx].click();
+      _posDropdownIndex = -1;
+      return;
+    }
+    // If search empty + has items in cart → confirm sale
+    if (!val && App.pos.items.length) {
+      confirmPOSSale();
+    }
+    return;
+  }
+
+  if (!isOpen) return; // Arrow keys only when dropdown is open
 
   if (e.key === 'ArrowDown') {
     e.preventDefault();
@@ -2685,21 +2710,6 @@ function handlePOSSearchKey(e) {
     if (items.length === 0) return;
     _posDropdownIndex = _posDropdownIndex > 0 ? _posDropdownIndex - 1 : items.length - 1;
     updateDropdownHighlight(items);
-    return;
-  }
-
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    const val = document.getElementById('posSearchInput')?.value?.trim();
-    // Try barcode scan first (exact match)
-    if (val && tryBarcodeScan(val)) return;
-    // Otherwise use dropdown selection
-    if (_posDropdownIndex >= 0 && items[_posDropdownIndex]) {
-      items[_posDropdownIndex].click();
-    } else if (items.length > 0) {
-      items[0].click();
-    }
-    _posDropdownIndex = -1;
     return;
   }
 }
@@ -2768,11 +2778,6 @@ window.removePOSLast = () => {
   if (!App.pos.items.length) return;
   App.pos.items.pop();
   renderPOSItems(); recalcPOS();
-};
-
-window.confirmAndPrint = async () => {
-  if (!App.pos.items.length) { toast('أضف منتجاً على الأقل','error'); return; }
-  await window.confirmPOSSale();
 };
 
 
@@ -2940,9 +2945,7 @@ window.filterPOSGrid = (q, cat) => {
 
 window.confirmPOSSale = async (opts = {}) => {
   if (!App.pos.items.length) { toast('أضف منتجاً على الأقل', 'error'); return; }
-  const netText = document.getElementById('pos_net')?.textContent || '0';
-  const net = parseFloat(netText.replace(/[^\d.]/g,'')) || 0;
-  const paid = parseFloat(document.getElementById('pos_paid')?.value) || 0;
+  // Compute everything directly from source data
   const disc = parseFloat(document.getElementById('pos_disc')?.value) || 0;
   const tvaEnabled = App.settings.tva_enabled === '1';
   const tvaRate = tvaEnabled ? (parseFloat(document.getElementById('pos_tva_rate')?.value) || 0) : 0;
@@ -2950,6 +2953,8 @@ window.confirmPOSSale = async (opts = {}) => {
   const discAmt = total * disc / 100;
   const afterDisc = total - discAmt;
   const tvaAmt = tvaEnabled ? (afterDisc * tvaRate / 100) : 0;
+  const net = afterDisc + tvaAmt;
+  const paid = parseFloat(document.getElementById('pos_paid')?.value) || 0;
   const clientSel = document.getElementById('pos_client');
 
   const items = [...App.pos.items]; // snapshot before clear
@@ -3281,6 +3286,7 @@ async function renderSettings() {
         <div class="card-header"><div class="card-title">🏪 معلومات الشركة</div></div>
         <div class="card-body">
           <div class="form-group"><label class="form-label">اسم الشركة</label><input class="form-input" id="s_name" value="${s.company_name||''}"></div>
+          <div class="form-group"><label class="form-label">العنوان الفرعي (للفاتورة)</label><input class="form-input" id="s_subtitle" value="${s.company_subtitle||'برنامج إدارة المبيعات'}" placeholder="مثلاً: مواد تجميل — ملابس — إلكترونيات"></div>
           <div class="form-group"><label class="form-label">الولاية / المدينة</label><input class="form-input" id="s_addr" value="${s.company_address||''}"></div>
           <div class="form-group"><label class="form-label">الهاتف</label><input class="form-input" id="s_phone" value="${s.company_phone||''}"></div>
           <button class="btn btn-primary" onclick="saveSettings()">✅ حفظ</button>
@@ -3404,15 +3410,18 @@ function toggleTVA() {
   const toggle = document.getElementById('tva_toggle');
   const knob = document.getElementById('tva_knob');
   const group = document.getElementById('tva_rate_group');
-  toggle.style.background = _tvaState ? 'var(--primary)' : 'var(--border)';
-  knob.style.right = _tvaState ? '3px' : '';
-  knob.style.left  = _tvaState ? '' : '3px';
-  group.style.display = _tvaState ? 'block' : 'none';
+  if (toggle) toggle.style.background = _tvaState ? 'var(--primary)' : 'var(--border)';
+  if (knob) {
+    knob.style.right = _tvaState ? '3px' : '';
+    knob.style.left  = _tvaState ? '' : '3px';
+  }
+  if (group) group.style.display = _tvaState ? 'block' : 'none';
 }
 
 async function saveSettings() {
   const data = {
     company_name: document.getElementById('s_name')?.value || App.settings.company_name,
+    company_subtitle: document.getElementById('s_subtitle')?.value ?? App.settings.company_subtitle,
     company_address: document.getElementById('s_addr')?.value || App.settings.company_address,
     company_phone: document.getElementById('s_phone')?.value || App.settings.company_phone,
     tva: document.getElementById('s_tva')?.value || App.settings.tva,
@@ -5001,6 +5010,10 @@ document.addEventListener('keydown', e => {
   }
   if (e.key === 'Escape') {
     if (document.getElementById('globalSearchOverlay')) { closeGlobalSearch(); return; }
+    const notifPanel = document.getElementById('notifPanel');
+    if (notifPanel && notifPanel.style.display !== 'none') { notifPanel.style.display = 'none'; return; }
+    // Close all menus
+    document.querySelectorAll('.menu-item.open').forEach(m => m.classList.remove('open'));
     closeModal();
   }
   // Ctrl+S → save open modal (Achat/Vente)
@@ -5106,43 +5119,11 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// ===== DARK / LIGHT MODE =====
-let _isLightMode = false;
-try { _isLightMode = localStorage.getItem('theme') === 'light'; } catch(e) {}
-
-function applyTheme() {
-  if (_isLightMode) {
-    document.body.classList.add('light-mode');
-    const btn = document.getElementById('themeToggleBtn');
-    if (btn) btn.textContent = '☀️';
-    // Fix POS dark backgrounds in light mode
-    document.querySelectorAll('[style*="background:#0f172a"]').forEach(el => {
-      el.style.background = '#f8fafc';
-    });
-    document.querySelectorAll('[style*="background:#111827"]').forEach(el => {
-      el.style.background = '#f1f5f9';
-    });
-  } else {
-    document.body.classList.remove('light-mode');
-    const btn = document.getElementById('themeToggleBtn');
-    if (btn) btn.textContent = '🌙';
-  }
-}
-
-function toggleTheme() {
-  _isLightMode = !_isLightMode;
-  try { localStorage.setItem('theme', _isLightMode ? 'light' : 'dark'); } catch(e) {}
-  applyTheme();
-  toast(_isLightMode ? '☀️ الوضع النهاري' : '🌙 الوضع الليلي', 'info', 1500);
-}
-
-// Apply saved theme on load
-applyTheme();
+// ===== THEME: light mode permanent (no dark toggle) =====
+// (stubs kept for backward compat with any leftover calls)
 
 // ===== STARTUP =====
 async function startup() {
-  // Init theme first (before anything renders)
-  initTheme();
   // Always ensure currentUser is set (admin by default)
   App.currentUser = { id:'user-admin', name:'مدير النظام', username:'admin', role:'admin' };
 
