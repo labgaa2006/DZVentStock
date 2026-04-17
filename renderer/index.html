@@ -151,7 +151,8 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);overf
 }
 
 /* ===== MAIN ===== */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.body-wrap-new{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
 .topbar{
   background:#fff;border-bottom:2px solid var(--border);
   height:58px;display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0;
@@ -488,7 +489,7 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
   </div>
 
   <!-- BODY — no sidebar -->
-  <div style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+  <div class="body-wrap-new">
 
     <!-- MENUBAR -->
     <div class="menubar" id="mainMenubar" onclick="closeAllMenus(event)">
@@ -597,16 +598,17 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
 
     <!-- MAIN CONTENT AREA -->
     <div class="main">
-      <!-- Slim topbar: just page title + actions -->
-      <div class="topbar" style="height:44px;padding:0 16px;background:#fff;border-bottom:1px solid var(--border)">
-        <div>
+      <!-- Slim topbar: page title + actions -->
+      <div class="topbar" style="height:44px;padding:0 16px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+        <div style="flex:1">
           <div class="page-title" id="pageTitle" style="font-size:.9rem">🏠 الرئيسية</div>
+          <div id="pageSub" style="font-size:.68rem;color:#94a3b8;font-weight:500"></div>
         </div>
-        <span class="branch-tag" id="branchTag" style="margin-right:10px">🏠 الفرع الرئيسي</span>
-        <div class="topbar-right" id="topbarActions" style="margin-right:0"></div>
+        <span class="branch-tag" id="branchTag">🏠 الفرع الرئيسي</span>
+        <div id="topbarActions" style="display:flex;align-items:center;gap:6px"></div>
       </div>
 
-      <div class="content" id="mainContent" style="padding:20px;background:#f0f4f8;overflow-y:auto">
+      <div class="content" id="mainContent" style="padding:20px;background:#f0f4f8;overflow-y:auto;flex:1;min-height:0">
         <!-- Screens rendered here dynamically -->
       </div>
     </div>
@@ -695,6 +697,7 @@ function closeModal() {
 // NAVIGATION
 // =====================================================
 const screens = {
+  home:        { title:'🏠 الرئيسية',          sub:'القائمة الرئيسية' },
   dashboard:   { title:'📊 لوحة التحكم',      sub:'نظرة عامة على النشاط' },
   products:    { title:'📦 المنتجات',          sub:'إدارة المخزون والأسعار' },
   ventes:      { title:'💰 المبيعات',          sub:'فواتير البيع' },
@@ -738,7 +741,7 @@ async function navigate(name, el) {
   }
   const info = screens[name] || { title: name, sub: '' };
   document.getElementById('pageTitle').textContent = info.title;
-  document.getElementById('pageSub').textContent = info.sub;
+  const _sub=document.getElementById('pageSub'); if(_sub) _sub.textContent = info.sub;
   document.getElementById('topbarActions').innerHTML = '';
   // Reset content padding for non-POS screens
   document.getElementById('mainContent').style.padding = name === 'pos' ? '0' : '18px';
@@ -772,7 +775,7 @@ function showError(msg, retryFn) {
 
 async function renderScreen(name) {
   const c = document.getElementById('mainContent');
-  showSkeleton();
+  if (name !== 'home') showSkeleton();
   try {
     switch(name) {
       case 'home':         renderHome();               break;
@@ -4026,11 +4029,11 @@ function toggleSidebar() {} // no sidebar anymore
 // HOME SCREEN — شاشة الرئيسية بالمربعات
 // =====================================================
 function renderHome() {
-  document.getElementById('pageTitle').textContent = '🏠 الرئيسية';
   const mc = document.getElementById('mainContent');
   mc.style.padding = '0';
   mc.style.overflow = 'auto';
   mc.style.background = '#f0f4f8';
+  mc.style.display = 'block';
 
   const company = App.settings?.company_name || 'DZ Vent & Stock';
 
