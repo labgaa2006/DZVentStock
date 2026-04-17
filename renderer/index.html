@@ -2437,14 +2437,9 @@ async function renderPOS() {
               style="padding:6px 12px;background:rgba(245,158,11,.15);border:1px solid var(--warning);border-radius:7px;color:var(--warning);font-size:.75rem;cursor:pointer;font-family:'Cairo',sans-serif;white-space:nowrap;font-weight:700;flex-shrink:0">
               ⭐ المفضلة
             </button>
-            <select id="pos_search_by" style="padding:6px 8px;background:#f0f4f8;border:1px solid var(--border);border-radius:7px;color:#fff;font-family:'Cairo',sans-serif;font-size:.75rem;flex-shrink:0">
-              <option value="name">الاسم</option>
-              <option value="ref">المرجع</option>
-              <option value="barcode">الباركود</option>
-            </select>
             <input id="posSearchInput"
-              placeholder="🔍 ابحث أو امسح باركود — ↑↓ تنقل — Enter اختيار — Ctrl+P تأكيد+طباعة"
-              style="flex:1;padding:8px 14px;background:#f0f4f8;border:2px solid var(--primary);border-radius:9px;color:#fff;font-size:.9rem;font-family:'Cairo',sans-serif;outline:none"
+              placeholder="🔍 اكتب الاسم أو المرجع أو امسح الباركود..."
+              style="flex:1;padding:8px 16px;background:#fff;border:2px solid var(--primary);border-radius:9px;color:#1e293b;font-size:.9rem;font-family:'Cairo',sans-serif;outline:none;font-weight:600"
               oninput="handlePOSSearch(this.value)"
               onkeydown="handlePOSSearchKey(event)"
               onfocus="if(this.value)handlePOSSearch(this.value)">
