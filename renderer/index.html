@@ -495,7 +495,7 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
     <div class="menubar" id="mainMenubar" onclick="closeAllMenus(event)">
 
       <!-- الرئيسية -->
-      <button class="menu-item home-btn" onclick="event.stopPropagation();navigate('home',null)" title="F1">
+      <button class="menu-item home-btn" onclick="navigate('home',null)" title="F1">
         🏠 الرئيسية
       </button>
       <div class="menu-sep"></div>
@@ -504,9 +504,9 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
       <div class="menu-item" id="menu-control" onclick="toggleMenu('control',event)">
         ⚡ التحكم <span class="arrow">▾</span>
         <div class="menu-dropdown" id="dd-control">
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('dashboard',null);closeAllMenus()"><span class="menu-dd-icon">📊</span>لوحة التحكم<span class="menu-dd-shortcut">F2</span></div>
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('pos',null);closeAllMenus()"><span class="menu-dd-icon">⚡</span>نقطة البيع السريع<span class="menu-dd-shortcut">F3</span></div>
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('reports',null);closeAllMenus()"><span class="menu-dd-icon">📈</span>التقارير<span class="menu-dd-shortcut">F4</span></div>
+          <div class="menu-dd-item" onclick="navigate('dashboard',null)"><span class="menu-dd-icon">📊</span>لوحة التحكم<span class="menu-dd-shortcut">F2</span></div>
+          <div class="menu-dd-item" onclick="navigate('pos',null)"><span class="menu-dd-icon">⚡</span>نقطة البيع السريع<span class="menu-dd-shortcut">F3</span></div>
+          <div class="menu-dd-item" onclick="navigate('reports',null)"><span class="menu-dd-icon">📈</span>التقارير<span class="menu-dd-shortcut">F4</span></div>
         </div>
       </div>
 
@@ -514,11 +514,11 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
       <div class="menu-item" id="menu-transactions" onclick="toggleMenu('transactions',event)">
         💼 المعاملات <span class="arrow">▾</span>
         <div class="menu-dropdown" id="dd-transactions">
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('ventes',null);closeAllMenus()"><span class="menu-dd-icon">💰</span>المبيعات</div>
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('achats',null);closeAllMenus()"><span class="menu-dd-icon">🛒</span>المشتريات</div>
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('quotes',null);closeAllMenus()"><span class="menu-dd-icon">📋</span>عروض الأسعار</div>
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('retours',null);closeAllMenus()"><span class="menu-dd-icon">↩️</span>المرتجعات</div>
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('ventes',null);closeAllMenus()"><span class="menu-dd-icon">🧾</span>الفواتير</div>
+          <div class="menu-dd-item" onclick="navigate('ventes',null)"><span class="menu-dd-icon">💰</span>المبيعات</div>
+          <div class="menu-dd-item" onclick="navigate('achats',null)"><span class="menu-dd-icon">🛒</span>المشتريات</div>
+          <div class="menu-dd-item" onclick="navigate('quotes',null)"><span class="menu-dd-icon">📋</span>عروض الأسعار</div>
+          <div class="menu-dd-item" onclick="navigate('retours',null)"><span class="menu-dd-icon">↩️</span>المرتجعات</div>
+          <div class="menu-dd-item" onclick="navigate('ventes',null)"><span class="menu-dd-icon">🧾</span>الفواتير</div>
         </div>
       </div>
 
@@ -526,11 +526,11 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
       <div class="menu-item" id="menu-stock" onclick="toggleMenu('stock',event)">
         📦 المخزون <span class="arrow">▾</span>
         <div class="menu-dropdown" id="dd-stock">
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('products',null);closeAllMenus()"><span class="menu-dd-icon">📦</span>المنتجات</div>
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('categories',null);closeAllMenus()"><span class="menu-dd-icon">📂</span>الفئات</div>
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('units',null);closeAllMenus()"><span class="menu-dd-icon">📐</span>الوحدات</div>
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('mouvements',null);closeAllMenus()"><span class="menu-dd-icon">🔄</span>حركة المخزون</div>
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('expiry',null);closeAllMenus()"><span class="menu-dd-icon">📅</span>تواريخ الصلاحية</div>
+          <div class="menu-dd-item" onclick="navigate('products',null)"><span class="menu-dd-icon">📦</span>المنتجات</div>
+          <div class="menu-dd-item" onclick="navigate('categories',null)"><span class="menu-dd-icon">📂</span>الفئات</div>
+          <div class="menu-dd-item" onclick="navigate('units',null)"><span class="menu-dd-icon">📐</span>الوحدات</div>
+          <div class="menu-dd-item" onclick="navigate('mouvements',null)"><span class="menu-dd-icon">🔄</span>حركة المخزون</div>
+          <div class="menu-dd-item" onclick="navigate('expiry',null)"><span class="menu-dd-icon">📅</span>تواريخ الصلاحية</div>
         </div>
       </div>
 
@@ -538,9 +538,9 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
       <div class="menu-item" id="menu-relations" onclick="toggleMenu('relations',event)">
         👥 العلاقات <span class="arrow">▾</span>
         <div class="menu-dropdown" id="dd-relations">
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('clients',null);closeAllMenus()"><span class="menu-dd-icon">👤</span>الزبائن</div>
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('fournisseurs',null);closeAllMenus()"><span class="menu-dd-icon">🏭</span>الموردون</div>
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('loyalty',null);closeAllMenus()"><span class="menu-dd-icon">🎁</span>ولاء الزبائن</div>
+          <div class="menu-dd-item" onclick="navigate('clients',null)"><span class="menu-dd-icon">👤</span>الزبائن</div>
+          <div class="menu-dd-item" onclick="navigate('fournisseurs',null)"><span class="menu-dd-icon">🏭</span>الموردون</div>
+          <div class="menu-dd-item" onclick="navigate('loyalty',null)"><span class="menu-dd-icon">🎁</span>ولاء الزبائن</div>
         </div>
       </div>
 
@@ -548,8 +548,8 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
       <div class="menu-item" id="menu-finance" onclick="toggleMenu('finance',event)">
         💵 المالية <span class="arrow">▾</span>
         <div class="menu-dropdown" id="dd-finance">
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('caisse',null);closeAllMenus()"><span class="menu-dd-icon">🏦</span>الخزينة</div>
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('dettes',null);closeAllMenus()"><span class="menu-dd-icon">💳</span>تسوية الديون</div>
+          <div class="menu-dd-item" onclick="navigate('caisse',null)"><span class="menu-dd-icon">🏦</span>الخزينة</div>
+          <div class="menu-dd-item" onclick="navigate('dettes',null)"><span class="menu-dd-icon">💳</span>تسوية الديون</div>
         </div>
       </div>
 
@@ -557,7 +557,7 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
       <div class="menu-item" id="menu-branches" onclick="toggleMenu('branches',event)">
         🏪 الفروع <span class="arrow">▾</span>
         <div class="menu-dropdown" id="dd-branches">
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('branches',null);closeAllMenus()"><span class="menu-dd-icon">🏪</span>إدارة الفروع</div>
+          <div class="menu-dd-item" onclick="navigate('branches',null)"><span class="menu-dd-icon">🏪</span>إدارة الفروع</div>
         </div>
       </div>
 
@@ -565,10 +565,10 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
       <div class="menu-item" id="menu-settings" onclick="toggleMenu('settings',event)">
         ⚙️ الإعدادات <span class="arrow">▾</span>
         <div class="menu-dropdown" id="dd-settings">
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('settings',null);closeAllMenus()"><span class="menu-dd-icon">⚙️</span>الإعدادات العامة</div>
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('permissions',null);closeAllMenus()"><span class="menu-dd-icon">🔐</span>الصلاحيات</div>
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('users',null);closeAllMenus()"><span class="menu-dd-icon">👤</span>المستخدمون</div>
-          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('backup',null);closeAllMenus()"><span class="menu-dd-icon">💾</span>النسخ الاحتياطي</div>
+          <div class="menu-dd-item" onclick="navigate('settings',null)"><span class="menu-dd-icon">⚙️</span>الإعدادات العامة</div>
+          <div class="menu-dd-item" onclick="navigate('permissions',null)"><span class="menu-dd-icon">🔐</span>الصلاحيات</div>
+          <div class="menu-dd-item" onclick="navigate('users',null)"><span class="menu-dd-icon">👤</span>المستخدمون</div>
+          <div class="menu-dd-item" onclick="navigate('backup',null)"><span class="menu-dd-icon">💾</span>النسخ الاحتياطي</div>
         </div>
       </div>
 
@@ -789,6 +789,7 @@ async function renderScreen(name) {
       case 'reports':      await renderReports();      break;
       case 'settings':     await renderSettings();     break;
       case 'categories':   await renderCategories();   break;
+      case 'units':        await renderUnits();        break;
       case 'mouvements':   await renderMouvements();   break;
       case 'backup':       await renderBackup();       break;
       case 'quotes':       await renderQuotes();       break;
@@ -877,7 +878,7 @@ async function renderDashboard() {
       <div class="card anim-fadeup anim-d1">
         <div class="card-header">
           <div class="card-title">🧾 آخر المبيعات</div>
-          <button class="btn btn-sm btn-primary" onclick="event.stopPropagation();navigate('ventes',null);closeAllMenus()">عرض الكل</button>
+          <button class="btn btn-sm btn-primary" onclick="navigate('ventes',null)">عرض الكل</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -918,7 +919,7 @@ async function renderDashboard() {
         <div class="card anim-fadeup anim-d3">
           <div class="card-header">
             <div class="card-title">⚠️ مخزون منخفض</div>
-            <button class="btn btn-sm btn-primary" onclick="event.stopPropagation();navigate('products',null);closeAllMenus()">إدارة</button>
+            <button class="btn btn-sm btn-primary" onclick="navigate('products',null)">إدارة</button>
           </div>
           <div class="table-wrap">
             <table>
@@ -952,66 +953,119 @@ async function renderDashboard() {
 // =====================================================
 let allProducts = [];
 
-async function renderProducts(q='') {
-  const topbarActions = document.getElementById('topbarActions');
-  topbarActions.innerHTML = `
-    <input id="prodSearch" class="form-input" style="width:200px;padding:5px 10px" placeholder="🔍 بحث..." value="${q}" oninput="searchProducts(this.value)">
-    <button class="topbar-btn primary" onclick="showAddProductModal()">➕ منتج جديد</button>
+async function renderProducts() {
+  document.getElementById('topbarActions').innerHTML = `
+    <button class="topbar-btn primary" onclick="showAddProductModal()" title="Ctrl+N">➕ منتج جديد (Ctrl+N)</button>
   `;
-  allProducts = q ? await window.api.products.search(q) : await window.api.products.getAll();
-  const lowStockBadge = document.getElementById('navLowStock');
-  const lowCount = allProducts.filter(p => p.stock <= p.stock_min).length;
-  lowStockBadge.style.display = lowCount > 0 ? '' : 'none';
-  lowStockBadge.textContent = lowCount;
+  allProducts = await window.api.products.getAll();
 
-  const c = document.getElementById('mainContent');
-  c.innerHTML = `
+  document.getElementById('mainContent').innerHTML = `
     <div class="card">
       <div class="card-header">
-        <div class="card-title">📦 قائمة المنتجات <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${allProducts.length})</span></div>
+        <div class="card-title">📦 قائمة المنتجات <span id="prodCount" style="color:var(--muted);font-size:.75rem;font-weight:400">(${allProducts.length})</span></div>
+        <button class="btn btn-sm" style="background:var(--success);color:#fff" onclick="showAddProductModal()">➕ إضافة منتج</button>
+      </div>
+      <div class="card-search-bar">
+        <input id="prodSearchInput" class="card-search-input"
+          placeholder="🔍 ابحث بالاسم / المرجع / الباركود..."
+          oninput="filterProductsTable(this.value)"
+          onkeydown="if(event.key==='Enter'&&this.value.match(/^\\d{6,}$/)){const p=allProducts.find(x=>x.barcode===this.value);if(p){showEditProductModal(p.id);this.value='';filterProductsTable('')}}"
+          autofocus>
+        <select id="prodStockFilter" class="card-filter-select" onchange="filterProductsTable(document.getElementById('prodSearchInput').value)">
+          <option value="all">كل المنتجات</option>
+          <option value="ok">متوفر</option>
+          <option value="low">منخفض</option>
+          <option value="out">نفد</option>
+          <option value="fav">المفضلة ⭐</option>
+        </select>
       </div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>#</th><th>المرجع</th><th>الاسم</th>
-              <th>سعر الشراء</th><th>الهامش%</th>
-              <th>سعر التجزئة</th><th>نصف جملة</th><th>الجملة</th>
+              <th>س.الشراء</th><th>الهامش</th><th>س.التجزئة</th>
+              <th>نصف جملة</th><th>الجملة</th>
               <th>المخزون</th><th>الموقع</th><th>إجراءات</th>
             </tr>
           </thead>
-          <tbody>
-            ${allProducts.length === 0
-              ? `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">📦 لا توجد منتجات — أضف أول منتج</td></tr>`
-              : allProducts.map(p => `
-              <tr>
-                <td><code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;color:#0369a1">${p.ref}</code></td>
-                <td><div style="font-weight:600">${p.name}</div></td>
-                <td><span style="color:var(--muted);font-size:.75rem">${p.category||'—'}</span></td>
-                <td>${fmt(p.buy_price)}</td>
-                <td style="color:var(--primary);font-weight:700">${fmt(p.sell_price)}</td>
-                <td>
-                  <span style="font-weight:700;color:${p.stock===0?'var(--danger)':p.stock<=p.stock_min?'var(--warning)':'var(--success)'}">${p.stock}</span>
-                  <span style="color:var(--muted);font-size:.68rem"> / ${p.stock_min}</span>
-                </td>
-                <td>
-                  <span class="badge badge-${p.stock===0?'danger':p.stock<=p.stock_min?'warning':'success'}">
-                    ${p.stock===0?'❌ نفد':p.stock<=p.stock_min?'⚠️ منخفض':'✅ متوفر'}
-                  </span>
-                </td>
-                <td>
-                  <div style="display:flex;gap:4px">
-                    <button class="btn btn-sm btn-info" onclick="showEditProductModal('${p.id}')">✏️</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteProduct('${p.id}','${p.name.replace(/'/g,"\\'")}')">🗑️</button>
-                  </div>
-                </td>
-              </tr>`).join('')}
-          </tbody>
+          <tbody id="productsTableBody"></tbody>
         </table>
       </div>
     </div>
   `;
+  filterProductsTable('');
 }
+
+function filterProductsTable(q) {
+  const body = document.getElementById('productsTableBody');
+  if (!body) return;
+  const ql = (q||'').toLowerCase().trim();
+  const stockFilter = document.getElementById('prodStockFilter')?.value || 'all';
+
+  let filtered = allProducts;
+  if (ql) filtered = filtered.filter(p =>
+    (p.name||'').toLowerCase().includes(ql) ||
+    (p.ref||'').toLowerCase().includes(ql) ||
+    (p.barcode||'').toLowerCase().includes(ql) ||
+    (p.barcode2||'').toLowerCase().includes(ql) ||
+    (p.barcode3||'').toLowerCase().includes(ql) ||
+    (p.category||'').toLowerCase().includes(ql)
+  );
+  if (stockFilter === 'ok')   filtered = filtered.filter(p => p.stock > p.stock_min);
+  if (stockFilter === 'low')  filtered = filtered.filter(p => p.stock > 0 && p.stock <= p.stock_min);
+  if (stockFilter === 'out')  filtered = filtered.filter(p => p.stock === 0);
+  if (stockFilter === 'fav')  filtered = filtered.filter(p => p.favorite);
+
+  const countEl = document.getElementById('prodCount');
+  if (countEl) countEl.textContent = '(' + filtered.length + ')';
+
+  if (!filtered.length) {
+    body.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted)">📦 لا توجد منتجات مطابقة</td></tr>';
+    return;
+  }
+
+  body.innerHTML = filtered.map((p, i) => `
+    <tr>
+      <td style="color:var(--muted);font-size:.75rem">${i+1}</td>
+      <td>
+        <code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;color:#0369a1;font-size:.72rem">${p.ref||'—'}</code>
+        ${p.favorite?'<span style="color:var(--warning)"> ⭐</span>':''}
+      </td>
+      <td style="max-width:180px">
+        <div style="font-weight:700;font-size:.85rem">${p.name}</div>
+        <div style="display:flex;gap:4px;margin-top:2px;flex-wrap:wrap">
+          ${p.category?`<span style="font-size:.62rem;background:rgba(56,189,248,.1);color:#0369a1;padding:1px 6px;border-radius:8px">📂 ${p.category}</span>`:''}
+          ${p.barcode?`<span style="font-size:.62rem;background:rgba(245,158,11,.1);color:#b45309;padding:1px 6px;border-radius:8px">🔖 ${p.barcode}</span>`:''}
+          <span style="font-size:.62rem;background:rgba(51,65,85,.1);color:#475569;padding:1px 6px;border-radius:8px">${p.unit||'قطعة'}</span>
+        </div>
+      </td>
+      <td style="color:var(--muted);font-size:.82rem;white-space:nowrap">${fmt(p.buy_price)}</td>
+      <td style="color:${(p.margin_pct||0)>0?'var(--success)':'var(--muted)'};font-size:.82rem;font-weight:700">${p.margin_pct||0}%</td>
+      <td style="color:var(--primary);font-weight:800;font-size:.88rem;white-space:nowrap">${fmt(p.sell_price)}</td>
+      <td style="color:var(--muted);font-size:.78rem;white-space:nowrap">${(p.sell_price_semi||0)>0?fmt(p.sell_price_semi):'—'}</td>
+      <td style="color:var(--muted);font-size:.78rem;white-space:nowrap">${(p.sell_price_gros||0)>0?fmt(p.sell_price_gros):'—'}</td>
+      <td style="white-space:nowrap">
+        <span class="badge badge-${p.stock===0?'danger':p.stock<=p.stock_min?'warning':'success'}">
+          ${p.stock===0?'❌ نفد':p.stock<=p.stock_min?`⚠️ ${p.stock}`:`${p.stock}`} ${p.unit||''}
+        </span>
+        ${p.expiry_date?`<div style="font-size:.6rem;color:var(--warning);margin-top:2px">📅 ${p.expiry_date}</div>`:''}
+      </td>
+      <td style="color:var(--muted);font-size:.76rem">${p.emplacement||'—'}</td>
+      <td style="white-space:nowrap">
+        <div style="display:flex;gap:3px">
+          <button class="btn btn-sm" style="background:var(--warning);color:#fff;padding:4px 8px;font-size:.72rem"
+            onclick="showEditProductModal('${p.id}')" title="تعديل">✏️</button>
+          <button class="btn btn-sm btn-danger" style="padding:4px 8px;font-size:.72rem"
+            onclick="deleteProduct('${p.id}','${(p.name||'').replace(/'/g,"\\'")}')" title="حذف">🗑️</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// Keep old function name for compat
+function searchProducts(q) { filterProductsTable(q); }
 
 function searchProducts(q) {
   clearTimeout(window._searchT);
@@ -1095,30 +1149,39 @@ function drawBarcode(canvas, text, opts={}) {
 
 function buildBarcodeLabel(canvas, companyName, productName, barcode, price, size) {
   if (!canvas) return;
-  const isSmall = size === '40x20';
   const W = canvas.width, H = canvas.height;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#fff';
   ctx.fillRect(0,0,W,H);
-  // Company name
+
+  // Scale fonts based on canvas size
+  const fSmall = Math.max(6, Math.round(H * 0.09));
+  const fMed   = Math.max(7, Math.round(H * 0.11));
+  const fBig   = Math.max(8, Math.round(H * 0.13));
+
   ctx.fillStyle = '#000';
-  ctx.font = `bold ${isSmall?8:9}px sans-serif`;
   ctx.textAlign = 'center';
-  ctx.fillText((companyName||'المحل').substring(0,20), W/2, isSmall?10:11);
+
+  // Company name
+  ctx.font = `bold ${fMed}px sans-serif`;
+  ctx.fillText((companyName||'المحل').substring(0,24), W/2, fMed + 2);
+
   // Product name
-  ctx.font = `${isSmall?7:8}px sans-serif`;
-  ctx.fillText((productName||'').substring(0,25), W/2, isSmall?19:21);
-  // Barcode
+  ctx.font = `${fSmall}px sans-serif`;
+  ctx.fillText((productName||'').substring(0,28), W/2, fMed + fSmall + 4);
+
+  // Barcode (takes middle 50% of height)
+  const bcY = fMed + fSmall + 8;
+  const bcH = Math.max(20, H * 0.42);
   const bcCanvas = document.createElement('canvas');
   bcCanvas.width = W - 8;
-  bcCanvas.height = isSmall ? H*0.45 : H*0.45;
+  bcCanvas.height = bcH;
   drawBarcode(bcCanvas, barcode || '0000000');
-  ctx.drawImage(bcCanvas, 4, isSmall?22:24);
-  // Price
-  const priceY = isSmall ? H-10 : H-11;
-  ctx.font = `bold ${isSmall?8:9}px sans-serif`;
-  ctx.fillStyle = '#000';
-  ctx.fillText(`PRIX: ${price||0} DA`, W/2, priceY);
+  ctx.drawImage(bcCanvas, 4, bcY);
+
+  // Price at bottom
+  ctx.font = `bold ${fBig}px sans-serif`;
+  ctx.fillText(`PRIX: ${price||0} DA`, W/2, H - 4);
 }
 
 function renderBarcodePreview() {
@@ -1644,30 +1707,105 @@ function filterVentesTable(q) {
 async function printVente(id) {
   const v = await window.api.ventes.getById(id);
   if (!v) return;
-  const itemsHtml = (v.items||[]).map(i =>
-    `<tr><td>${i.product_name}</td><td style="text-align:center">${i.qty}</td><td style="text-align:left">${fmtNum(i.price)} DA</td><td style="text-align:left">${fmtNum(i.total)} DA</td></tr>`
+  const size = App.settings.receipt_size || '80mm';
+  // If thermal size, use thermal design — otherwise use A4
+  if (size === '58mm' || size === '80mm') {
+    await printQuickReceipt({
+      num: v.num,
+      client_name: v.client_name,
+      items: v.items || [],
+      total: v.total,
+      discount: v.discount,
+      tva: v.tva,
+      net: v.net,
+      paid: v.paid,
+      reste: v.reste,
+    });
+    return;
+  }
+  // A4 invoice
+  const itemsHtml = (v.items||[]).map((i, idx) =>
+    `<tr>
+      <td>${idx+1}</td>
+      <td style="text-align:right">${i.product_name}</td>
+      <td style="text-align:center">${fmtNum(i.price)} DA</td>
+      <td style="text-align:center">${i.qty}</td>
+      <td style="text-align:left;font-weight:700">${fmtNum(i.total)} DA</td>
+    </tr>`
   ).join('');
-  const html = `
-    <!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
-    <style>body{font-family:Arial,sans-serif;padding:20px;font-size:14px;direction:rtl}
-    h2{text-align:center;color:#f97316}table{width:100%;border-collapse:collapse;margin:16px 0}
-    th,td{border:1px solid #ddd;padding:8px}th{background:#f5f5f5}
-    .total{font-size:1.1rem;font-weight:bold;color:#f97316}</style></head>
-    <body>
-    <h2>${App.settings.company_name||'محلي'}</h2>
-    <p style="text-align:center">${App.settings.company_phone||''} — ${App.settings.company_address||''}</p>
-    <hr>
-    <p>رقم الفاتورة: <strong>${v.num}</strong> &nbsp;&nbsp; التاريخ: <strong>${formatDate(v.date)}</strong></p>
-    <p>العميل: <strong>${v.client_name}</strong></p>
-    <table><thead><tr><th>المنتج</th><th>الكمية</th><th>السعر</th><th>المجموع</th></tr></thead>
-    <tbody>${itemsHtml}</tbody></table>
-    <p>المجموع: ${fmt(v.total)}</p>
-    <p>الخصم: ${fmt(v.discount)}</p>
-    <p>TVA: ${fmt(v.tva)}</p>
-    <p class="total">الصافي: ${fmt(v.net)}</p>
-    <p>المدفوع: ${fmt(v.paid)} &nbsp; الباقي: ${fmt(v.reste)}</p>
-    </body></html>
-  `;
+  const company = App.settings.company_name || 'محلي';
+  const phone = App.settings.company_phone || '';
+  const address = App.settings.company_address || '';
+
+  const html = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+<style>
+  @page { size:A4; margin:15mm }
+  * { box-sizing:border-box }
+  body { font-family:'Arial','Tahoma',sans-serif; margin:0; padding:20px; font-size:12pt; direction:rtl; color:#000 }
+  .header { display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #f97316; padding-bottom:16px; margin-bottom:20px }
+  .header h1 { margin:0; color:#f97316; font-size:24pt }
+  .header .info { text-align:left; font-size:10pt; color:#555 }
+  .facture-info { display:flex; justify-content:space-between; background:#f8fafc; padding:12px 16px; border-radius:8px; margin-bottom:16px }
+  .facture-info b { color:#f97316 }
+  .client-box { background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:12px 16px; margin-bottom:16px }
+  table { width:100%; border-collapse:collapse; margin:16px 0 }
+  thead th { background:#1e293b; color:#fff; padding:10px; text-align:center; font-size:11pt }
+  tbody td { border:1px solid #e2e8f0; padding:8px 10px; font-size:11pt }
+  tbody tr:nth-child(even) td { background:#f8fafc }
+  .totals-box { background:#fff7ed; border:2px solid #f97316; border-radius:8px; padding:16px; margin-top:16px; max-width:350px; margin-left:auto }
+  .totals-box .row { display:flex; justify-content:space-between; padding:4px 0 }
+  .totals-box .net { font-size:16pt; font-weight:900; color:#f97316; border-top:2px solid #f97316; padding-top:8px; margin-top:8px }
+  .footer { margin-top:40px; text-align:center; font-size:9pt; color:#64748b; border-top:1px dashed #cbd5e1; padding-top:16px }
+</style></head>
+<body>
+  <div class="header">
+    <div>
+      <h1>🏪 ${company}</h1>
+      <div style="color:#64748b;font-size:10pt">${address}</div>
+    </div>
+    <div class="info">
+      📞 ${phone}<br>
+      📅 ${formatDate(v.date)}
+    </div>
+  </div>
+
+  <div class="facture-info">
+    <div><b>فاتورة بيع رقم:</b> ${v.num}</div>
+    <div><b>التاريخ:</b> ${formatDate(v.date)}</div>
+    <div><b>طريقة الدفع:</b> ${v.payment_type||'نقداً'}</div>
+  </div>
+
+  <div class="client-box">
+    <b>العميل:</b> ${v.client_name||'عميل عابر'}
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:40px">#</th>
+        <th>المنتج</th>
+        <th style="width:110px">سعر الوحدة</th>
+        <th style="width:70px">الكمية</th>
+        <th style="width:130px">المجموع</th>
+      </tr>
+    </thead>
+    <tbody>${itemsHtml}</tbody>
+  </table>
+
+  <div class="totals-box">
+    <div class="row"><span>المجموع HT:</span><b>${fmt(v.total)}</b></div>
+    ${v.discount>0?`<div class="row"><span>الخصم:</span><b style="color:#059669">-${fmt(v.discount)}</b></div>`:''}
+    ${v.tva>0?`<div class="row"><span>TVA:</span><b>${fmt(v.tva)}</b></div>`:''}
+    <div class="row net"><span>الصافي TTC:</span><span>${fmt(v.net)}</span></div>
+    <div class="row" style="margin-top:8px"><span>المدفوع:</span><b style="color:#059669">${fmt(v.paid)}</b></div>
+    ${v.reste>0?`<div class="row"><span>الباقي:</span><b style="color:#dc2626">${fmt(v.reste)}</b></div>`:''}
+  </div>
+
+  <div class="footer">
+    شكراً لتعاملكم معنا — ${company}<br>
+    ${phone?phone+' • ':''}${address}
+  </div>
+</body></html>`;
   await window.api.print.invoice(html);
 }
 
@@ -2230,7 +2368,7 @@ async function renderPOS() {
               <option value="barcode">الباركود</option>
             </select>
             <input id="posSearchInput"
-              placeholder="🔍 ابحث عن سلعة — ↑↓ للتنقل — Enter للاختيار — ESC للإغلاق"
+              placeholder="🔍 ابحث أو امسح باركود — ↑↓ تنقل — Enter اختيار — Ctrl+P تأكيد+طباعة"
               style="flex:1;padding:8px 14px;background:#f0f4f8;border:2px solid var(--primary);border-radius:9px;color:#fff;font-size:.9rem;font-family:'Cairo',sans-serif;outline:none"
               oninput="handlePOSSearch(this.value)"
               onkeydown="handlePOSSearchKey(event)"
@@ -2319,8 +2457,8 @@ async function renderPOS() {
             <button onclick="clearPOS()" style="padding:10px 4px;background:#374151;border:none;border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">❌ مسح الكل</button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-            <button onclick="confirmPOSSale()" style="padding:14px 4px;background:#166534;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.8rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">✅ تأكيد — Enter</button>
-            <button onclick="confirmAndPrint()" style="padding:14px 4px;background:#064e3b;border:none;border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.75rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">🖨️ تأكيد+طباعة</button>
+            <button onclick="confirmPOSSale()" style="padding:14px 4px;background:#166534;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.8rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" title="F12 أو Enter">✅ تأكيد<br><span style="font-size:.65rem;opacity:.85">F12</span></button>
+            <button onclick="confirmAndPrint()" style="padding:14px 4px;background:#064e3b;border:none;border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.78rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" title="Ctrl+P أو Ctrl+Enter">🖨️ تأكيد+طباعة<br><span style="font-size:.65rem;opacity:.85">Ctrl+P</span></button>
           </div>
         </div>
       </div>
@@ -2398,6 +2536,30 @@ function buildPOSCard(p) {
 </div>`;
 }
 
+// ─── Barcode scanner detection ───
+// Scanners type very fast then press Enter. If a match is found by exact barcode, auto-add immediately.
+let _lastBarcodeTime = 0;
+function tryBarcodeScan(q) {
+  const now = Date.now();
+  const fast = now - _lastBarcodeTime < 100;  // typing within 100ms = scanner
+  _lastBarcodeTime = now;
+  if (!q || q.length < 3) return false;
+  // Check if exact match on barcode field
+  const exact = (_posProducts||[]).find(p =>
+    (p.barcode && p.barcode === q) ||
+    (p.barcode2 && p.barcode2 === q) ||
+    (p.barcode3 && p.barcode3 === q)
+  );
+  if (exact) {
+    window.addToPOS(exact.id, exact.name, exact.sell_price, exact.stock);
+    document.getElementById('posSearchInput').value = '';
+    document.getElementById('posDropdown')?.classList.remove('open');
+    toast('✅ ' + exact.name, 'success');
+    return true;
+  }
+  return false;
+}
+
 function handlePOSSearch(q) {
   _posDropdownIndex = -1; // Reset selection on new search
   const dropdown = document.getElementById('posDropdown');
@@ -2466,6 +2628,10 @@ function handlePOSSearchKey(e) {
 
   if (e.key === 'Enter') {
     e.preventDefault();
+    const val = document.getElementById('posSearchInput')?.value?.trim();
+    // Try barcode scan first (exact match)
+    if (val && tryBarcodeScan(val)) return;
+    // Otherwise use dropdown selection
     if (_posDropdownIndex >= 0 && items[_posDropdownIndex]) {
       items[_posDropdownIndex].click();
     } else if (items.length > 0) {
@@ -2710,32 +2876,181 @@ window.filterPOSGrid = (q, cat) => {
   });
 };
 
-window.confirmPOSSale = async () => {
+window.confirmPOSSale = async (opts = {}) => {
   if (!App.pos.items.length) { toast('أضف منتجاً على الأقل', 'error'); return; }
-  const netText = document.getElementById('pos_net').textContent;
-  const net = parseFloat(netText.replace(/[^\d.]/g,''));
-  const paid = parseFloat(document.getElementById('pos_paid').value) || 0;
-  const disc = parseFloat(document.getElementById('pos_disc').value) || 0;
+  const netText = document.getElementById('pos_net')?.textContent || '0';
+  const net = parseFloat(netText.replace(/[^\d.]/g,'')) || 0;
+  const paid = parseFloat(document.getElementById('pos_paid')?.value) || 0;
+  const disc = parseFloat(document.getElementById('pos_disc')?.value) || 0;
   const tvaEnabled = App.settings.tva_enabled === '1';
-  const tvaRate = tvaEnabled ? (parseFloat(document.getElementById('pos_tva_rate').value) || 0) : 0;
+  const tvaRate = tvaEnabled ? (parseFloat(document.getElementById('pos_tva_rate')?.value) || 0) : 0;
   const total = App.pos.items.reduce((s,i) => s + i.qty*i.price, 0);
   const discAmt = total * disc / 100;
   const afterDisc = total - discAmt;
   const tvaAmt = tvaEnabled ? (afterDisc * tvaRate / 100) : 0;
   const clientSel = document.getElementById('pos_client');
 
+  const items = [...App.pos.items]; // snapshot before clear
+
   const data = {
-    client_id: clientSel.value || null,
-    client_name: clientSel.value ? clientSel.options[clientSel.selectedIndex].text : 'عميل عابر',
+    client_id: clientSel?.value || null,
+    client_name: clientSel?.value ? clientSel.options[clientSel.selectedIndex].text : 'عميل عابر',
     total: afterDisc, discount: discAmt, tva: tvaAmt,
-    net: Math.round(net), paid, reste: Math.max(0, net - paid),
-    payment_type: document.getElementById('pos_payment').value.replace(/^[^ ]+ /,''),
+    net: Math.round(net),
+    paid: paid > 0 ? paid : Math.round(net), // if no paid entered, assume full
+    reste: Math.max(0, net - (paid > 0 ? paid : Math.round(net))),
+    payment_type: (document.getElementById('pos_payment')?.value || 'نقداً').replace(/^[^ ]+ /,''),
     notes: '', date: today(),
-    items: App.pos.items,
+    items,
   };
-  const res = await window.api.ventes.add(data);
-  toast(`✅ تم حفظ الفاتورة ${res.num}`, 'success');
-  clearPOS();
+  try {
+    const res = await window.api.ventes.add(data);
+    toast(`✅ فاتورة ${res.num} — ${fmt(net)}`, 'success');
+
+    // Print receipt if requested
+    if (opts.print) {
+      await printQuickReceipt({ ...data, num: res.num });
+    }
+    clearPOS();
+    // Return focus to search for next sale
+    setTimeout(() => document.getElementById('posSearchInput')?.focus(), 100);
+  } catch(e) {
+    toast('خطأ في حفظ الفاتورة: '+(e.message||''), 'error');
+  }
+};
+
+// ─── طباعة فاتورة حرارية — بتصميم احترافي ───
+async function printQuickReceipt(sale) {
+  const size     = App.settings.receipt_size  || '80mm';
+  const company  = App.settings.company_name  || 'محل الأغواط';
+  const phone    = App.settings.company_phone || '';
+  const address  = App.settings.company_address || 'الأغواط، الجزائر';
+  const subtitle = App.settings.company_subtitle || 'برنامج إدارة المبيعات';
+  const seller   = App.currentUser?.name || 'الكاشير';
+  const w = size === '58mm' ? '58mm' : '80mm';
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('fr-DZ') + ' ' + now.toLocaleTimeString('fr-DZ',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+  const total = sale.items.reduce((s,i) => s + i.qty*i.price, 0);
+
+  const itemsHTML = sale.items.map(it => `
+    <tr>
+      <td class="cN">${it.product_name}</td>
+      <td class="cP">${fmtNum(it.price)}</td>
+      <td class="cQ">${it.qty}</td>
+      <td class="cT">${fmtNum(it.qty*it.price)}</td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html><html dir="ltr"><head><meta charset="UTF-8">
+<style>
+  @page { size: ${w} auto; margin: 3mm; }
+  * { box-sizing:border-box }
+  body { font-family:'Arial','Tahoma',sans-serif; width:${w}; margin:0; padding:0; font-size:9pt; color:#000; background:#fff }
+  .hdr { text-align:center; padding:6px 0 }
+  .hdr .logo { font-size:24pt; font-weight:900; color:#2563eb }
+  .hdr h1 { margin:0; font-size:14pt; font-weight:900 }
+  .hdr .sub { margin:2px 0; font-size:9pt; font-weight:600 }
+  .hdr .info { margin:2px 0; font-size:8.5pt }
+  .sep { border-top:1px dashed #000; margin:6px 0 }
+  .row { display:flex; justify-content:space-between; font-size:9pt; padding:2px 0 }
+  .row.bold { font-weight:700 }
+  .italic { font-style:italic }
+  table { width:100%; border-collapse:collapse; margin:4px 0 }
+  thead th { font-size:9pt; font-weight:700; padding:3px 0; border-top:1px dashed #000; border-bottom:1px dashed #000; text-align:left }
+  thead th.cP, thead th.cQ { text-align:center }
+  thead th.cT { text-align:right }
+  tbody td { padding:3px 0; font-size:9pt; vertical-align:top }
+  tbody td.cN { width:50% }
+  tbody td.cP { text-align:center; width:20% }
+  tbody td.cQ { text-align:center; width:10% }
+  tbody td.cT { text-align:right; width:20%; font-weight:700 }
+  .tot-section { border-top:1px dashed #000; padding-top:4px; margin-top:4px }
+  .tot-row { display:flex; justify-content:space-between; font-size:10pt; padding:2px 0 }
+  .tot-row b { font-weight:700 }
+  .net-row { font-weight:900; font-size:11pt; background:#f0f0f0; padding:4px 6px; margin:3px -3px; border-radius:2px }
+  .ftr { text-align:center; margin-top:6px; font-size:9pt; padding:6px 0; border-top:1px dashed #000; border-bottom:1px dashed #000 }
+  .bc-area { text-align:center; margin-top:6px; font-size:7pt; display:flex; justify-content:space-between; align-items:center }
+  .bc-img { font-family:'Libre Barcode 39','Courier',monospace; font-size:28pt; letter-spacing:-1px; line-height:1 }
+</style></head>
+<body>
+  <!-- Header -->
+  <div class="hdr">
+    <h1>${company}</h1>
+    <div class="sub">${subtitle}</div>
+    ${phone?`<div class="info">Télé: ${phone}</div>`:''}
+    ${address?`<div class="info">${address}</div>`:''}
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- Ticket info -->
+  <div class="row bold">
+    <span>Ticket N°: ${sale.num||'0000000'}</span>
+    <span>${dateStr}</span>
+  </div>
+  <div class="row" style="margin-top:4px">
+    <span>Client:</span>
+    <span>Vendeur:</span>
+  </div>
+  <div class="row italic bold">
+    <span>${(sale.client_name||'COMPTOIRE').toUpperCase()}</span>
+    <span>${seller.toUpperCase()}</span>
+  </div>
+
+  <!-- Items table -->
+  <table>
+    <thead>
+      <tr>
+        <th class="cN">Désignation</th>
+        <th class="cP">Prix U</th>
+        <th class="cQ">Qnt</th>
+        <th class="cT">Prix T</th>
+      </tr>
+    </thead>
+    <tbody>${itemsHTML}</tbody>
+  </table>
+
+  <!-- Totals -->
+  <div class="tot-section">
+    <div class="tot-row"><b>Total TTC:</b><b>${fmtNum(total)} DA</b></div>
+    ${sale.discount>0?`<div class="tot-row"><span>Remise:</span><span>${fmtNum(sale.discount)} DA</span></div>`:'<div class="tot-row"><span>Remise:</span><span>0.0 DA</span></div>'}
+    ${sale.tva>0?`<div class="tot-row"><span>TVA:</span><span>${fmtNum(sale.tva)} DA</span></div>`:''}
+    <div class="net-row tot-row"><span>Net:</span><span>${fmtNum(sale.net)} DA</span></div>
+    <div class="tot-row"><b>Versement:</b><b>${fmtNum(sale.paid)} DA</b></div>
+    <div class="tot-row" style="font-weight:700">
+      <span>Reste:</span>
+      <span style="color:${sale.reste>0?'#c00':'#000'}">${fmtNum(sale.reste||0)} DA</span>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="ftr">Merci de votre visite, à la prochaine.</div>
+
+  <!-- Barcode area -->
+  <div class="bc-area">
+    <span style="font-style:italic">${company.substring(0,15)}</span>
+    <div class="bc-img">*${sale.num||'0'}*</div>
+    <span>${phone}</span>
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function(){ window.print(); }, 200);
+      window.onafterprint = function() { setTimeout(function(){ window.close(); }, 300); };
+    };
+  <` + `/script>
+</body></html>`;
+
+  const printWin = window.open('', '_blank', 'width=400,height=700');
+  if (!printWin) { toast('اسمح بالنوافذ المنبثقة للطباعة', 'error'); return; }
+  printWin.document.open();
+  printWin.document.write(html);
+  printWin.document.close();
+}
+
+// ─── Confirm + Print shortcut ───
+window.confirmAndPrint = async () => {
+  await window.confirmPOSSale({ print: true });
 };
 
 // =====================================================
@@ -2950,7 +3265,50 @@ async function renderSettings() {
         </div>
       </div>
     </div>
+
+    <!-- PRINTER SETTINGS -->
+    <div class="card" style="margin-top:16px">
+      <div class="card-header"><div class="card-title">🖨️ إعدادات الطابعة</div></div>
+      <div class="card-body">
+        <div class="grid-3">
+          <div class="form-group">
+            <label class="form-label">حجم إيصال البيع السريع</label>
+            <select class="form-select" id="s_receipt_size">
+              <option value="58mm" ${s.receipt_size==='58mm'?'selected':''}>حرارية 58mm (صغيرة)</option>
+              <option value="80mm" ${(s.receipt_size||'80mm')==='80mm'?'selected':''}>حرارية 80mm (متوسطة)</option>
+              <option value="A4" ${s.receipt_size==='A4'?'selected':''}>A4 عادية</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">حجم ملصق الباركود</label>
+            <select class="form-select" id="s_barcode_size">
+              <option value="40x20" ${(s.barcode_size||'40x20')==='40x20'?'selected':''}>40×20 mm</option>
+              <option value="40x30" ${s.barcode_size==='40x30'?'selected':''}>40×30 mm</option>
+              <option value="50x25" ${s.barcode_size==='50x25'?'selected':''}>50×25 mm</option>
+              <option value="30x20" ${s.barcode_size==='30x20'?'selected':''}>30×20 mm</option>
+              <option value="60x40" ${s.barcode_size==='60x40'?'selected':''}>60×40 mm</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">الطابعة الافتراضية</label>
+            <input class="form-input" id="s_printer_name" value="${s.printer_name||''}" placeholder="(فارغ = اختيار كل مرة)">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="savePrinterSettings()">✅ حفظ إعدادات الطباعة</button>
+      </div>
+    </div>
   `;
+}
+
+async function savePrinterSettings() {
+  const data = {
+    receipt_size: document.getElementById('s_receipt_size').value,
+    barcode_size: document.getElementById('s_barcode_size').value,
+    printer_name: document.getElementById('s_printer_name').value,
+  };
+  await window.api.settings.save(data);
+  App.settings = { ...App.settings, ...data };
+  toast('✅ تم حفظ إعدادات الطابعة', 'success');
 }
 
 // Toggle login screen
@@ -3388,7 +3746,7 @@ function renderComingSoon(name) {
 // =====================================================
 async function renderQuotes() {
   document.getElementById('topbarActions').innerHTML = `
-    <button class="topbar-btn primary" onclick="event.stopPropagation();navigate('pos',null);closeAllMenus()">➕ عرض سعر جديد (POS)</button>
+    <button class="topbar-btn primary" onclick="navigate('pos',null)">➕ عرض سعر جديد (POS)</button>
   `;
   const quotes = await window.api.quotes.getAll();
   document.getElementById('mainContent').innerHTML = `
@@ -4116,10 +4474,8 @@ function setActiveQNav(el) {
 // INIT
 // =====================================================
 async function init() {
-  // تاريخ اليوم في الـ footer
-  document.getElementById('footerDate').textContent = new Date().toLocaleDateString('ar-DZ', {
-    weekday:'long', year:'numeric', month:'long', day:'numeric'
-  });
+  // تاريخ اليوم (sidebar removed)
+  const fd = document.getElementById('footerDate'); if (fd) fd.textContent = new Date().toLocaleDateString('ar-DZ',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
   // تحميل الإعدادات
   App.settings = await window.api.settings.get();
@@ -4193,7 +4549,7 @@ async function doLogin() {
       document.getElementById('userName').textContent = result.user.name;
       document.getElementById('userAvatar').textContent = result.user.name.charAt(0);
       const roleLabel = result.user.role==='admin'?'🔑 مدير':result.user.role==='manager'?'📋 مشرف':'💼 كاشير';
-      document.getElementById('userRole').textContent = roleLabel;
+      const userRoleEl = document.getElementById('userRole'); if (userRoleEl) userRoleEl.textContent = roleLabel;
       await init();
     } else {
       errEl.style.display='block'; errEl.textContent = result.error || 'خطأ في تسجيل الدخول';
@@ -4293,7 +4649,7 @@ function renderHome() {
       <!-- Tiles grid -->
       <div class="home-tiles">
         ${tiles.map(t => `
-          <button class="home-tile" onclick="event.stopPropagation();navigate('${t.screen}',null);closeAllMenus()"
+          <button class="home-tile" onclick="navigate('${t.screen}',null)"
             style="background:${t.grad}"
             title="${t.shortcut?'اختصار: '+t.shortcut:''}">
             <div class="home-tile-body">
@@ -4470,9 +4826,25 @@ document.addEventListener('keydown', e => {
   if (e.key === 'F8') { e.preventDefault(); navigate('clients',      null); return; }
   if (e.key === 'F9') { e.preventDefault(); navigate('fournisseurs', null); return; }
 
-  // Enter in POS to confirm sale
-  if (e.key === 'Enter' && App.currentScreen === 'pos' && !document.getElementById('modalContainer').innerHTML) {
-    confirmPOSSale();
+  // POS specific shortcuts
+  if (App.currentScreen === 'pos' && !document.getElementById('modalContainer').innerHTML.trim()) {
+    // F12 → confirm sale
+    if (e.key === 'F12') { e.preventDefault(); confirmPOSSale(); return; }
+    // Ctrl+P → confirm + print
+    if ((e.ctrlKey || e.metaKey) && e.key === 'p') { e.preventDefault(); confirmAndPrint(); return; }
+    // Ctrl+D → clear POS
+    if ((e.ctrlKey || e.metaKey) && e.key === 'd') { e.preventDefault(); clearPOS(); return; }
+    // + / - on NumPad → change qty of last item
+    if (e.key === '+' && document.activeElement?.id !== 'posSearchInput') {
+      e.preventDefault(); changePOSLastQty(1); return;
+    }
+    if (e.key === '-' && document.activeElement?.id !== 'posSearchInput') {
+      e.preventDefault(); changePOSLastQty(-1); return;
+    }
+    // Ctrl+Enter → confirm + print
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault(); confirmAndPrint(); return;
+    }
   }
 });
 
