@@ -2531,7 +2531,7 @@ async function renderPOS() {
             <button onclick="clearPOS()" style="padding:10px 4px;background:#374151;border:none;border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''"><span>❌ مسح الكل</span><span style="font-size:.58rem;opacity:.75;display:block">F6</span></button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-            <button onclick="confirmPOSSale()" style="padding:14px 4px;background:#166534;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.8rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" title="F12 أو Enter"><span>✅ تأكيد</span><span style="font-size:.6rem;opacity:.8">F1 أو Enter</span></button>
+            <button onclick="confirmPOSSale()" style="padding:14px 4px;background:#166534;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.8rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" title="F12 أو Enter"><span>✅ تأكيد</span><span style="font-size:.6rem;opacity:.8">F1</span></button>
             <button onclick="confirmAndPrint()" style="padding:14px 4px;background:#064e3b;border:none;border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.78rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" title="Ctrl+P أو Ctrl+Enter"><span>🖨️ تأكيد+طباعة</span><span style="font-size:.6rem;opacity:.8">F2</span></button>
           </div>
         </div>
@@ -5338,37 +5338,59 @@ document.addEventListener('keydown', e => {
     if (homeKeys[e.key]) { e.preventDefault(); navigate(homeKeys[e.key], null); return; }
   }
 
-  // POS specific shortcuts
-  if (App.currentScreen === 'pos' && !document.getElementById('modalContainer').innerHTML.trim()) {
-    // F12 → confirm sale (no print)
+  // ═══ POS اختصارات الكيبورد ═══
+  if (App.currentScreen === 'pos') {
+    // لا نشتغل إذا كان هناك مودال مفتوح
+    const modalOpen = document.querySelector('.modal-overlay') !== null;
+    if (modalOpen) return;
+
+    const activeEl = document.activeElement;
+    const inTyping = activeEl && (
+      activeEl.id === 'posSearchInput' ||
+      activeEl.tagName === 'INPUT' ||
+      activeEl.tagName === 'TEXTAREA'
+    );
+
+    // F1 → تأكيد
+    if (e.key === 'F1') { e.preventDefault(); confirmPOSSale(); return; }
+    // F2 → تأكيد + طباعة
+    if (e.key === 'F2') { e.preventDefault(); confirmAndPrint(); return; }
+    // F3 → استئناف
+    if (e.key === 'F3') { e.preventDefault(); resumePOS(); return; }
+    // F4 → تعليق
+    if (e.key === 'F4') { e.preventDefault(); pausePOS(); return; }
+    // F5 → حذف آخر سطر
+    if (e.key === 'F5') { e.preventDefault(); removePOSLast(); return; }
+    // F6 → مسح الكل
+    if (e.key === 'F6') {
+      e.preventDefault();
+      if (App.pos.items.length) {
+        if (confirm('مسح كل السلة؟')) clearPOS();
+      }
+      return;
+    }
+    // F7 → جديد بدون تأكيد
+    if (e.key === 'F7') { e.preventDefault(); clearPOS(); toast('🆕 فاتورة جديدة','info',800); return; }
+    // F12 → تأكيد (بديل قديم)
     if (e.key === 'F12') { e.preventDefault(); confirmPOSSale(); return; }
 
-    // Ctrl+P → confirm + print thermal receipt
-    if ((e.ctrlKey || e.metaKey) && e.key === 'p') { e.preventDefault(); confirmAndPrint(); return; }
-    // Ctrl+Enter → confirm + print (alternative)
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); confirmAndPrint(); return; }
-    // Ctrl+D → clear POS
-    if ((e.ctrlKey || e.metaKey) && e.key === 'd') { e.preventDefault(); clearPOS(); return; }
-    // Ctrl+Delete → remove last item
-    if ((e.ctrlKey || e.metaKey) && (e.key === 'Delete' || e.key === 'Backspace')) {
-      if (document.activeElement?.tagName !== 'INPUT') {
-        e.preventDefault(); removePOSLast(); return;
-      }
-    }
-    // + / - on NumPad → change qty of last item
-    if ((e.key === '+' || e.key === '=') && document.activeElement?.id !== 'posSearchInput') {
-      e.preventDefault(); changePOSLastQty(1); return;
-    }
-    if (e.key === '-' && document.activeElement?.id !== 'posSearchInput'
-        && document.activeElement?.tagName !== 'INPUT') {
-      e.preventDefault(); changePOSLastQty(-1); return;
-    }
-    // F2 → focus payment field
-    if (e.key === 'F2' && document.activeElement?.id !== 'posSearchInput') {
+    // Ctrl+P → طباعة
+    if ((e.ctrlKey||e.metaKey) && e.key==='p') { e.preventDefault(); confirmAndPrint(); return; }
+    // Ctrl+D → مسح
+    if ((e.ctrlKey||e.metaKey) && e.key==='d') { e.preventDefault(); clearPOS(); return; }
+
+    // Enter → يعيد التركيز لخانة البحث فقط (لا يؤكد البيع)
+    if (e.key === 'Enter' && !inTyping && !(e.ctrlKey||e.metaKey)) {
       e.preventDefault();
-      const paid = document.getElementById('pos_paid');
-      if (paid) { paid.focus(); paid.select(); }
+      const si = document.getElementById('posSearchInput');
+      if (si) { si.focus(); si.select(); }
       return;
+    }
+
+    // + / - للكمية (إذا ليس في خانة كتابة)
+    if (!inTyping) {
+      if (e.key === '+' || e.key === 'NumpadAdd') { e.preventDefault(); changePOSLastQty(1); return; }
+      if (e.key === '-' || e.key === 'NumpadSubtract') { e.preventDefault(); changePOSLastQty(-1); return; }
     }
   }
 });
