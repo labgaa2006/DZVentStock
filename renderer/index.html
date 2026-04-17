@@ -171,7 +171,7 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);overf
 .topbar-btn.primary:hover{background:var(--primary-dark)}
 
 /* ===== CONTENT ===== */
-.content{flex:1;overflow-y:auto;padding:20px;background:#f0f4f8}
+.content{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px;background:#f0f4f8}
 .content::-webkit-scrollbar{width:4px}
 .content::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 
@@ -191,7 +191,7 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);overf
 .stat-card:hover{border-color:var(--primary);transform:translateY(-2px)}
 .stat-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
 .stat-val{font-size:1.28rem;font-weight:900;line-height:1;margin-bottom:3px;color:var(--text)}
-.stat-lbl{font-size:.72rem;color:var(--muted);font-weight:600}
+.stat-lbl{font-size:.72rem;color:#64748b;font-weight:600}
 
 /* ===== TABLE ===== */
 .table-wrap{overflow-x:auto}
@@ -306,7 +306,7 @@ button:active:not(:disabled){transform:scale(.97)}
 
 /* ===== MODAL ===== */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(6px);animation:fadeIn .2s ease}
-.modal{background:#fff;border:1px solid var(--border);border-radius:14px;width:480px;max-width:95vw;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.modal{background:#fff;border:1px solid var(--border);border-radius:14px;color:var(--text);width:480px;max-width:95vw;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.15)}
 .modal-lg{width:700px}
 .modal-header{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .modal-title{font-size:.9rem;font-weight:800;color:var(--text)}
@@ -469,7 +469,7 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
       <input id="loginPassword" class="form-input" type="password" placeholder="••••••" value="admin123" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <div id="loginError" style="display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:8px 12px;font-size:.78rem;color:#f87171;margin-bottom:12px"></div>
-    <button onclick="doLogin()" id="loginBtn" style="width:100%;padding:11px;background:#f97316;border:none;border-radius:9px;color:#fff;font-family:'Cairo',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:.15s">تسجيل الدخول</button>
+    <button onclick="doLogin()" id="loginBtn" style="width:100%;padding:11px;background:#f97316;border:none;border-radius:9px;color:var(--text);font-family:'Cairo',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:.15s">تسجيل الدخول</button>
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid #334155;font-size:.7rem;color:#64748b;text-align:center">
       مستخدم افتراضي: <code style="color:#f97316">admin</code> / <code style="color:#f97316">admin123</code>
     </div>
@@ -595,7 +595,7 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
         <div style="width:1px;background:rgba(255,255,255,.1);height:24px;margin:0 4px"></div>
         <!-- User info -->
         <div class="menubar-info">
-          <span id="userAvatar" style="background:var(--primary);color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700">م</span>
+          <span id="userAvatar" style="background:var(--primary);color:var(--text);width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700">م</span>
           <span id="userName" style="color:#cbd5e1;font-size:.75rem">مدير النظام</span>
         </div>
         <button class="menubar-btn" onclick="doLogout()" style="color:#f87171;border-color:rgba(239,68,68,.3)">🚪 خروج</button>
@@ -615,7 +615,7 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
         <div id="topbarActions" style="display:flex;align-items:center;gap:6px"></div>
       </div>
 
-      <div class="content" id="mainContent" style="padding:20px;background:#f0f4f8;overflow-y:auto;flex:1;min-height:0">
+      <div class="content" id="mainContent" style="padding:20px;background:#f0f4f8;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0">
         <!-- Screens rendered here dynamically -->
       </div>
     </div>
@@ -830,7 +830,7 @@ async function renderScreen(name) {
         document.getElementById('mainContent').innerHTML = `
           <div style="text-align:center;padding:60px;color:var(--muted)">
             <div style="font-size:2rem;margin-bottom:12px">🔜</div>
-            <div style="font-size:.9rem;font-weight:600;color:#fff;margin-bottom:6px">${screens[name]?.title||name}</div>
+            <div style="font-size:.9rem;font-weight:600;color:var(--text);margin-bottom:6px">${screens[name]?.title||name}</div>
             <div style="font-size:.78rem">هذه الميزة قيد التطوير</div>
           </div>`;
         break;
@@ -845,6 +845,8 @@ async function renderScreen(name) {
 // DASHBOARD
 // =====================================================
 async function renderDashboard() {
+  const mc = document.getElementById('mainContent');
+  if (mc) { mc.style.padding = '20px'; mc.style.overflowY = 'auto'; mc.style.overflowX = 'hidden'; }
   const s = await window.api.stats.getDashboard();
   const caisseData = await window.api.caisse.getStats();
   const dettes = await window.api.dettes.getAll();
@@ -861,7 +863,7 @@ async function renderDashboard() {
     <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
       <div class="stat-card anim-fadeup anim-d1">
         <div class="stat-icon" style="background:rgba(249,115,22,.15)">📦</div>
-        <div><div class="stat-val" style="color:var(--primary)">${fmtNum(s.products_count)}</div><div class="stat-lbl">إجمالي المنتجات</div></div>
+        <div><div class="stat-val" style="color:var(--primary);font-weight:900">${fmtNum(s.products_count)}</div><div class="stat-lbl">إجمالي المنتجات</div></div>
       </div>
       <div class="stat-card anim-fadeup anim-d2">
         <div class="stat-icon" style="background:rgba(16,185,129,.15)">💰</div>
@@ -1057,7 +1059,7 @@ function filterProductsTable(q) {
         ${p.favorite?'<span style="color:var(--warning)"> ⭐</span>':''}
       </td>
       <td style="max-width:180px">
-        <div style="font-weight:700;font-size:.85rem">${p.name}</div>
+        <div style="font-weight:700;font-size:.85rem;color:var(--text)">${p.name}</div>
         <div style="display:flex;gap:4px;margin-top:2px;flex-wrap:wrap">
           ${p.category?`<span style="font-size:.62rem;background:rgba(56,189,248,.1);color:#0369a1;padding:1px 6px;border-radius:8px">📂 ${p.category}</span>`:''}
           ${p.barcode?`<span style="font-size:.62rem;background:rgba(245,158,11,.1);color:#b45309;padding:1px 6px;border-radius:8px">🔖 ${p.barcode}</span>`:''}
@@ -1427,7 +1429,7 @@ async function showAddProductModal(editId = null) {
               <input class="form-input" id="bc_copies" type="number" value="1" min="1" max="100">
             </div>
           </div>
-          <button onclick="printBarcode()" style="width:100%;padding:9px;background:var(--primary);border:none;border-radius:8px;color:#fff;font-family:'Cairo',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer">
+          <button onclick="printBarcode()" style="width:100%;padding:9px;background:var(--primary);border:none;border-radius:8px;color:var(--text);font-family:'Cairo',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer">
             🖨️ طباعة الباركود
           </button>
         </div>
@@ -2400,13 +2402,13 @@ async function renderPOS() {
         </select>
       </div>
       <div>
-        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;margin-bottom:2px">الخصم %</div>
-        <input id="pos_disc" type="number" value="0" min="0" max="100" oninput="recalcPOS()"
-          style="width:65px;padding:3px 6px;background:#1e293b;border:1px solid var(--border);border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.82rem;text-align:center">
+        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;margin-bottom:2px">الخصم (DA)</div>
+        <input id="pos_disc" type="number" value="0" min="0" oninput="recalcPOS()"
+          style="width:80px;padding:3px 6px;background:#1e293b;border:1px solid var(--border);border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.82rem;text-align:center">
       </div>
       <div style="border-right:1px solid var(--border);padding-right:14px;margin-right:0">
         <div style="font-size:.72rem;color:var(--muted)">فاتورة رقم: <strong style="color:var(--info)">${venteNum}</strong></div>
-        <div style="font-size:.72rem;color:var(--muted)">عدد الأصناف: <span id="pos_count" style="color:#fff;font-weight:700">0</span></div>
+        <div style="font-size:.72rem;color:var(--muted)">عدد الأصناف: <span id="pos_count" style="color:var(--text);font-weight:700">0</span></div>
         <div style="font-size:.72rem;color:var(--muted)">Nombre de produits: <span id="pos_items_count" style="color:var(--info);font-weight:700">0</span></div>
       </div>
       <div style="margin-right:auto;text-align:center">
@@ -2414,10 +2416,13 @@ async function renderPOS() {
         <div id="pos_total_big" style="font-size:2.6rem;font-weight:900;color:#00ff88;font-family:monospace;letter-spacing:3px;line-height:1">0.00</div>
       </div>
       <div style="text-align:left;font-size:.7rem;color:var(--muted)">
-        <div id="pos_clock" style="font-size:.85rem;color:#fff;font-weight:600"></div>
+        <div id="pos_clock" style="font-size:.85rem;color:var(--text);font-weight:600"></div>
         <div>${new Date().toLocaleDateString('fr-DZ',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
       </div>
     </div>
+
+    <!-- PAUSED INVOICES BAR -->
+    <div id="pos_paused_bar" style="display:none;flex-direction:row;gap:6px;padding:4px 12px;background:rgba(124,58,237,.05);border-bottom:1px solid rgba(124,58,237,.2);flex-wrap:wrap;flex-shrink:0"></div>
 
     <!-- MAIN BODY: invoice left + controls right -->
     <div style="display:grid;grid-template-columns:1fr 330px;flex:1;overflow:hidden">
@@ -2428,9 +2433,9 @@ async function renderPOS() {
         <!-- Search bar always visible at top -->
         <div class="pos-search-zone" style="padding:8px 12px;background:#fff;border-bottom:2px solid var(--border);position:relative;flex-shrink:0">
           <div style="display:flex;align-items:center;gap:8px">
-            <button onclick="togglePOSGrid()" id="pos_grid_toggle_btn"
-              style="padding:6px 12px;background:rgba(249,115,22,.15);border:1px solid var(--primary);border-radius:7px;color:var(--primary);font-size:.75rem;cursor:pointer;font-family:'Cairo',sans-serif;white-space:nowrap;font-weight:700;flex-shrink:0">
-              📦 الشبكة
+            <button onclick="togglePOSFavs()" id="pos_favs_toggle_btn"
+              style="padding:6px 12px;background:rgba(245,158,11,.15);border:1px solid var(--warning);border-radius:7px;color:var(--warning);font-size:.75rem;cursor:pointer;font-family:'Cairo',sans-serif;white-space:nowrap;font-weight:700;flex-shrink:0">
+              ⭐ المفضلة
             </button>
             <select id="pos_search_by" style="padding:6px 8px;background:#f0f4f8;border:1px solid var(--border);border-radius:7px;color:#fff;font-family:'Cairo',sans-serif;font-size:.75rem;flex-shrink:0">
               <option value="name">الاسم</option>
@@ -2515,16 +2520,16 @@ async function renderPOS() {
         <!-- Action buttons -->
         <div style="flex-shrink:0">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #000">
-            <button onclick="pausePOS()" style="padding:11px 4px;background:#4c1d95;border:none;border-left:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">⏸️ تعليق (F3)</button>
-            <button onclick="resumePOS()" style="padding:11px 4px;background:#1e3a5f;border:none;color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">▶️ استئناف</button>
+            <button onclick="pausePOS()" style="padding:11px 4px;background:#4c1d95;border:none;border-left:1px solid rgba(0,0,0,.3);color:var(--text);font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">⏸️ تعليق (F3)</button>
+            <button onclick="resumePOS()" style="padding:11px 4px;background:#1e3a5f;border:none;color:var(--text);font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">▶️ استئناف</button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-            <button onclick="changePOSLastQty(1)" style="padding:10px 4px;background:#1e40af;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">Qté ＋</button>
-            <button onclick="changePOSLastQty(-1)" style="padding:10px 4px;background:#991b1b;border:none;border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">Qté －</button>
+            <button onclick="changePOSLastQty(1)" style="padding:10px 4px;background:#1e40af;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:1px solid rgba(0,0,0,.3);color:var(--text);font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">Qté ＋</button>
+            <button onclick="changePOSLastQty(-1)" style="padding:10px 4px;background:#991b1b;border:none;border-top:1px solid rgba(0,0,0,.3);color:var(--text);font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">Qté －</button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-            <button onclick="removePOSLast()" style="padding:10px 4px;background:#7f1d1d;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">🗑️ حذف سطر</button>
-            <button onclick="clearPOS()" style="padding:10px 4px;background:#374151;border:none;border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">❌ مسح الكل</button>
+            <button onclick="removePOSLast()" style="padding:10px 4px;background:#7f1d1d;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:1px solid rgba(0,0,0,.3);color:var(--text);font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">🗑️ حذف سطر</button>
+            <button onclick="clearPOS()" style="padding:10px 4px;background:#374151;border:none;border-top:1px solid rgba(0,0,0,.3);color:var(--text);font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">❌ مسح الكل</button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
             <button onclick="confirmPOSSale()" style="padding:14px 4px;background:#166534;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.8rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" title="F12 أو Enter">✅ تأكيد<br><span style="font-size:.65rem;opacity:.85">F12</span></button>
@@ -2540,8 +2545,8 @@ async function renderPOS() {
         <!-- Grid header -->
         <div style="padding:8px 12px;background:var(--sidebar);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
           <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:.82rem;font-weight:700;color:var(--primary)">📦 شبكة المنتجات</span>
-            <span style="font-size:.72rem;color:var(--muted)">(كليك يمين على منتج لإضافته للمفضلة)</span>
+            <span style="font-size:.82rem;font-weight:700;color:var(--warning)">⭐ المنتجات المفضلة</span>
+            <span style="font-size:.72rem;color:var(--muted)">(اضغط كليك يمين على أي منتج لإضافته)</span>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <!-- Categories -->
@@ -2549,10 +2554,15 @@ async function renderPOS() {
               <button class="pos-cat active" onclick="filterPOSGrid('','',this)" data-cat="">🏪 الكل</button>
               ${cats.map(cat => `<button class="pos-cat" onclick="filterPOSGrid('','${cat.replace(/'/g,"\'")}',this)" data-cat="${cat.replace(/'/g,"\'")}">📂 ${cat}</button>`).join('')}
             </div>
-            <button onclick="togglePOSGrid()" style="padding:5px 12px;background:var(--danger);border:none;border-radius:6px;color:#fff;font-size:.75rem;cursor:pointer;font-family:'Cairo',sans-serif;font-weight:700">✕ إغلاق</button>
+            <button onclick="togglePOSGrid()" style="padding:5px 12px;background:var(--danger);border:none;border-radius:6px;color:var(--text);font-size:.75rem;cursor:pointer;font-family:'Cairo',sans-serif;font-weight:700">✕ إغلاق</button>
           </div>
         </div>
         <!-- Grid -->
+        <div id="pos_no_fav_msg" style="display:none;text-align:center;padding:40px;color:var(--muted)">
+          <div style="font-size:2rem;margin-bottom:8px">⭐</div>
+          <div style="font-size:.85rem">لا توجد منتجات مفضلة بعد</div>
+          <div style="font-size:.75rem;margin-top:6px">كليك يمين على أي منتج في الشبكة لإضافته</div>
+        </div>
         <div class="pos-grid" id="pos_grid" style="flex:1;overflow-y:auto;padding:10px">
           ${_posProducts.map(p => buildPOSCard(p)).join('')}
         </div>
@@ -2570,7 +2580,10 @@ async function renderPOS() {
     else clearInterval(window._posClock);
   }, 1000);
   document.getElementById('pos_clock').textContent = new Date().toLocaleTimeString('fr-DZ');
-  setTimeout(() => document.getElementById('posSearchInput')?.focus(), 150);
+  setTimeout(() => {
+    document.getElementById('posSearchInput')?.focus();
+    renderPausedTabs(); // show any paused invoices from before navigation
+  }, 150);
 }
 
 let _posProducts = [];
@@ -2739,20 +2752,36 @@ window.addToPOSById = (id) => {
   window.addToPOS(p.id, p.name, p.sell_price, p.stock, p.ref);
 };
 
-// Toggle POS product grid overlay
+// Toggle POS favorites overlay — shows only favorited products
 let _posGridOpen = false;
-window.togglePOSGrid = () => {
+window.togglePOSGrid = () => window.togglePOSFavs(); // compat alias
+window.togglePOSFavs = () => {
   _posGridOpen = !_posGridOpen;
   const overlay = document.getElementById('posGridOverlay');
-  const btn = document.getElementById('pos_grid_toggle_btn');
+  const btn = document.getElementById('pos_favs_toggle_btn');
   if (overlay) {
+    if (_posGridOpen) {
+      // Filter grid to favorites only
+      const grid = document.getElementById('pos_grid');
+      if (grid) {
+        grid.querySelectorAll('.pos-product').forEach(el => {
+          const isFav = _posFavorites.some(f => f.id === el.dataset.id);
+          el.style.display = isFav ? '' : 'none';
+        });
+        // Show message if no favorites
+        const visible = grid.querySelectorAll('.pos-product:not([style*="none"])').length;
+        const noFavMsg = document.getElementById('pos_no_fav_msg');
+        if (noFavMsg) noFavMsg.style.display = visible === 0 ? 'block' : 'none';
+      }
+    }
     overlay.style.height = _posGridOpen ? '65%' : '0';
     overlay.style.pointerEvents = _posGridOpen ? 'auto' : 'none';
   }
   if (btn) {
-    btn.style.background = _posGridOpen ? 'var(--primary)' : 'rgba(249,115,22,.15)';
-    btn.style.color = _posGridOpen ? '#fff' : 'var(--primary)';
-    btn.textContent = _posGridOpen ? '✕ أغلق الشبكة' : '📦 الشبكة';
+    btn.style.background = _posGridOpen ? 'var(--warning)' : 'rgba(245,158,11,.15)';
+    btn.style.color = _posGridOpen ? '#fff' : 'var(--warning)';
+    btn.style.borderColor = _posGridOpen ? 'var(--warning)' : 'var(--warning)';
+    btn.textContent = _posGridOpen ? '✕ إغلاق' : '⭐ المفضلة';
   }
 };
 
@@ -2800,10 +2829,10 @@ window.addToPOS = (id, name, price, stock) => {
 
 window.recalcPOS = () => {
   const total = App.pos.items.reduce((s,i) => s + i.qty * i.price, 0);
-  const disc = parseFloat(document.getElementById('pos_disc')?.value) || 0;
+  const discAmt = Math.min(parseFloat(document.getElementById('pos_disc')?.value) || 0, total);
+  const disc = total > 0 ? (discAmt / total * 100) : 0; // keep for compat
   const tvaEnabled = App.settings.tva_enabled === '1';
   const tvaRate = tvaEnabled ? (parseFloat(document.getElementById('pos_tva_rate')?.value) || 0) : 0;
-  const discAmt = total * disc / 100;
   const afterDisc = total - discAmt;
   const tvaAmt = tvaEnabled ? (afterDisc * tvaRate / 100) : 0;
   const net = afterDisc + tvaAmt;
@@ -2889,10 +2918,10 @@ function renderPOSItems() {
             <td style="padding:7px 4px;text-align:center">
               <div style="display:flex;align-items:center;justify-content:center;gap:2px">
                 <button onclick="event.stopPropagation();changePOSQty(${i},-1)"
-                  style="width:20px;height:20px;background:var(--danger);border:none;border-radius:3px;color:#fff;cursor:pointer;font-weight:700;font-size:.75rem">−</button>
+                  style="width:20px;height:20px;background:var(--danger);border:none;border-radius:3px;color:var(--text);cursor:pointer;font-weight:700;font-size:.75rem">−</button>
                 <span style="font-size:.9rem;font-weight:900;min-width:26px;text-align:center;color:#fff">${item.qty}</span>
                 <button onclick="event.stopPropagation();changePOSQty(${i},1)"
-                  style="width:20px;height:20px;background:var(--success);border:none;border-radius:3px;color:#fff;cursor:pointer;font-weight:700;font-size:.75rem">+</button>
+                  style="width:20px;height:20px;background:var(--success);border:none;border-radius:3px;color:var(--text);cursor:pointer;font-weight:700;font-size:.75rem">+</button>
               </div>
             </td>
             <td style="padding:7px 8px;text-align:center;color:var(--muted);font-size:.75rem;white-space:nowrap">${fmtNum(item.price)}</td>
@@ -2925,6 +2954,14 @@ window.changePOSQty = (i, d) => {
   item.qty = newQty;
   renderPOSItems(); recalcPOS();
 };
+window.setPOSQty = (i, qty) => {
+  const item = App.pos.items[i];
+  const newQty = Math.round(qty);
+  if (!newQty || newQty < 1) { renderPOSItems(); return; }
+  if (newQty > item.stock) { toast('الكمية تتجاوز المخزون (' + item.stock + ')', 'error'); renderPOSItems(); return; }
+  item.qty = newQty;
+  renderPOSItems(); recalcPOS();
+};
 window.removePOSItem = (i) => {
   App.pos.items.splice(i, 1);
   renderPOSItems(); recalcPOS();
@@ -2949,11 +2986,11 @@ window.filterPOSGrid = (q, cat, btn) => {
 window.confirmPOSSale = async (opts = {}) => {
   if (!App.pos.items.length) { toast('أضف منتجاً على الأقل', 'error'); return; }
   // Compute everything directly from source data
-  const disc = parseFloat(document.getElementById('pos_disc')?.value) || 0;
   const tvaEnabled = App.settings.tva_enabled === '1';
   const tvaRate = tvaEnabled ? (parseFloat(document.getElementById('pos_tva_rate')?.value) || 0) : 0;
   const total = App.pos.items.reduce((s,i) => s + i.qty*i.price, 0);
-  const discAmt = total * disc / 100;
+  const discAmt = Math.min(parseFloat(document.getElementById('pos_disc')?.value) || 0, total);
+  const disc = total > 0 ? (discAmt / total * 100) : 0;
   const afterDisc = total - discAmt;
   const tvaAmt = tvaEnabled ? (afterDisc * tvaRate / 100) : 0;
   const net = afterDisc + tvaAmt;
@@ -3127,19 +3164,31 @@ window.confirmAndPrint = async () => {
 // REPORTS
 // =====================================================
 async function renderReports() {
-  // Period tabs
   const period = App._reportPeriod || 'month';
   const r = await window.api.stats.getReports(period);
   const c = document.getElementById('mainContent');
+  c.style.padding = '20px';
+  c.style.overflowY = 'auto';
   const profit = (r.total_ventes||0) - (r.total_achats||0);
+  const products = await window.api.products.getAll();
+  const lowStockProds = products.filter(p => p.stock > 0 && p.stock <= p.stock_min).sort((a,b)=>a.stock-b.stock).slice(0,8);
+  const outStockProds = products.filter(p => p.stock === 0).slice(0,8);
+
+  document.getElementById('topbarActions').innerHTML = `
+    <button class="topbar-btn" onclick="exportReportPDF()" title="تصدير PDF">📄 تصدير PDF</button>
+    <button class="topbar-btn" onclick="exportReportExcel()" title="تصدير Excel">📊 تصدير Excel</button>
+  `;
 
   c.innerHTML = `
     <!-- PERIOD TABS -->
-    <div class="tabs mb-16">
-      <div class="tab ${period==='today'?'active':''}" onclick="setReportPeriod('today')">اليوم</div>
-      <div class="tab ${period==='month'?'active':''}" onclick="setReportPeriod('month')">هذا الشهر</div>
-      <div class="tab ${period==='year'?'active':''}" onclick="setReportPeriod('year')">هذه السنة</div>
-      <div class="tab ${period==='all'?'active':''}" onclick="setReportPeriod('all')">الكل</div>
+    <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+      ${['today','month','year','all'].map((p,i) => {
+        const labels = ['اليوم','هذا الشهر','هذه السنة','الكل'];
+        return `<button onclick="setReportPeriod('${p}')"
+          style="padding:6px 16px;border-radius:20px;border:1.5px solid ${period===p?'var(--primary)':'var(--border)'};
+                 background:${period===p?'var(--primary)':'#fff'};color:${period===p?'#fff':'#475569'};
+                 font-family:'Cairo',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer">${labels[i]}</button>`;
+      }).join('')}
     </div>
 
     <div class="grid-3 mb-16">
@@ -3147,6 +3196,33 @@ async function renderReports() {
       <div class="stat-card anim-fadeup anim-d2"><div class="stat-icon" style="background:rgba(239,68,68,.15)">🛒</div><div><div class="stat-val" style="color:var(--danger)">${fmt(r.total_achats)}</div><div class="stat-lbl">إجمالي المشتريات</div></div></div>
       <div class="stat-card anim-fadeup anim-d3"><div class="stat-icon" style="background:rgba(249,115,22,.15)">📈</div><div><div class="stat-val" style="color:var(--primary)">${fmt(profit)}</div><div class="stat-lbl">الربح التقديري</div></div></div>
     </div>
+
+    <!-- LOW STOCK ALERTS in reports -->
+    ${lowStockProds.length > 0 ? `
+    <div class="card mb-16" style="border-right:3px solid var(--warning)">
+      <div class="card-header">
+        <div class="card-title">⚠️ منتجات قريبة من النفاذ <span style="background:rgba(217,119,6,.1);color:var(--warning);padding:2px 8px;border-radius:10px;font-size:.72rem">${lowStockProds.length}</span></div>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr><th>المنتج</th><th>المخزون</th><th>الحد الأدنى</th><th>الفئة</th></tr></thead>
+        <tbody>${lowStockProds.map(p=>`
+          <tr><td style="font-weight:600">${p.name}</td>
+          <td><span class="badge badge-warning">⚠️ ${p.stock} ${p.unit||''}</span></td>
+          <td style="color:var(--muted)">${p.stock_min}</td>
+          <td style="color:var(--muted)">${p.category||'—'}</td></tr>`).join('')}
+        </tbody></table>
+      </div>
+    </div>` : ''}
+
+    ${outStockProds.length > 0 ? `
+    <div class="card mb-16" style="border-right:3px solid var(--danger)">
+      <div class="card-header">
+        <div class="card-title">❌ منتجات نافذة من المخزون <span style="background:rgba(220,38,38,.1);color:var(--danger);padding:2px 8px;border-radius:10px;font-size:.72rem">${outStockProds.length}</span></div>
+      </div>
+      <div style="padding:12px;display:flex;flex-wrap:wrap;gap:8px">
+        ${outStockProds.map(p=>`<span style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:8px;padding:5px 12px;font-size:.78rem;font-weight:600;color:#991b1b">${p.name}</span>`).join('')}
+      </div>
+    </div>` : ''}
 
     <div class="grid-2 mb-16">
       <!-- REAL BAR CHART -->
@@ -3181,7 +3257,7 @@ async function renderReports() {
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
                 <span style="font-size:.8rem;font-weight:700;color:var(--muted);width:18px;text-align:center">${i+1}</span>
                 <div style="flex:1">
-                  <div style="font-size:.8rem;font-weight:600;color:#fff;margin-bottom:4px">${p.product_name}</div>
+                  <div style="font-size:.8rem;font-weight:600;color:var(--text);margin-bottom:4px">${p.product_name}</div>
                   <div class="progress-bar">
                     <div class="progress-fill" style="width:${pct}%;background:${i===0?'var(--primary)':i===1?'var(--info)':'var(--success)'}"></div>
                   </div>
@@ -3204,6 +3280,116 @@ async function renderReports() {
 function setReportPeriod(period) {
   App._reportPeriod = period;
   renderReports();
+}
+
+async function exportReportPDF() {
+  const period = App._reportPeriod || 'month';
+  const r = await window.api.stats.getReports(period);
+  const products = await window.api.products.getAll();
+  const profit = (r.total_ventes||0)-(r.total_achats||0);
+  const company = App.settings.company_name || 'المحل';
+  const periodLabels = {today:'اليوم',month:'هذا الشهر',year:'هذه السنة',all:'الكل'};
+
+  const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8">
+<style>
+  @page{size:A4;margin:15mm}
+  body{font-family:Arial,sans-serif;direction:rtl;font-size:11pt;color:#1e293b}
+  h1{text-align:center;color:#f97316;font-size:18pt;margin-bottom:4px}
+  h2{color:#1e293b;font-size:13pt;margin:20px 0 8px;border-bottom:2px solid #f97316;padding-bottom:4px}
+  .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+  .stat{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;text-align:center}
+  .stat-val{font-size:16pt;font-weight:900;color:#f97316}
+  .stat-lbl{font-size:9pt;color:#64748b;margin-top:4px}
+  table{width:100%;border-collapse:collapse;font-size:10pt;margin-bottom:16px}
+  th{background:#1e293b;color:#fff;padding:8px;text-align:right}
+  td{padding:7px 8px;border-bottom:1px solid #e2e8f0}
+  tr:nth-child(even) td{background:#f8fafc}
+  .footer{text-align:center;margin-top:30px;font-size:9pt;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:10px}
+</style></head>
+<body>
+<h1>📈 تقرير المبيعات — ${periodLabels[period]}</h1>
+<p style="text-align:center;color:#64748b;margin-bottom:16px">${company} — ${new Date().toLocaleDateString('ar-DZ',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p>
+
+<div class="stats">
+  <div class="stat"><div class="stat-val">${fmtNum(r.total_ventes)} DA</div><div class="stat-lbl">إجمالي المبيعات</div></div>
+  <div class="stat"><div class="stat-val">${fmtNum(r.total_achats)} DA</div><div class="stat-lbl">إجمالي المشتريات</div></div>
+  <div class="stat" style="border-color:${profit>=0?'#059669':'#dc2626'}">
+    <div class="stat-val" style="color:${profit>=0?'#059669':'#dc2626'}">${fmtNum(profit)} DA</div>
+    <div class="stat-lbl">الربح التقديري</div>
+  </div>
+</div>
+
+<h2>🏆 أكثر المنتجات مبيعاً</h2>
+<table>
+  <thead><tr><th>#</th><th>المنتج</th><th>الكمية المباعة</th><th>المبلغ الإجمالي</th></tr></thead>
+  <tbody>
+    ${(r.top_products||[]).map((p,i)=>`<tr><td>${i+1}</td><td>${p.product_name}</td><td>${fmtNum(p.total_qty)}</td><td>${fmtNum(p.total_amount)} DA</td></tr>`).join('')}
+  </tbody>
+</table>
+
+<h2>⚠️ المنتجات قريبة من النفاذ</h2>
+<table>
+  <thead><tr><th>المنتج</th><th>المرجع</th><th>المخزون</th><th>الحد الأدنى</th></tr></thead>
+  <tbody>
+    ${products.filter(p=>p.stock>0&&p.stock<=p.stock_min).map(p=>`<tr><td>${p.name}</td><td>${p.ref}</td><td style="color:#d97706;font-weight:700">${p.stock} ${p.unit||''}</td><td>${p.stock_min}</td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;color:#94a3b8">لا توجد منتجات منخفضة المخزون</td></tr>'}
+  </tbody>
+</table>
+
+<h2>❌ المنتجات النافذة</h2>
+<table>
+  <thead><tr><th>المنتج</th><th>المرجع</th><th>الفئة</th></tr></thead>
+  <tbody>
+    ${products.filter(p=>p.stock===0).map(p=>`<tr><td>${p.name}</td><td>${p.ref}</td><td>${p.category||'—'}</td></tr>`).join('')||'<tr><td colspan="3" style="text-align:center;color:#94a3b8">✅ لا توجد منتجات نافذة</td></tr>'}
+  </tbody>
+</table>
+
+<div class="footer">تم إنشاء التقرير بواسطة DZ Vent & Stock — ${new Date().toLocaleString('fr-DZ')}</div>
+</body></html>`;
+
+  await window.api.print.invoice(html);
+}
+
+async function exportReportExcel() {
+  const period = App._reportPeriod || 'month';
+  const r = await window.api.stats.getReports(period);
+  const products = await window.api.products.getAll();
+  const periodLabels = {today:'اليوم',month:'هذا الشهر',year:'هذه السنة',all:'الكل'};
+
+  // Build CSV (Excel-compatible)
+  const rows = [
+    ['تقرير المبيعات — ' + periodLabels[period]],
+    [],
+    ['الإحصائيات العامة'],
+    ['إجمالي المبيعات', r.total_ventes],
+    ['إجمالي المشتريات', r.total_achats],
+    ['الربح التقديري', (r.total_ventes||0)-(r.total_achats||0)],
+    [],
+    ['أكثر المنتجات مبيعاً'],
+    ['المنتج', 'الكمية المباعة', 'المبلغ الإجمالي'],
+    ...(r.top_products||[]).map(p => [p.product_name, p.total_qty, p.total_amount]),
+    [],
+    ['حالة المخزون'],
+    ['اسم المنتج', 'المرجع', 'الفئة', 'المخزون', 'الحد الأدنى', 'الحالة'],
+    ...products.map(p => [
+      p.name, p.ref, p.category||'', p.stock, p.stock_min,
+      p.stock===0 ? 'نفد' : p.stock<=p.stock_min ? 'منخفض' : 'جيد'
+    ]),
+  ];
+
+  const csv = rows.map(r => Array.isArray(r)
+    ? r.map(cell => '"' + String(cell||'').replace(/"/g,'""') + '"').join(',')
+    : ''
+  ).join('\n');
+
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + csv], {type: 'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'تقرير_' + (periodLabels[period]||'') + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('✅ تم تصدير التقرير كـ Excel/CSV','success');
 }
 
 function drawSalesChart(data) {
@@ -4547,6 +4733,7 @@ async function loadNotifications() {
 
 function updateNotifBadge() {
   const unread = notifications.filter(n => !n.is_read).length;
+  const stockCritical = notifications.filter(n => n.type === 'stock').length;
   const badge = document.getElementById('notifBadge');
   if (!badge) return;
   if (unread > 0) { badge.style.display = 'flex'; badge.textContent = unread > 9 ? '9+' : unread; }
@@ -4554,6 +4741,10 @@ function updateNotifBadge() {
 }
 
 async function toggleNotifPanel() {
+  // Refresh notifications on open
+  if (!document.getElementById('notifPanel')?.style.display || document.getElementById('notifPanel')?.style.display === 'none') {
+    await loadNotifications().catch(()=>{});
+  }
   const panel = document.getElementById('notifPanel');
   if (!panel) return;
   if (panel.style.display === 'none') {
@@ -4761,7 +4952,8 @@ function toggleSidebar() {} // no sidebar anymore
 function renderHome() {
   const mc = document.getElementById('mainContent');
   mc.style.padding = '0';
-  mc.style.overflow = 'auto';
+  mc.style.overflowY = 'auto';
+  mc.style.overflowX = 'hidden';
   mc.style.background = '#f0f4f8';
   mc.style.display = 'block';
 
@@ -4910,20 +5102,83 @@ async function runGlobalSearch(q) {
   document.getElementById('globalSearchResults').innerHTML = html;
 }
 
-// ===== POS PAUSE/RESUME =====
-let pausedPOS = null;
+// ===== POS PAUSE/RESUME — multiple invoices ===== 
+let _pausedInvoices = []; // persists across navigation
+let _pauseCounter = 0;
+
 function pausePOS() {
   if (!App.pos.items.length) { toast('لا توجد عناصر للتعليق','error'); return; }
-  pausedPOS = { items: [...App.pos.items] };
+  _pauseCounter++;
+  _pausedInvoices.push({
+    id: _pauseCounter,
+    label: 'فاتورة ' + _pauseCounter,
+    items: [...App.pos.items],
+    disc: document.getElementById('pos_disc')?.value || '0',
+    client: document.getElementById('pos_client')?.value || '',
+  });
   clearPOS();
-  toast('⏸️ تم تعليق الفاتورة','info');
+  renderPausedTabs();
+  toast('⏸️ تم تعليق الفاتورة ' + _pauseCounter,'info');
 }
+
+function renderPausedTabs() {
+  const bar = document.getElementById('pos_paused_bar');
+  if (!bar) return;
+  if (!_pausedInvoices.length) { bar.style.display='none'; return; }
+  bar.style.display = 'flex';
+  bar.innerHTML = _pausedInvoices.map(inv => `
+    <button onclick="resumePausedInvoice(${inv.id})"
+      style="padding:4px 12px;background:rgba(124,58,237,.15);border:1.5px solid #7c3aed;border-radius:6px;
+             color:#7c3aed;font-size:.75rem;font-weight:700;cursor:pointer;font-family:'Cairo',sans-serif;
+             display:flex;align-items:center;gap:5px;white-space:nowrap"
+      title="انقر لاستئناف">
+      ⏸️ ${inv.label}
+      <span onclick="event.stopPropagation();discardPausedInvoice(${inv.id})"
+        style="color:#dc2626;font-weight:900;font-size:.85rem;padding:0 2px;cursor:pointer">✕</span>
+    </button>`).join('');
+}
+
+function resumePausedInvoice(id) {
+  const inv = _pausedInvoices.find(x => x.id === id);
+  if (!inv) return;
+  if (App.pos.items.length) {
+    if (!confirm('الفاتورة الحالية ستُفقد. هل تريد الاستمرار؟')) return;
+  }
+  _pausedInvoices = _pausedInvoices.filter(x => x.id !== id);
+  App.pos.items = inv.items;
+  const discEl = document.getElementById('pos_disc');
+  if (discEl) discEl.value = inv.disc || '0';
+  const clientEl = document.getElementById('pos_client');
+  if (clientEl && inv.client) clientEl.value = inv.client;
+  renderPOSItems(); recalcPOS(); renderPausedTabs();
+  toast('▶️ تم استئناف ' + inv.label,'success');
+}
+
+function discardPausedInvoice(id) {
+  _pausedInvoices = _pausedInvoices.filter(x => x.id !== id);
+  renderPausedTabs();
+  toast('🗑️ تم إلغاء الفاتورة المعلقة','info');
+}
+
 function resumePOS() {
-  if (!pausedPOS) { toast('لا توجد فاتورة معلقة','error'); return; }
-  App.pos.items = pausedPOS.items;
-  pausedPOS = null;
-  renderPOSItems(); recalcPOS();
-  toast('▶️ تم استئناف الفاتورة','success');
+  // Legacy single resume — pick last
+  if (!_pausedInvoices.length) { toast('لا توجد فواتير معلقة','error'); return; }
+  if (_pausedInvoices.length === 1) { resumePausedInvoice(_pausedInvoices[0].id); return; }
+  // Multiple: show list
+  const opts = _pausedInvoices.map(inv =>
+    `<button onclick="resumePausedInvoice(${inv.id});closeModal()"
+      style="width:100%;padding:10px;margin-bottom:6px;background:rgba(124,58,237,.08);border:1.5px solid #7c3aed;
+             border-radius:8px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:.85rem;font-weight:600;color:#4c1d95;
+             display:flex;align-items:center;gap:8px">
+      ⏸️ ${inv.label} — ${inv.items.length} صنف
+    </button>`
+  ).join('');
+  showModal(`<div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal" style="width:380px">
+      <div class="modal-header"><div class="modal-title">▶️ اختر فاتورة للاستئناف</div>
+        <button class="modal-close" onclick="closeModal()">✕</button></div>
+      <div class="modal-body">${opts}</div>
+    </div></div>`);
 }
 
 // عرض قائمة اختصارات الكيبورد
@@ -4975,7 +5230,7 @@ function showShortcutsHelp() {
         ${items.map(([key, desc]) => `
           <tr>
             <td style="padding:5px 0;width:140px;vertical-align:top">
-              <kbd style="background:#1e293b;color:#fff;padding:3px 10px;border-radius:5px;font-family:monospace;font-size:.78rem;font-weight:700;box-shadow:0 2px 0 #0f172a">${key}</kbd>
+              <kbd style="background:#1e293b;color:var(--text);padding:3px 10px;border-radius:5px;font-family:monospace;font-size:.78rem;font-weight:700;box-shadow:0 2px 0 #0f172a">${key}</kbd>
             </td>
             <td style="padding:5px 0;color:#334155;font-weight:500">${desc}</td>
           </tr>`).join('')}
