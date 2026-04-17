@@ -123,31 +123,31 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);overf
 /* HOME TILES */
 .home-tiles{
   display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:14px;padding:24px;
-  max-width:1000px;margin:0 auto;width:100%;
+  grid-template-columns:repeat(5,1fr);
+  gap:10px;padding:16px;
+  max-width:1100px;margin:0 auto;width:100%;
 }
 .home-tile{
-  border-radius:12px;padding:0;cursor:pointer;
+  border-radius:10px;padding:0;cursor:pointer;
   transition:.2s;overflow:hidden;
-  box-shadow:0 4px 14px rgba(0,0,0,.12);
+  box-shadow:0 2px 8px rgba(0,0,0,.1);
   display:flex;flex-direction:column;
-  min-height:130px;position:relative;
+  min-height:95px;position:relative;
   border:none;font-family:'Cairo',sans-serif;
 }
-.home-tile:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(0,0,0,.2)}
-.home-tile:active{transform:scale(.97)}
+.home-tile:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.home-tile:active{transform:scale(.96)}
 .home-tile-body{
   flex:1;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
-  padding:18px 12px 12px;gap:8px;
+  padding:10px 8px 6px;gap:4px;
 }
-.home-tile-icon{font-size:2.4rem;line-height:1}
-.home-tile-label{font-size:.88rem;font-weight:800;color:#fff;text-align:center;line-height:1.3}
+.home-tile-icon{font-size:1.7rem;line-height:1}
+.home-tile-label{font-size:.75rem;font-weight:800;color:#fff;text-align:center;line-height:1.2}
 .home-tile-footer{
-  padding:5px 10px;font-size:.68rem;font-weight:700;
-  color:rgba(255,255,255,.75);text-align:center;
-  background:rgba(0,0,0,.15);
+  padding:3px 6px;font-size:.6rem;font-weight:700;
+  color:rgba(255,255,255,.8);text-align:center;
+  background:rgba(0,0,0,.18);letter-spacing:.5px;
 }
 
 /* ===== MAIN ===== */
@@ -1571,28 +1571,23 @@ async function deleteProduct(id, name) {
 let _ventesFilter = 'all';
 let _allVentes = [];
 
-async function renderVentes(q='') {
+async function renderVentes() {
   document.getElementById('topbarActions').innerHTML = `
-    <button class="topbar-btn primary" onclick="event.stopPropagation();navigate('pos',null);closeAllMenus()">➕ فاتورة بيع جديدة</button>
+    <button class="topbar-btn primary" onclick="navigate('pos',null)">➕ فاتورة بيع جديدة (F3)</button>
   `;
   _allVentes = await window.api.ventes.getAll();
-  let filtered = _allVentes;
-  if (q) filtered = filtered.filter(v => v.num?.includes(q) || v.client_name?.includes(q));
-  if (_ventesFilter === 'paid') filtered = filtered.filter(v => v.reste === 0);
-  else if (_ventesFilter === 'debt') filtered = filtered.filter(v => v.reste > 0);
-
   document.getElementById('mainContent').innerHTML = `
     <div class="card">
       <div class="card-header">
-        <div class="card-title">💰 المبيعات <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${filtered.length})</span></div>
-        <button class="btn btn-sm" style="background:var(--success);color:#fff" onclick="renderVentes()">➕ فاتورة جديدة</button>
+        <div class="card-title">💰 المبيعات <span id="ventesCount" style="color:var(--muted);font-size:.75rem;font-weight:400">(${_allVentes.length})</span></div>
+        <button class="btn btn-sm" style="background:var(--success);color:#fff" onclick="navigate('pos',null)">➕ فاتورة جديدة</button>
       </div>
       <div class="card-search-bar">
-        <input class="card-search-input" placeholder="🔍 بحث برقم الفاتورة أو العميل..." oninput="renderVentes(this.value)">
-        <select class="card-filter-select" onchange="_ventesFilter=this.value;renderVentes()">
+        <input id="ventesSearchInput" class="card-search-input" placeholder="🔍 ابحث برقم الفاتورة أو اسم العميل..." oninput="filterVentesTable(this.value)" autofocus>
+        <select id="ventesFilterSelect" class="card-filter-select" onchange="_ventesFilter=this.value;filterVentesTable(document.getElementById('ventesSearchInput').value)">
           <option value="all">كل الحالات</option>
-          <option value="paid">مسددة</option>
-          <option value="debt">غير مسددة</option>
+          <option value="paid">مسددة فقط</option>
+          <option value="debt">غير مسددة فقط</option>
         </select>
       </div>
       <div class="table-wrap">
@@ -1600,33 +1595,50 @@ async function renderVentes(q='') {
           <thead>
             <tr><th>رقم الفاتورة</th><th>العميل</th><th>HT</th><th>TTC</th><th>مدفوع</th><th>باقي</th><th>وسيلة الدفع</th><th>الحالة</th><th>التاريخ</th><th>إجراءات</th></tr>
           </thead>
-          <tbody>
-            ${filtered.length === 0
-              ? `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">لا توجد مبيعات بعد</td></tr>`
-              : filtered.map(v => {
-                  const ht = v.tva > 0 ? v.net / (1 + v.tva/100) : v.total;
-                  return `
-                  <tr>
-                    <td><code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;color:#0369a1">${v.num}</code></td>
-                    <td style="font-weight:600">${v.client_name}</td>
-                    <td style="color:var(--muted)">${fmt(ht)}</td>
-                    <td style="color:var(--primary);font-weight:700">${fmt(v.net)}</td>
-                    <td style="color:var(--success)">${fmt(v.paid)}</td>
-                    <td><span class="badge badge-${v.reste>0?'warning':'success'}">${fmt(v.reste)}</span></td>
-                    <td>${v.payment_type}</td>
-                    <td><span class="badge badge-${v.reste===0?'success':v.reste<v.net?'warning':'danger'}">${v.reste===0?'✅ مؤكدة':v.reste<v.net?'⏳ جزئي':'⚠️ آجل'}</span></td>
-                    <td style="color:var(--muted);font-size:.75rem">${formatDate(v.date)}</td>
-                    <td><div style="display:flex;gap:4px">
-                      <button class="btn btn-sm btn-info" style="padding:4px 8px" onclick="printVente('${v.id}')">🖨️</button>
-                      ${v.reste>0?`<button class="btn btn-sm btn-success" style="padding:4px 8px" onclick="event.stopPropagation();navigate('dettes',null);closeAllMenus()" title="تسديد">💵</button>`:''}
-                    </div></td>
-                  </tr>`;
-                }).join('')}
-          </tbody>
+          <tbody id="ventesTableBody"></tbody>
         </table>
       </div>
     </div>
   `;
+  filterVentesTable('');
+}
+
+function filterVentesTable(q) {
+  const body = document.getElementById('ventesTableBody');
+  if (!body) return;
+  const ql = (q||'').toLowerCase();
+  let filtered = _allVentes;
+  if (ql) filtered = filtered.filter(v =>
+    (v.num||'').toLowerCase().includes(ql) ||
+    (v.client_name||'').toLowerCase().includes(ql) ||
+    (v.payment_type||'').toLowerCase().includes(ql)
+  );
+  if (_ventesFilter === 'paid') filtered = filtered.filter(v => v.reste === 0);
+  else if (_ventesFilter === 'debt') filtered = filtered.filter(v => v.reste > 0);
+
+  const countEl = document.getElementById('ventesCount');
+  if (countEl) countEl.textContent = '(' + filtered.length + ')';
+
+  body.innerHTML = filtered.length === 0
+    ? '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">لا توجد نتائج</td></tr>'
+    : filtered.map(v => {
+        const ht = v.tva > 0 ? v.net / (1 + v.tva/100) : v.total;
+        return `<tr>
+          <td><code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;color:#0369a1">${v.num}</code></td>
+          <td style="font-weight:600">${v.client_name}</td>
+          <td style="color:var(--muted)">${fmt(ht)}</td>
+          <td style="color:var(--primary);font-weight:700">${fmt(v.net)}</td>
+          <td style="color:var(--success)">${fmt(v.paid)}</td>
+          <td><span class="badge badge-${v.reste>0?'warning':'success'}">${fmt(v.reste)}</span></td>
+          <td>${v.payment_type}</td>
+          <td><span class="badge badge-${v.reste===0?'success':v.reste<v.net?'warning':'danger'}">${v.reste===0?'✅ مؤكدة':v.reste<v.net?'⏳ جزئي':'⚠️ آجل'}</span></td>
+          <td style="color:var(--muted);font-size:.75rem">${formatDate(v.date)}</td>
+          <td><div style="display:flex;gap:4px">
+            <button class="btn btn-sm btn-info" style="padding:4px 8px" onclick="printVente('${v.id}')" title="طباعة">🖨️</button>
+            ${v.reste>0?`<button class="btn btn-sm btn-success" style="padding:4px 8px" onclick="navigate('dettes',null)" title="تسديد">💵</button>`:''}
+          </div></td>
+        </tr>`;
+      }).join('');
 }
 
 async function printVente(id) {
@@ -1698,105 +1710,316 @@ async function renderAchats() {
 }
 
 async function showAddAchatModal() {
-  const products = await window.api.products.getAll();
+  const products     = await window.api.products.getAll();
   const fournisseurs = await window.api.fournisseurs.getAll();
-  let achatItems = [];
+  window._achatItems = [];
+  window._achatSelectedProduct = null;
 
-  const productsOptions = products.map(p =>
-    `<option value="${p.id}" data-price="${p.buy_price}">${p.name} (${p.ref})</option>`
-  ).join('');
   const fourOptions = fournisseurs.map(f =>
     `<option value="${f.id}">${f.name}</option>`
   ).join('');
 
-  function buildAchatModal() {
-    const itemsHtml = achatItems.map((item, i) => `
-      <tr>
-        <td>${item.product_name}</td>
-        <td><input type="number" value="${item.qty}" min="1" onchange="achatItems[${i}].qty=+this.value;updateAchatTotal()" style="width:60px;background:#f0f4f8;border:1px solid var(--border);border-radius:4px;color:#fff;padding:3px;text-align:center"></td>
-        <td><input type="number" value="${item.price}" onchange="achatItems[${i}].price=+this.value;updateAchatTotal()" style="width:90px;background:#f0f4f8;border:1px solid var(--border);border-radius:4px;color:#fff;padding:3px;text-align:center"></td>
-        <td style="color:var(--primary);font-weight:700">${fmtNum(item.qty * item.price)}</td>
-        <td><button onclick="achatItems.splice(${i},1);document.getElementById('achatItemsBody').innerHTML=buildItemsRows()" style="background:var(--danger);border:none;color:#fff;border-radius:4px;padding:2px 7px;cursor:pointer">✕</button></td>
-      </tr>
-    `).join('');
-    return itemsHtml;
-  }
-
-  window.achatItems = achatItems;
-  window.updateAchatTotal = () => {
-    const total = achatItems.reduce((s,i) => s + i.qty*i.price, 0);
-    const el = document.getElementById('achatTotal');
-    if (el) el.textContent = fmt(total);
-  };
-
   showModal(`
-    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
-      <div class="modal modal-lg">
-        <div class="modal-header">
-          <div class="modal-title">🛒 فاتورة شراء جديدة</div>
-          <button class="modal-close" onclick="closeModal()">✕</button>
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal modal-lg" style="width:820px;max-width:98vw">
+    <div class="modal-header" style="background:#1e293b;padding:12px 18px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:32px;height:32px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem">🛒</div>
+        <div class="modal-title" style="color:#fff">فاتورة شراء جديدة</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button>
+    </div>
+    <div class="modal-body" style="padding:14px">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <label class="form-label">المورد</label>
+          <select class="form-select" id="a_four">
+            <option value="">— بدون مورد —</option>
+            ${fourOptions}
+          </select>
         </div>
-        <div class="modal-body">
-          <div class="grid-2 mb-16">
-            <div class="form-group">
-              <label class="form-label">المورد</label>
-              <select class="form-select" id="a_four">
-                <option value="">— بدون مورد —</option>
-                ${fourOptions}
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">طريقة الدفع</label>
-              <select class="form-select" id="a_pay">
-                <option>نقداً</option><option>تحويل</option><option>آجل</option>
-              </select>
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;margin-bottom:10px">
-            <select class="form-select" id="a_prod_sel" style="flex:1">${productsOptions}</select>
-            <button class="btn btn-primary" onclick="
-              const sel = document.getElementById('a_prod_sel');
-              const opt = sel.options[sel.selectedIndex];
-              const p = {product_id:opt.value, product_name:opt.text.split(' (')[0], price:parseFloat(opt.dataset.price)||0, qty:1};
-              window.achatItems.push(p);
-              document.getElementById('achatItemsBody').innerHTML = window.buildAchatRows();
-              window.updateAchatTotal();
-            ">➕ إضافة</button>
-          </div>
-          <table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:12px">
-            <thead><tr>
-              <th style="text-align:right;padding:6px;border-bottom:1px solid var(--border);color:var(--muted)">المنتج</th>
-              <th style="text-align:center;padding:6px;border-bottom:1px solid var(--border);color:var(--muted)">الكمية</th>
-              <th style="text-align:center;padding:6px;border-bottom:1px solid var(--border);color:var(--muted)">السعر</th>
-              <th style="text-align:center;padding:6px;border-bottom:1px solid var(--border);color:var(--muted)">المجموع</th>
-              <th></th>
-            </tr></thead>
-            <tbody id="achatItemsBody"></tbody>
-          </table>
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div><label class="form-label">المدفوع (DA)</label><input class="form-input" id="a_paid" type="number" value="0" style="width:150px"></div>
-            <div style="text-align:left"><div style="font-size:.75rem;color:var(--muted)">الإجمالي</div><div id="achatTotal" style="font-size:1.3rem;font-weight:900;color:var(--primary)">0 DA</div></div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn" style="background:var(--border);color:#fff" onclick="closeModal()">إلغاء</button>
-          <button class="btn btn-primary" onclick="saveAchat()">✅ حفظ الفاتورة</button>
+        <div>
+          <label class="form-label">طريقة الدفع</label>
+          <select class="form-select" id="a_pay">
+            <option>نقداً</option><option>تحويل</option><option>آجل</option>
+          </select>
         </div>
       </div>
+
+      <!-- Product search with autocomplete -->
+      <div style="background:#f8fafc;border:1.5px solid var(--border);border-radius:10px;padding:10px;margin-bottom:10px;position:relative">
+        <label class="form-label">🔍 ابحث عن منتج (Enter للإضافة)</label>
+        <div style="display:grid;grid-template-columns:2fr 70px 110px 70px;gap:6px;align-items:end">
+          <div style="position:relative">
+            <input id="a_search" class="form-input"
+              placeholder="اكتب اسم المنتج أو المرجع..."
+              oninput="handleAchatSearch(this.value)"
+              onkeydown="handleAchatSearchKey(event)"
+              autocomplete="off"
+              style="width:100%">
+            <div id="a_dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:2px solid var(--primary);border-top:none;border-radius:0 0 8px 8px;max-height:240px;overflow-y:auto;z-index:100;box-shadow:0 8px 20px rgba(0,0,0,.15);margin-top:-1px"></div>
+          </div>
+          <div><label class="form-label" style="font-size:.68rem">الكمية</label>
+            <input id="a_qty" class="form-input" type="number" value="1" min="1"
+              onkeydown="handleAchatQtyKey(event)" style="text-align:center;width:100%"></div>
+          <div><label class="form-label" style="font-size:.68rem">السعر (DA)</label>
+            <input id="a_price" class="form-input" type="number" value="0"
+              onkeydown="handleAchatPriceKey(event)" style="text-align:center;width:100%"></div>
+          <div><label class="form-label" style="font-size:.68rem">&nbsp;</label>
+            <button class="btn btn-primary" onclick="confirmAchatItem()" style="width:100%;padding:7px">➕</button></div>
+        </div>
+        <div style="font-size:.68rem;color:var(--muted);margin-top:6px">
+          💡 ↑↓ للتنقل — Enter للاختيار والانتقال للكمية → السعر → الإضافة → البحث
+        </div>
+      </div>
+
+      <!-- Items table -->
+      <div style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+        <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+          <thead style="position:sticky;top:0;background:#f1f5f9;z-index:1">
+            <tr>
+              <th style="text-align:right;padding:8px;border-bottom:2px solid var(--border);font-weight:800;font-size:.72rem">#</th>
+              <th style="text-align:right;padding:8px;border-bottom:2px solid var(--border);font-weight:800;font-size:.72rem">المنتج</th>
+              <th style="text-align:center;padding:8px;border-bottom:2px solid var(--border);font-weight:800;font-size:.72rem">الكمية</th>
+              <th style="text-align:center;padding:8px;border-bottom:2px solid var(--border);font-weight:800;font-size:.72rem">السعر</th>
+              <th style="text-align:center;padding:8px;border-bottom:2px solid var(--border);font-weight:800;font-size:.72rem">المجموع</th>
+              <th style="padding:8px;border-bottom:2px solid var(--border)"></th>
+            </tr>
+          </thead>
+          <tbody id="achatItemsBody">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted);font-size:.78rem">لا توجد منتجات — ابدأ بالبحث أعلاه</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Totals -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px;background:#f8fafc;padding:10px;border-radius:8px;border:1px solid var(--border)">
+        <div>
+          <label class="form-label">الإجمالي</label>
+          <div id="achatTotal" style="font-size:1.25rem;font-weight:900;color:var(--primary)">0 DA</div>
+        </div>
+        <div>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+            <span>المدفوع (DA)</span>
+            <label style="display:flex;align-items:center;gap:4px;font-weight:500;font-size:.68rem;cursor:pointer">
+              <input type="checkbox" id="a_paid_full" onchange="toggleAchatPaidFull(this.checked)">
+              الكل
+            </label>
+          </label>
+          <input class="form-input" id="a_paid" type="number" value="0" oninput="updateAchatReste()">
+        </div>
+        <div>
+          <label class="form-label">الباقي</label>
+          <div id="achatReste" style="padding:8px 12px;background:#fff;border:1px solid var(--border);border-radius:7px;font-weight:800;color:var(--danger);font-size:.95rem">0 DA</div>
+        </div>
+      </div>
+
+      <div style="font-size:.68rem;color:var(--muted);margin-top:8px;text-align:center">
+        💾 Ctrl+S لحفظ الفاتورة
+      </div>
     </div>
+    <div class="modal-footer" style="background:#f8fafc">
+      <button class="btn" style="background:#e2e8f0;color:#475569" onclick="closeModal()">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveAchat()" style="padding:8px 24px">✅ حفظ (Ctrl+S)</button>
+    </div>
+  </div>
+  </div>
   `);
 
-  window.buildAchatRows = () => {
-    return achatItems.map((item, i) => `
-      <tr>
-        <td style="padding:6px">${item.product_name}</td>
-        <td style="padding:6px;text-align:center"><input type="number" value="${item.qty}" min="1" onchange="window.achatItems[${i}].qty=+this.value;window.updateAchatTotal()" style="width:60px;background:#f0f4f8;border:1px solid var(--border);border-radius:4px;color:#fff;padding:3px;text-align:center"></td>
-        <td style="padding:6px;text-align:center"><input type="number" value="${item.price}" onchange="window.achatItems[${i}].price=+this.value;window.updateAchatTotal()" style="width:90px;background:#f0f4f8;border:1px solid var(--border);border-radius:4px;color:#fff;padding:3px;text-align:center"></td>
-        <td style="padding:6px;text-align:center;color:var(--primary);font-weight:700">${fmtNum(item.qty * item.price)}</td>
-        <td style="padding:6px"><button onclick="window.achatItems.splice(${i},1);document.getElementById('achatItemsBody').innerHTML=window.buildAchatRows();window.updateAchatTotal()" style="background:var(--danger);border:none;color:#fff;border-radius:4px;padding:2px 7px;cursor:pointer">✕</button></td>
-      </tr>
-    `).join('');
-  };
+  window._achatProducts = products;
+  setTimeout(() => document.getElementById('a_search')?.focus(), 80);
+}
+
+// ─── Autocomplete search ───
+let _achatDdIdx = -1;
+
+function handleAchatSearch(q) {
+  const dd = document.getElementById('a_dropdown');
+  if (!q || q.length < 1) {
+    dd.style.display = 'none';
+    _achatDdIdx = -1;
+    window._achatSelectedProduct = null;
+    return;
+  }
+  const ql = q.toLowerCase();
+  const matches = (window._achatProducts||[]).filter(p =>
+    p.name.toLowerCase().includes(ql) ||
+    (p.ref||'').toLowerCase().includes(ql) ||
+    (p.barcode||'').toLowerCase().includes(ql)
+  ).slice(0, 10);
+
+  if (!matches.length) {
+    dd.innerHTML = '<div style="padding:12px;text-align:center;color:var(--muted);font-size:.78rem">لا توجد نتائج</div>';
+    dd.style.display = 'block';
+    return;
+  }
+  _achatDdIdx = 0;
+  dd.innerHTML = matches.map((p,i) => `
+    <div class="a-dd-item" data-idx="${i}" data-id="${p.id}"
+      onclick="selectAchatProduct('${p.id}')"
+      style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:10px;${i===0?'background:rgba(249,115,22,.1)':''}">
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:.82rem;color:#1e293b">${p.name}</div>
+        <div style="font-size:.68rem;color:var(--muted)">${p.ref} • مخزون: ${p.stock} ${p.unit||''}</div>
+      </div>
+      <div style="color:var(--primary);font-weight:800;font-size:.85rem">${fmtNum(p.buy_price||0)} DA</div>
+    </div>`).join('');
+  dd.style.display = 'block';
+}
+
+function handleAchatSearchKey(e) {
+  const dd = document.getElementById('a_dropdown');
+  const items = dd.querySelectorAll('.a-dd-item');
+
+  if (e.key === 'Escape') {
+    dd.style.display = 'none'; _achatDdIdx = -1; return;
+  }
+  if (e.key === 'ArrowDown' && items.length) {
+    e.preventDefault();
+    _achatDdIdx = (_achatDdIdx + 1) % items.length;
+    highlightAchatDd(items); return;
+  }
+  if (e.key === 'ArrowUp' && items.length) {
+    e.preventDefault();
+    _achatDdIdx = _achatDdIdx <= 0 ? items.length-1 : _achatDdIdx-1;
+    highlightAchatDd(items); return;
+  }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (_achatDdIdx >= 0 && items[_achatDdIdx]) {
+      selectAchatProduct(items[_achatDdIdx].dataset.id);
+    }
+  }
+}
+
+function highlightAchatDd(items) {
+  items.forEach((el, i) => {
+    el.style.background = i === _achatDdIdx ? 'rgba(249,115,22,.15)' : '';
+    if (i === _achatDdIdx) el.scrollIntoView({ block:'nearest' });
+  });
+}
+
+function selectAchatProduct(id) {
+  const p = (window._achatProducts||[]).find(x => x.id === id);
+  if (!p) return;
+  window._achatSelectedProduct = p;
+  document.getElementById('a_search').value = p.name;
+  document.getElementById('a_price').value = p.buy_price || 0;
+  document.getElementById('a_dropdown').style.display = 'none';
+  _achatDdIdx = -1;
+  // Move focus to qty
+  setTimeout(() => {
+    const qty = document.getElementById('a_qty');
+    if (qty) { qty.focus(); qty.select(); }
+  }, 30);
+}
+
+function handleAchatQtyKey(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const price = document.getElementById('a_price');
+    if (price) { price.focus(); price.select(); }
+  }
+}
+
+function handleAchatPriceKey(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    confirmAchatItem();
+  }
+}
+
+function confirmAchatItem() {
+  const p = window._achatSelectedProduct;
+  if (!p) { toast('اختر منتجاً أولاً', 'error'); return; }
+  const qty = parseFloat(document.getElementById('a_qty').value) || 1;
+  const price = parseFloat(document.getElementById('a_price').value) || 0;
+  if (qty <= 0) { toast('الكمية غير صحيحة', 'error'); return; }
+
+  // Add to items
+  window._achatItems.push({
+    product_id: p.id,
+    product_name: p.name,
+    ref: p.ref,
+    qty, price,
+  });
+
+  renderAchatItemsTable();
+  updateAchatTotal();
+
+  // Reset and refocus search
+  window._achatSelectedProduct = null;
+  document.getElementById('a_search').value = '';
+  document.getElementById('a_qty').value = 1;
+  document.getElementById('a_price').value = 0;
+  document.getElementById('a_search').focus();
+}
+
+function renderAchatItemsTable() {
+  const body = document.getElementById('achatItemsBody');
+  if (!body) return;
+  if (!window._achatItems.length) {
+    body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted);font-size:.78rem">لا توجد منتجات — ابدأ بالبحث أعلاه</td></tr>';
+    return;
+  }
+  body.innerHTML = window._achatItems.map((item, i) => `
+    <tr>
+      <td style="padding:6px 8px;color:var(--muted);font-size:.72rem">${i+1}</td>
+      <td style="padding:6px 8px;font-weight:700">${item.product_name}<br><small style="color:var(--muted);font-size:.68rem">${item.ref||''}</small></td>
+      <td style="padding:6px 8px;text-align:center">
+        <input type="number" value="${item.qty}" min="1"
+          onchange="window._achatItems[${i}].qty=+this.value||1;renderAchatItemsTable();updateAchatTotal()"
+          style="width:60px;padding:3px;background:#fff;border:1px solid var(--border);border-radius:4px;text-align:center;font-weight:600">
+      </td>
+      <td style="padding:6px 8px;text-align:center">
+        <input type="number" value="${item.price}"
+          onchange="window._achatItems[${i}].price=+this.value||0;renderAchatItemsTable();updateAchatTotal()"
+          style="width:90px;padding:3px;background:#fff;border:1px solid var(--border);border-radius:4px;text-align:center;font-weight:600">
+      </td>
+      <td style="padding:6px 8px;text-align:center;color:var(--primary);font-weight:800">${fmtNum(item.qty * item.price)} DA</td>
+      <td style="padding:6px 8px;text-align:center">
+        <button onclick="window._achatItems.splice(${i},1);renderAchatItemsTable();updateAchatTotal()"
+          style="background:var(--danger);border:none;color:#fff;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:.72rem">✕</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function updateAchatTotal() {
+  const total = window._achatItems.reduce((s,i) => s + i.qty * i.price, 0);
+  const el = document.getElementById('achatTotal');
+  if (el) el.textContent = fmt(total);
+  // If "paid full" checkbox is checked, update paid automatically
+  if (document.getElementById('a_paid_full')?.checked) {
+    document.getElementById('a_paid').value = Math.round(total);
+  }
+  updateAchatReste();
+}
+
+function updateAchatReste() {
+  const total = window._achatItems.reduce((s,i) => s + i.qty * i.price, 0);
+  const paid = parseFloat(document.getElementById('a_paid')?.value) || 0;
+  const reste = Math.max(0, total - paid);
+  const el = document.getElementById('achatReste');
+  if (el) {
+    el.textContent = fmt(reste);
+    el.style.color = reste > 0 ? 'var(--danger)' : 'var(--success)';
+  }
+}
+
+function toggleAchatPaidFull(checked) {
+  const total = window._achatItems.reduce((s,i) => s + i.qty * i.price, 0);
+  const paidInput = document.getElementById('a_paid');
+  if (checked) {
+    paidInput.value = Math.round(total);
+    paidInput.readOnly = true;
+    paidInput.style.background = '#f1f5f9';
+  } else {
+    paidInput.readOnly = false;
+    paidInput.style.background = '';
+  }
+  updateAchatReste();
 }
 
 function filterAchatsList(q) {
@@ -1989,7 +2212,7 @@ async function renderPOS() {
     </div>
 
     <!-- MAIN BODY: invoice left + controls right -->
-    <div style="display:grid;grid-template-columns:1fr 380px;flex:1;overflow:hidden">
+    <div style="display:grid;grid-template-columns:1fr 330px;flex:1;overflow:hidden">
 
       <!-- CENTER: INVOICE ITEMS (main focus) -->
       <div style="display:flex;flex-direction:column;overflow:hidden">
@@ -2040,7 +2263,7 @@ async function renderPOS() {
       </div>
 
       <!-- RIGHT: TOTALS + ACTIONS -->
-      <div style="display:flex;flex-direction:column;overflow:hidden;background:var(--sidebar);border-right:1px solid var(--border)">
+      <div style="display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;background:var(--sidebar);border-right:1px solid var(--border);height:100%">
 
         <!-- Client -->
         <div style="padding:7px 10px;border-bottom:1px solid var(--border);background:#f0f4f8;flex-shrink:0;display:flex;align-items:center;gap:8px">
@@ -4206,12 +4429,48 @@ document.addEventListener('keydown', e => {
     if (document.getElementById('globalSearchOverlay')) { closeGlobalSearch(); return; }
     closeModal();
   }
-  if (e.key === 'F6') { e.preventDefault(); toggleSidebar(); return; }
-  if (e.key === 'F1') { e.preventDefault(); navigate('dashboard', null); }
-  if (e.key === 'F2') { e.preventDefault(); navigate('pos', null); }
-  if (e.key === 'F3') { e.preventDefault(); navigate('products', null); }
-  if (e.key === 'F4') { e.preventDefault(); navigate('ventes', null); }
-  if (e.key === 'F5') { e.preventDefault(); navigate('reports', null); }
+  // Ctrl+S → save open modal (Achat/Vente)
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    // If Achat modal is open
+    if (document.getElementById('achatItemsBody')) {
+      if (typeof saveAchat === 'function') saveAchat();
+      return;
+    }
+    // If Product modal is open
+    if (document.getElementById('p_name')) {
+      if (typeof saveProduct === 'function') saveProduct(window._editProductId || '');
+      return;
+    }
+    // Default: POS
+    if (App.currentScreen === 'pos') confirmPOSSale();
+    return;
+  }
+
+  // Ctrl+N → new invoice/product depending on screen
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+    e.preventDefault();
+    const screen = App.currentScreen;
+    if (screen === 'achats') showAddAchatModal();
+    else if (screen === 'products') showAddProductModal();
+    else if (screen === 'clients') showAddClientModal();
+    else if (screen === 'fournisseurs') showAddFournisseurModal();
+    else if (screen === 'ventes') navigate('pos', null);
+    return;
+  }
+
+  // F-keys
+  if (e.key === 'F1') { e.preventDefault(); navigate('home',         null); return; }
+  if (e.key === 'F2') { e.preventDefault(); navigate('dashboard',    null); return; }
+  if (e.key === 'F3') { e.preventDefault(); navigate('pos',          null); return; }
+  if (e.key === 'F4') { e.preventDefault(); navigate('reports',      null); return; }
+  if (e.key === 'F5') { e.preventDefault(); navigate('ventes',       null); return; }
+  if (e.key === 'F6') { e.preventDefault(); navigate('achats',       null); return; }
+  if (e.key === 'F7') { e.preventDefault(); navigate('products',     null); return; }
+  if (e.key === 'F8') { e.preventDefault(); navigate('clients',      null); return; }
+  if (e.key === 'F9') { e.preventDefault(); navigate('fournisseurs', null); return; }
+
+  // Enter in POS to confirm sale
   if (e.key === 'Enter' && App.currentScreen === 'pos' && !document.getElementById('modalContainer').innerHTML) {
     confirmPOSSale();
   }

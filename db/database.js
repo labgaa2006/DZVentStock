@@ -436,17 +436,41 @@ class DB {
   getReports(period='month') {
     const now = new Date();
     let f = '';
-    if (period==='today') f = `AND date='${now.toISOString().slice(0,10)}'`;
+    if (period==='today')      f = `AND date='${now.toISOString().slice(0,10)}'`;
     else if (period==='month') f = `AND date LIKE '${now.toISOString().slice(0,7)}%'`;
-    else if (period==='year') f = `AND date LIKE '${now.getFullYear()}%'`;
+    else if (period==='year')  f = `AND date LIKE '${now.getFullYear()}%'`;
+
+    let totalAchats = 0;
+    try {
+      totalAchats = this.get(`SELECT COALESCE(SUM(total),0) as s FROM achats WHERE is_deleted=0 ${f}`)?.s || 0;
+    } catch(e) { totalAchats = 0; }
+
+    let ventesByDay = [];
+    try {
+      ventesByDay = this.all(`SELECT date, COUNT(*) as count, COALESCE(SUM(net),0) as total
+        FROM ventes WHERE is_deleted=0 ${f}
+        GROUP BY date ORDER BY date ASC LIMIT 30`);
+    } catch(e) { ventesByDay = []; }
+
+    let topProducts = [];
+    try {
+      topProducts = this.all(`SELECT vi.product_name, SUM(vi.qty) as total_qty, SUM(vi.total) as total_amount
+        FROM vente_items vi JOIN ventes v ON v.id=vi.vente_id WHERE v.is_deleted=0 ${f.replace('date','v.date')}
+        GROUP BY vi.product_name ORDER BY total_qty DESC LIMIT 10`);
+    } catch(e) { topProducts = []; }
+
+    let paymentTypes = [];
+    try {
+      paymentTypes = this.all(`SELECT payment_type, COUNT(*) as count, COALESCE(SUM(net),0) as total
+        FROM ventes WHERE is_deleted=0 ${f} GROUP BY payment_type`);
+    } catch(e) { paymentTypes = []; }
+
     return {
       total_ventes:  this.get(`SELECT COALESCE(SUM(net),0) as s FROM ventes WHERE is_deleted=0 ${f}`)?.s || 0,
-      total_achats:  this.get(`SELECT COALESCE(SUM(achats.total),0) as s FROM achats WHERE is_deleted=0 ${f}`)?.s || 0,
-      top_products:  this.all(`SELECT product_name, SUM(qty) as total_qty, SUM(total) as total_amount
-        FROM vente_items vi JOIN ventes v ON v.id=vi.vente_id WHERE v.is_deleted=0 ${f}
-        GROUP BY product_name ORDER BY total_qty DESC LIMIT 10`),
-      payment_types: this.all(`SELECT payment_type, COUNT(*) as count, SUM(net) as total
-        FROM ventes WHERE is_deleted=0 ${f} GROUP BY payment_type`),
+      total_achats:  totalAchats,
+      ventes_by_day: ventesByDay,
+      top_products:  topProducts,
+      payment_types: paymentTypes,
     };
   }
 
