@@ -995,7 +995,12 @@ async function renderProducts(q='') {
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>المرجع</th><th>المنتج</th><th>الفئة</th><th>سعر الشراء</th><th>سعر البيع</th><th>المخزون</th><th>الحالة</th><th>إجراءات</th></tr>
+            <tr>
+              <th>#</th><th>المرجع</th><th>الاسم</th>
+              <th>سعر الشراء</th><th>الهامش%</th>
+              <th>سعر التجزئة</th><th>نصف جملة</th><th>الجملة</th>
+              <th>المخزون</th><th>الموقع</th><th>إجراءات</th>
+            </tr>
           </thead>
           <tbody>
             ${allProducts.length === 0

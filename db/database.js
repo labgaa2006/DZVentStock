@@ -167,6 +167,30 @@ class DB {
       try { this.db.run(sql); } catch(e) { console.error('Table create error:', e.message); }
     });
 
+    // Migration: add new columns to existing DBs
+    const migrations = [
+      `ALTER TABLE products ADD COLUMN margin_pct REAL DEFAULT 0`,
+      `ALTER TABLE products ADD COLUMN tva_pct REAL DEFAULT 0`,
+      `ALTER TABLE products ADD COLUMN sell_price_semi REAL DEFAULT 0`,
+      `ALTER TABLE products ADD COLUMN sell_price_gros REAL DEFAULT 0`,
+      `ALTER TABLE products ADD COLUMN sell_price_super REAL DEFAULT 0`,
+      `ALTER TABLE products ADD COLUMN emplacement TEXT DEFAULT ''`,
+      `ALTER TABLE products ADD COLUMN expiry_date TEXT DEFAULT ''`,
+      `ALTER TABLE products ADD COLUMN expiry_alert INTEGER DEFAULT 0`,
+      `ALTER TABLE products ADD COLUMN favorite INTEGER DEFAULT 0`,
+      `ALTER TABLE products ADD COLUMN barcode2 TEXT DEFAULT ''`,
+      `ALTER TABLE products ADD COLUMN barcode3 TEXT DEFAULT ''`,
+      `ALTER TABLE products ADD COLUMN barcode4 TEXT DEFAULT ''`,
+      `ALTER TABLE products ADD COLUMN barcode5 TEXT DEFAULT ''`,
+      `ALTER TABLE products ADD COLUMN barcode6 TEXT DEFAULT ''`,
+      `ALTER TABLE products ADD COLUMN barcode7 TEXT DEFAULT ''`,
+      `ALTER TABLE products ADD COLUMN barcode8 TEXT DEFAULT ''`,
+      `ALTER TABLE products ADD COLUMN image_data TEXT DEFAULT ''`,
+    ];
+    migrations.forEach(sql => {
+      try { this.db.run(sql); } catch(e) {} // ignore "duplicate column" errors
+    });
+
     // Settings defaults
     const defaults = [
       ['company_name','محل الأغواط للإلكترونيات'],['company_phone','0550 000 000'],
