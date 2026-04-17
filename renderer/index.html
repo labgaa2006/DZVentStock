@@ -43,26 +43,17 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);overf
 
 /* ===== LAYOUT ===== */
 .body-wrap{display:flex;flex:1;overflow:hidden}
-.sidebar{
-  width:240px;background:var(--sidebar);display:flex;flex-direction:column;
-  border-left:2px solid var(--border);flex-shrink:0;
-  transition:width .25s ease, opacity .25s ease;
-  overflow:hidden;
-  box-shadow:-2px 0 12px rgba(0,0,0,.08);
-}
-.sidebar.sidebar-hidden{
-  width:0;opacity:0;border-left:none;
-}
+/* sidebar removed */
 .body-wrap{display:flex;flex:1;overflow:hidden}
-.brand{padding:18px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-.brand-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
-.brand-name{font-size:.85rem;font-weight:800;color:#1e293b;line-height:1.3}
-.brand-ver{font-size:.68rem;color:#94a3b8;font-weight:500}
 
-.nav{flex:1;overflow-y:auto;padding:8px 0}
-.nav::-webkit-scrollbar{width:3px}
-.nav::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-.nav-section{padding:8px 16px 3px;font-size:.63rem;color:var(--primary);font-weight:800;letter-spacing:1px;text-transform:uppercase;opacity:.8}
+
+
+
+
+
+
+
+
 .nav-item{
   display:flex;align-items:center;gap:10px;padding:9px 16px;
   cursor:pointer;transition:.15s;color:#475569;font-size:.83rem;font-weight:500;
@@ -74,10 +65,90 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);overf
 .nav-badge{margin-right:auto;background:var(--danger);color:#fff;font-size:.6rem;padding:1px 6px;border-radius:10px;font-weight:700}
 .nav-badge-soon{margin-right:auto;background:rgba(100,116,139,.3);color:#64748b;font-size:.58rem;padding:1px 5px;border-radius:10px;font-weight:600}
 
-.sidebar-footer{padding:10px 14px;border-top:1px solid var(--border)}
-.company-box{background:#f0f4f8;border:1px solid var(--border);border-radius:8px;padding:8px 10px}
-.company-name{font-size:.75rem;font-weight:700;color:#fff}
-.company-sub{font-size:.63rem;color:var(--muted);margin-top:1px}
+
+
+
+
+
+/* ===== MENUBAR ===== */
+.menubar{
+  background:#1e293b;height:42px;display:flex;align-items:stretch;
+  flex-shrink:0;border-bottom:2px solid var(--primary);
+  padding:0 8px;gap:2px;
+}
+.menu-item{
+  position:relative;display:flex;align-items:center;
+  padding:0 14px;cursor:pointer;color:#cbd5e1;font-size:.82rem;font-weight:600;
+  font-family:'Cairo',sans-serif;gap:5px;transition:.15s;border-radius:0;
+  background:transparent;border:none;user-select:none;
+  white-space:nowrap;
+}
+.menu-item:hover,.menu-item.open{background:rgba(249,115,22,.15);color:#fff}
+.menu-item.home-btn{color:var(--primary);font-weight:800}
+.menu-item .arrow{font-size:.6rem;opacity:.7;transition:.15s}
+.menu-item.open .arrow{transform:rotate(180deg)}
+
+/* Dropdown */
+.menu-dropdown{
+  position:absolute;top:100%;right:0;min-width:180px;
+  background:#fff;border:1.5px solid var(--border);border-radius:0 0 10px 10px;
+  box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:500;
+  display:none;flex-direction:column;overflow:hidden;
+}
+.menu-item.open .menu-dropdown{display:flex}
+.menu-dd-item{
+  padding:10px 16px;font-size:.82rem;font-weight:600;color:#374151;
+  cursor:pointer;display:flex;align-items:center;gap:9px;
+  transition:.12s;border-bottom:1px solid #f1f5f9;font-family:'Cairo',sans-serif;
+}
+.menu-dd-item:last-child{border-bottom:none}
+.menu-dd-item:hover{background:rgba(249,115,22,.07);color:var(--primary)}
+.menu-dd-icon{font-size:.95rem;width:20px;text-align:center}
+.menu-dd-shortcut{margin-right:auto;font-size:.68rem;color:#94a3b8;
+  background:#f1f5f9;padding:1px 6px;border-radius:4px;font-family:monospace}
+
+/* Separator in menubar */
+.menu-sep{width:1px;background:rgba(255,255,255,.1);margin:8px 4px;flex-shrink:0}
+
+/* Right side of menubar */
+.menubar-right{margin-right:auto;display:flex;align-items:center;gap:6px}
+.menubar-info{font-size:.72rem;color:#64748b;padding:0 10px;display:flex;align-items:center;gap:5px}
+.menubar-btn{
+  padding:4px 10px;border-radius:5px;border:1px solid rgba(255,255,255,.1);
+  background:transparent;color:#94a3b8;cursor:pointer;font-size:.75rem;
+  font-family:'Cairo',sans-serif;transition:.15s;display:flex;align-items:center;gap:4px;
+}
+.menubar-btn:hover{background:rgba(249,115,22,.15);color:#fff;border-color:var(--primary)}
+
+/* HOME TILES */
+.home-tiles{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:14px;padding:24px;
+  max-width:1000px;margin:0 auto;width:100%;
+}
+.home-tile{
+  border-radius:12px;padding:0;cursor:pointer;
+  transition:.2s;overflow:hidden;
+  box-shadow:0 4px 14px rgba(0,0,0,.12);
+  display:flex;flex-direction:column;
+  min-height:130px;position:relative;
+  border:none;font-family:'Cairo',sans-serif;
+}
+.home-tile:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(0,0,0,.2)}
+.home-tile:active{transform:scale(.97)}
+.home-tile-body{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:18px 12px 12px;gap:8px;
+}
+.home-tile-icon{font-size:2.4rem;line-height:1}
+.home-tile-label{font-size:.88rem;font-weight:800;color:#fff;text-align:center;line-height:1.3}
+.home-tile-footer{
+  padding:5px 10px;font-size:.68rem;font-weight:700;
+  color:rgba(255,255,255,.75);text-align:center;
+  background:rgba(0,0,0,.15);
+}
 
 /* ===== MAIN ===== */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
@@ -408,183 +479,134 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
   <!-- TITLEBAR -->
   <div class="titlebar">
     <div class="titlebar-logo">🏪 DZ Vent & Stock</div>
-    <button id="sidebarToggleBtn" onclick="toggleSidebar()"
-      style="padding:0 12px;height:38px;background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:1rem;-webkit-app-region:no-drag;transition:.15s"
-      title="القائمة (Alt+M)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--muted)'">☰</button>
     <div class="titlebar-title" id="titlebarTitle">نظام المبيعات والمخزون</div>
     <div class="titlebar-btns" style="-webkit-app-region:no-drag">
-      <button class="tb-btn" id="themeToggleBtn" onclick="toggleTheme()" title="وضع ليلي/نهاري" style="font-size:.8rem">🌙</button>
       <button class="tb-btn" onclick="window.api.minimize()" title="تصغير">─</button>
       <button class="tb-btn" onclick="window.api.maximize()" title="تكبير">□</button>
       <button class="tb-btn close" onclick="window.api.close()" title="إغلاق">✕</button>
     </div>
   </div>
 
-  <!-- BODY -->
-  <div class="body-wrap">
+  <!-- BODY — no sidebar -->
+  <div style="display:flex;flex-direction:column;flex:1;overflow:hidden">
 
-    <!-- SIDEBAR -->
-    <div class="sidebar" id="mainSidebar">
-      <div class="brand">
-        <div class="brand-icon">🏪</div>
-        <div>
-          <div class="brand-name" id="sidebarCompany">محلي</div>
-          <div class="brand-ver">v1.0.0 — الأغواط</div>
+    <!-- MENUBAR -->
+    <div class="menubar" id="mainMenubar" onclick="closeAllMenus(event)">
+
+      <!-- الرئيسية -->
+      <button class="menu-item home-btn" onclick="navigate('home',null);closeAllMenus()" title="F1">
+        🏠 الرئيسية
+      </button>
+      <div class="menu-sep"></div>
+
+      <!-- التحكم -->
+      <div class="menu-item" id="menu-control" onclick="toggleMenu('control',event)">
+        ⚡ التحكم <span class="arrow">▾</span>
+        <div class="menu-dropdown" id="dd-control">
+          <div class="menu-dd-item" onclick="navigate('dashboard',null)"><span class="menu-dd-icon">📊</span>لوحة التحكم<span class="menu-dd-shortcut">F2</span></div>
+          <div class="menu-dd-item" onclick="navigate('pos',null)"><span class="menu-dd-icon">⚡</span>نقطة البيع السريع<span class="menu-dd-shortcut">F3</span></div>
+          <div class="menu-dd-item" onclick="navigate('reports',null)"><span class="menu-dd-icon">📈</span>التقارير<span class="menu-dd-shortcut">F4</span></div>
         </div>
       </div>
 
-      <!-- USER PROFILE -->
-      <div class="user-profile" onclick="navigate('users',null)" title="إدارة المستخدمين">
-        <div class="user-avatar" id="userAvatar">م</div>
-        <div>
-          <div class="user-name" id="userName">مدير النظام</div>
-          <div class="user-role-badge" id="userRole">🔑 مدير</div>
+      <!-- المعاملات -->
+      <div class="menu-item" id="menu-transactions" onclick="toggleMenu('transactions',event)">
+        💼 المعاملات <span class="arrow">▾</span>
+        <div class="menu-dropdown" id="dd-transactions">
+          <div class="menu-dd-item" onclick="navigate('ventes',null)"><span class="menu-dd-icon">💰</span>المبيعات</div>
+          <div class="menu-dd-item" onclick="navigate('achats',null)"><span class="menu-dd-icon">🛒</span>المشتريات</div>
+          <div class="menu-dd-item" onclick="navigate('quotes',null)"><span class="menu-dd-icon">📋</span>عروض الأسعار</div>
+          <div class="menu-dd-item" onclick="navigate('retours',null)"><span class="menu-dd-icon">↩️</span>المرتجعات</div>
+          <div class="menu-dd-item" onclick="navigate('ventes',null)"><span class="menu-dd-icon">🧾</span>الفواتير</div>
         </div>
       </div>
 
-      <nav class="nav">
-        <div class="nav-section">الرئيسية</div>
-        <div class="nav-item active" onclick="navigate('dashboard',this)" data-screen="dashboard">
-          <span class="nav-icon">📊</span> لوحة التحكم
+      <!-- المخزون -->
+      <div class="menu-item" id="menu-stock" onclick="toggleMenu('stock',event)">
+        📦 المخزون <span class="arrow">▾</span>
+        <div class="menu-dropdown" id="dd-stock">
+          <div class="menu-dd-item" onclick="navigate('products',null)"><span class="menu-dd-icon">📦</span>المنتجات</div>
+          <div class="menu-dd-item" onclick="navigate('categories',null)"><span class="menu-dd-icon">📂</span>الفئات</div>
+          <div class="menu-dd-item" onclick="navigate('units',null)"><span class="menu-dd-icon">📐</span>الوحدات</div>
+          <div class="menu-dd-item" onclick="navigate('mouvements',null)"><span class="menu-dd-icon">🔄</span>حركة المخزون</div>
+          <div class="menu-dd-item" onclick="navigate('expiry',null)"><span class="menu-dd-icon">📅</span>تواريخ الصلاحية</div>
         </div>
-        <div class="nav-item" onclick="navigate('pos',this)" data-screen="pos">
-          <span class="nav-icon">⚡</span> نقطة البيع POS
-        </div>
-
-        <div class="nav-section">التجارة</div>
-        <div class="nav-item" onclick="navigate('ventes',this)" data-screen="ventes">
-          <span class="nav-icon">💰</span> المبيعات
-        </div>
-        <div class="nav-item" onclick="navigate('achats',this)" data-screen="achats">
-          <span class="nav-icon">🛒</span> المشتريات
-        </div>
-        <div class="nav-item" onclick="navigate('quotes',this)" data-screen="quotes">
-          <span class="nav-icon">📋</span> عروض الأسعار
-          <span class="nav-badge-soon">قريباً</span>
-        </div>
-
-        <div class="nav-section">المخزون</div>
-        <div class="nav-item" onclick="navigate('products',this)" data-screen="products">
-          <span class="nav-icon">📦</span> المنتجات
-          <span class="nav-badge" id="navLowStock" style="display:none">!</span>
-        </div>
-        <div class="nav-item" onclick="navigate('categories',this)" data-screen="categories">
-          <span class="nav-icon">📂</span> الفئات
-        </div>
-        <div class="nav-item" onclick="navigate('units',this)" data-screen="units">
-          <span class="nav-icon">📐</span> الوحدات
-        </div>
-        <div class="nav-item" onclick="navigate('mouvements',this)" data-screen="mouvements">
-          <span class="nav-icon">🔄</span> حركة المخزون
-        </div>
-
-        <div class="nav-section">العلاقات</div>
-        <div class="nav-item" onclick="navigate('clients',this)" data-screen="clients">
-          <span class="nav-icon">👥</span> العملاء
-        </div>
-        <div class="nav-item" onclick="navigate('fournisseurs',this)" data-screen="fournisseurs">
-          <span class="nav-icon">🏭</span> الموردون
-        </div>
-
-        <div class="nav-section">المالية</div>
-        <div class="nav-item" onclick="navigate('caisse',this)" data-screen="caisse">
-          <span class="nav-icon">💵</span> الخزينة
-          <span class="nav-badge-soon">قريباً</span>
-        </div>
-        <div class="nav-item" onclick="navigate('reports',this)" data-screen="reports">
-          <span class="nav-icon">📈</span> التقارير
-        </div>
-
-        <div class="nav-section">إضافي</div>
-        <div class="nav-item" onclick="navigate('retours',this)" data-screen="retours">
-          <span class="nav-icon">↩️</span> المرتجعات
-          <span class="nav-badge-soon">قريباً</span>
-        </div>
-        <div class="nav-item" onclick="navigate('dettes',this)" data-screen="dettes">
-          <span class="nav-icon">💳</span> تسوية الديون
-          <span class="nav-badge-soon">قريباً</span>
-        </div>
-        <div class="nav-item" onclick="navigate('loyalty',this)" data-screen="loyalty">
-          <span class="nav-icon">🎁</span> ولاء العملاء
-          <span class="nav-badge-soon">قريباً</span>
-        </div>
-        <div class="nav-item" onclick="navigate('expiry',this)" data-screen="expiry">
-          <span class="nav-icon">📅</span> تواريخ الصلاحية
-          <span class="nav-badge-soon">قريباً</span>
-        </div>
-
-        <div class="nav-section">الفروع</div>
-        <div class="nav-item" onclick="navigate('branches',this)" data-screen="branches">
-          <span class="nav-icon">🏪</span> إدارة الفروع
-          <span class="nav-badge-soon">قريباً</span>
-        </div>
-
-        <div class="nav-section">الإعدادات</div>
-        <div class="nav-item" onclick="navigate('settings',this)" data-screen="settings">
-          <span class="nav-icon">⚙️</span> الإعدادات
-        </div>
-        <div class="nav-item" onclick="navigate('permissions',this)" data-screen="permissions">
-          <span class="nav-icon">🔐</span> الصلاحيات
-          <span class="nav-badge-soon">قريباً</span>
-        </div>
-        <div class="nav-item" onclick="navigate('users',this)" data-screen="users">
-          <span class="nav-icon">👤</span> المستخدمون
-          <span class="nav-badge-soon">قريباً</span>
-        </div>
-        <div class="nav-item" onclick="navigate('backup',this)" data-screen="backup">
-          <span class="nav-icon">💾</span> النسخ الاحتياطي
-        </div>
-      </nav>
-
-      <div class="sidebar-footer">
-        <div class="company-box" style="margin-bottom:8px">
-          <div class="company-name" id="footerCompany">محل الأغواط</div>
-          <div class="company-sub" id="footerDate"></div>
-        </div>
-        <button onclick="doLogout()" class="logout-btn-sidebar">🚪 تسجيل الخروج</button>
       </div>
-    </div>
 
-    <!-- MAIN -->
-    <div class="main">
-      <div class="topbar">
-        <div>
-          <div class="page-title" id="pageTitle">📊 لوحة التحكم</div>
-          <div class="page-sub" id="pageSub">نظرة عامة على النشاط</div>
+      <!-- العلاقات -->
+      <div class="menu-item" id="menu-relations" onclick="toggleMenu('relations',event)">
+        👥 العلاقات <span class="arrow">▾</span>
+        <div class="menu-dropdown" id="dd-relations">
+          <div class="menu-dd-item" onclick="navigate('clients',null)"><span class="menu-dd-icon">👤</span>الزبائن</div>
+          <div class="menu-dd-item" onclick="navigate('fournisseurs',null)"><span class="menu-dd-icon">🏭</span>الموردون</div>
+          <div class="menu-dd-item" onclick="navigate('loyalty',null)"><span class="menu-dd-icon">🎁</span>ولاء الزبائن</div>
         </div>
-        <div class="topbar-right" id="topbarActions"></div>
-        <!-- Branch tag -->
-        <span class="branch-tag" id="branchTag">🏠 الفرع الرئيسي</span>
-        <!-- Quick Tools -->
-        <button class="topbar-btn" onclick="refreshCurrentScreen()" title="تحديث الصفحة">🔄 تحديث</button>
-        <button class="topbar-btn" onclick="openGlobalSearch()" title="بحث شامل (Ctrl+K)">🔍 بحث عام</button>
-        <button class="topbar-btn" onclick="printCurrentScreen()" title="طباعة">🖨️ طباعة</button>
+      </div>
 
-        <button class="topbar-btn" id="themeToggleBtn" onclick="toggleTheme()" title="تبديل الوضع">🌙</button>
-        <!-- Notification Bell -->
+      <!-- المالية -->
+      <div class="menu-item" id="menu-finance" onclick="toggleMenu('finance',event)">
+        💵 المالية <span class="arrow">▾</span>
+        <div class="menu-dropdown" id="dd-finance">
+          <div class="menu-dd-item" onclick="navigate('caisse',null)"><span class="menu-dd-icon">🏦</span>الخزينة</div>
+          <div class="menu-dd-item" onclick="navigate('dettes',null)"><span class="menu-dd-icon">💳</span>تسوية الديون</div>
+        </div>
+      </div>
+
+      <!-- الفروع -->
+      <div class="menu-item" id="menu-branches" onclick="toggleMenu('branches',event)">
+        🏪 الفروع <span class="arrow">▾</span>
+        <div class="menu-dropdown" id="dd-branches">
+          <div class="menu-dd-item" onclick="navigate('branches',null)"><span class="menu-dd-icon">🏪</span>إدارة الفروع</div>
+        </div>
+      </div>
+
+      <!-- الإعدادات -->
+      <div class="menu-item" id="menu-settings" onclick="toggleMenu('settings',event)">
+        ⚙️ الإعدادات <span class="arrow">▾</span>
+        <div class="menu-dropdown" id="dd-settings">
+          <div class="menu-dd-item" onclick="navigate('settings',null)"><span class="menu-dd-icon">⚙️</span>الإعدادات العامة</div>
+          <div class="menu-dd-item" onclick="navigate('permissions',null)"><span class="menu-dd-icon">🔐</span>الصلاحيات</div>
+          <div class="menu-dd-item" onclick="navigate('users',null)"><span class="menu-dd-icon">👤</span>المستخدمون</div>
+          <div class="menu-dd-item" onclick="navigate('backup',null)"><span class="menu-dd-icon">💾</span>النسخ الاحتياطي</div>
+        </div>
+      </div>
+
+      <!-- Right side -->
+      <div class="menubar-right">
+        <button class="menubar-btn" onclick="openGlobalSearch()" title="Ctrl+K">🔍 بحث</button>
+        <button class="menubar-btn" onclick="refreshCurrentScreen()">🔄</button>
+        <button class="menubar-btn" onclick="printCurrentScreen()">🖨️</button>
+        <div style="width:1px;background:rgba(255,255,255,.1);height:24px;margin:0 4px"></div>
+        <!-- Notification -->
         <div style="position:relative">
-          <button class="notif-btn" id="notifBtn" onclick="toggleNotifPanel()" title="الإشعارات">
-            🔔
-            <span class="notif-badge" id="notifBadge" style="display:none">0</span>
+          <button class="menubar-btn" id="notifBtn" onclick="toggleNotifPanel()">
+            🔔 <span class="notif-badge" id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px">0</span>
           </button>
-          <div class="notif-panel" id="notifPanel" style="display:none"></div>
+          <div class="notif-panel" id="notifPanel" style="display:none;left:auto;right:0"></div>
         </div>
+        <div style="width:1px;background:rgba(255,255,255,.1);height:24px;margin:0 4px"></div>
+        <!-- User info -->
+        <div class="menubar-info">
+          <span id="userAvatar" style="background:var(--primary);color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700">م</span>
+          <span id="userName" style="color:#cbd5e1;font-size:.75rem">مدير النظام</span>
+        </div>
+        <button class="menubar-btn" onclick="doLogout()" style="color:#f87171;border-color:rgba(239,68,68,.3)">🚪 خروج</button>
       </div>
 
-      <!-- QUICK NAV -->
-      <div class="quick-nav" id="quickNav">
-        <button class="qnav-btn active" onclick="navigate('dashboard',null);setActiveQNav(this)" data-screen="dashboard">📊 الرئيسية</button>
-        <button class="qnav-btn" onclick="navigate('pos',null);setActiveQNav(this)" data-screen="pos">⚡ POS</button>
-        <button class="qnav-btn" onclick="navigate('ventes',null);setActiveQNav(this)" data-screen="ventes">💰 مبيعات</button>
-        <button class="qnav-btn" onclick="navigate('achats',null);setActiveQNav(this)" data-screen="achats">🛒 مشتريات</button>
-        <button class="qnav-btn" onclick="navigate('products',null);setActiveQNav(this)" data-screen="products">📦 منتجات</button>
-        <button class="qnav-btn" onclick="navigate('clients',null);setActiveQNav(this)" data-screen="clients">👥 عملاء</button>
-        <button class="qnav-btn" onclick="navigate('caisse',null);setActiveQNav(this)" data-screen="caisse">💵 خزينة</button>
-        <button class="qnav-btn" onclick="navigate('reports',null);setActiveQNav(this)" data-screen="reports">📈 تقارير</button>
-        <button class="qnav-btn" onclick="navigate('dettes',null);setActiveQNav(this)" data-screen="dettes">💳 ديون</button>
+    </div><!-- end menubar -->
+
+    <!-- MAIN CONTENT AREA -->
+    <div class="main">
+      <!-- Slim topbar: just page title + actions -->
+      <div class="topbar" style="height:44px;padding:0 16px;background:#fff;border-bottom:1px solid var(--border)">
+        <div>
+          <div class="page-title" id="pageTitle" style="font-size:.9rem">🏠 الرئيسية</div>
+        </div>
+        <span class="branch-tag" id="branchTag" style="margin-right:10px">🏠 الفرع الرئيسي</span>
+        <div class="topbar-right" id="topbarActions" style="margin-right:0"></div>
       </div>
 
-      <div class="content" id="mainContent">
+      <div class="content" id="mainContent" style="padding:20px;background:#f0f4f8;overflow-y:auto">
         <!-- Screens rendered here dynamically -->
       </div>
     </div>
@@ -608,7 +630,7 @@ const App = {
   currentScreen: 'dashboard',
   // Always default to admin — login screen can restrict later
   currentUser: { id:'user-admin', name:'مدير النظام', username:'admin', role:'admin' },
-  lastScreen: localStorage.getItem('lastScreen') || 'dashboard',
+  lastScreen: localStorage.getItem('lastScreen') || 'home',
   pos: { items: [], discount: 0, tvaRate: 19 }
 };
 
@@ -636,17 +658,7 @@ function applyPermissions() {
     document.querySelectorAll('.qnav-btn[data-screen]').forEach(btn => btn.style.display='');
     return;
   }
-  // Admin or no role = full access, clear all restrictions
-  document.querySelectorAll('.nav-item[data-screen]').forEach(item => {
-    const screen = item.dataset.screen;
-    const ok = canAccess(screen);
-    item.style.opacity = ok ? '' : '.35';
-    item.style.pointerEvents = ok ? '' : 'none';
-    item.title = ok ? '' : 'لا تملك صلاحية الوصول';
-  });
-  document.querySelectorAll('.qnav-btn[data-screen]').forEach(btn => {
-    btn.style.display = canAccess(btn.dataset.screen) ? '' : 'none';
-  });
+  // Permissions applied via canAccess() in navigate() — no sidebar items to update
 }
 
 // =====================================================
@@ -2763,8 +2775,7 @@ async function saveSettings() {
   };
   await window.api.settings.save(data);
   App.settings = { ...App.settings, ...data };
-  document.getElementById('sidebarCompany').textContent = data.company_name;
-  document.getElementById('footerCompany').textContent = data.company_name;
+  document.getElementById('titlebarTitle').textContent = (data.company_name||'') + ' — نظام المبيعات';
   toast('✅ تم حفظ الإعدادات', 'success');
 }
 
@@ -3886,18 +3897,15 @@ async function init() {
   // تحميل الإعدادات
   App.settings = await window.api.settings.get();
   if (App.settings.company_name) {
-    document.getElementById('sidebarCompany').textContent = App.settings.company_name;
-    document.getElementById('footerCompany').textContent = App.settings.company_name;
+    document.getElementById('titlebarTitle').textContent = App.settings.company_name + ' — نظام المبيعات';
   }
 
   // Update sidebar user info from App.currentUser
   if (App.currentUser) {
     const el = document.getElementById('userName');
     const av = document.getElementById('userAvatar');
-    const ro = document.getElementById('userRole');
     if (el) el.textContent = App.currentUser.name || 'مدير النظام';
     if (av) av.textContent = (App.currentUser.name||'م').charAt(0);
-    if (ro) ro.textContent = App.currentUser.role==='admin'?'🔑 مدير':App.currentUser.role==='manager'?'📋 مشرف':'💼 كاشير';
   }
 
   // تحميل الإشعارات
@@ -3920,7 +3928,7 @@ async function init() {
   applyPermissions();
 
   // عرض الشاشة الأخيرة أو الرئيسية
-  const startScreen = canAccess(App.lastScreen) ? App.lastScreen : 'dashboard';
+  const startScreen = App.lastScreen || 'home';
   const firstNavItem = document.querySelector(`.nav-item[data-screen="${startScreen}"]`);
   await navigate(startScreen, firstNavItem);
 }
@@ -3986,35 +3994,90 @@ function toggleTheme(){} // disabled
 function applyTheme(){} // disabled
 
 // =====================================================
-// SIDEBAR TOGGLE
+// MENUBAR — قوائم منسدلة
 // =====================================================
-let _sidebarHidden = false;
-
-function toggleSidebar() {
-  _sidebarHidden = !_sidebarHidden;
-  const sb  = document.getElementById('mainSidebar');
-  const btn = document.getElementById('sidebarToggleBtn');
-  if (sb)  sb.classList.toggle('sidebar-hidden', _sidebarHidden);
-  if (btn) {
-    btn.textContent = _sidebarHidden ? '▶' : '☰';
-    btn.style.color = _sidebarHidden ? 'var(--primary)' : 'var(--muted)';
-    btn.title = _sidebarHidden ? 'إظهار القائمة' : 'إخفاء القائمة';
-  }
-  try { localStorage.setItem('dzvs_sidebar', _sidebarHidden ? '1' : '0'); } catch(e){}
+function toggleMenu(id, event) {
+  if (event) event.stopPropagation();
+  const allMenus = document.querySelectorAll('.menu-item[id^="menu-"]');
+  allMenus.forEach(m => {
+    if (m.id !== 'menu-' + id) m.classList.remove('open');
+  });
+  const item = document.getElementById('menu-' + id);
+  if (item) item.classList.toggle('open');
 }
 
-// Load saved sidebar state
-(function() {
-  try {
-    if (localStorage.getItem('dzvs_sidebar') === '1') {
-      _sidebarHidden = true;
-      const sb  = document.getElementById('mainSidebar');
-      const btn = document.getElementById('sidebarToggleBtn');
-      if (sb)  sb.classList.add('sidebar-hidden');
-      if (btn) { btn.textContent = '▶'; btn.style.color = 'var(--primary)'; }
-    }
-  } catch(e) {}
-})();
+function closeAllMenus(event) {
+  // Only close if click is outside any menu-item
+  if (event && event.target.closest('.menu-item')) return;
+  document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('open'));
+}
+
+// Close menus on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('.menu-item')) {
+    document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('open'));
+  }
+});
+
+function toggleSidebar() {} // no sidebar anymore
+
+// =====================================================
+// HOME SCREEN — شاشة الرئيسية بالمربعات
+// =====================================================
+function renderHome() {
+  document.getElementById('pageTitle').textContent = '🏠 الرئيسية';
+  const mc = document.getElementById('mainContent');
+  mc.style.padding = '0';
+  mc.style.overflow = 'auto';
+
+  const company = App.settings?.company_name || 'DZ Vent & Stock';
+
+  const tiles = [
+    { icon:'⚡', label:'نقطة البيع السريع', screen:'pos',         shortcut:'F3',  grad:'linear-gradient(135deg,#667eea,#764ba2)' },
+    { icon:'📊', label:'لوحة التحكم',            screen:'dashboard',   shortcut:'F2',  grad:'linear-gradient(135deg,#f093fb,#f5576c)' },
+    { icon:'💰', label:'المبيعات',               screen:'ventes',      shortcut:'F5',  grad:'linear-gradient(135deg,#4facfe,#00f2fe)' },
+    { icon:'🛒', label:'المشتريات',              screen:'achats',      shortcut:'F6',  grad:'linear-gradient(135deg,#43e97b,#38f9d7)' },
+    { icon:'📦', label:'المنتجات',               screen:'products',    shortcut:'F7',  grad:'linear-gradient(135deg,#fa709a,#fee140)' },
+    { icon:'👥', label:'الزبائن',                screen:'clients',     shortcut:'F8',  grad:'linear-gradient(135deg,#a18cd1,#fbc2eb)' },
+    { icon:'🏭', label:'الموردون',               screen:'fournisseurs',shortcut:'F9',  grad:'linear-gradient(135deg,#ffecd2,#fcb69f)' },
+    { icon:'📈', label:'التقارير',               screen:'reports',     shortcut:'F4',  grad:'linear-gradient(135deg,#a1c4fd,#c2e9fb)' },
+    { icon:'🏦', label:'الخزينة',                screen:'caisse',      shortcut:'',    grad:'linear-gradient(135deg,#d4fc79,#96e6a1)' },
+    { icon:'💳', label:'تسوية الديون',           screen:'dettes',      shortcut:'',    grad:'linear-gradient(135deg,#f77062,#fe5196)' },
+    { icon:'↩️', label:'المرتجعات',              screen:'retours',     shortcut:'',    grad:'linear-gradient(135deg,#5f72bd,#9b23ea)' },
+    { icon:'🔖', label:'طباعة الباركود',         screen:'products',    shortcut:'',    grad:'linear-gradient(135deg,#3a1c71,#d76d77)' },
+    { icon:'📋', label:'عروض الأسعار',           screen:'quotes',      shortcut:'',    grad:'linear-gradient(135deg,#fbc7d4,#9796f0)' },
+    { icon:'🎁', label:'ولاء الزبائن',           screen:'loyalty',     shortcut:'',    grad:'linear-gradient(135deg,#fddb92,#d1fdff)' },
+    { icon:'📅', label:'تواريخ الصلاحية',        screen:'expiry',      shortcut:'',    grad:'linear-gradient(135deg,#f3904f,#3b4371)' },
+    { icon:'⚙️', label:'الإعدادات',             screen:'settings',    shortcut:'',    grad:'linear-gradient(135deg,#868f96,#596164)' },
+  ];
+
+  mc.innerHTML = `
+    <div style="padding:20px;background:#f0f4f8;min-height:100%">
+      <!-- Welcome bar -->
+      <div style="background:linear-gradient(135deg,#1e293b,#334155);border-radius:14px;padding:18px 24px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:4px">مرحباً بك في ${company}</div>
+          <div style="font-size:.78rem;color:#94a3b8">${new Date().toLocaleDateString('ar-DZ',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+        </div>
+        <div style="font-size:2.2rem;opacity:.6">🏪</div>
+      </div>
+
+      <!-- Tiles grid -->
+      <div class="home-tiles">
+        ${tiles.map(t => `
+          <button class="home-tile" onclick="navigate('${t.screen}',null)"
+            style="background:${t.grad}"
+            title="${t.shortcut?'اختصار: '+t.shortcut:''}">
+            <div class="home-tile-body">
+              <div class="home-tile-icon">${t.icon}</div>
+              <div class="home-tile-label">${t.label}</div>
+            </div>
+            ${t.shortcut?`<div class="home-tile-footer">${t.shortcut}</div>`:''}
+          </button>`).join('')}
+      </div>
+    </div>
+  `;
+}
 
 
 
