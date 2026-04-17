@@ -2474,13 +2474,17 @@ async function renderPOS() {
       <div style="display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;background:var(--sidebar);border-right:1px solid var(--border);height:100%">
 
         <!-- Client -->
-        <div style="padding:7px 10px;border-bottom:1px solid var(--border);background:#f0f4f8;flex-shrink:0;display:flex;align-items:center;gap:8px">
-          <span style="font-size:.7rem;color:var(--muted);white-space:nowrap">العميل:</span>
-          <select id="pos_client" style="flex:1;background:#fff;border:1.5px solid #94a3b8;border-radius:5px;color:#1e293b;font-family:'Cairo',sans-serif;font-size:.73rem;padding:3px 6px;font-weight:600">
+        <div style="padding:6px 10px;border-bottom:1px solid var(--border);background:#f0f4f8;flex-shrink:0;display:flex;align-items:center;gap:6px">
+          <span style="font-size:.68rem;color:var(--muted);white-space:nowrap;flex-shrink:0">العميل:</span>
+          <select id="pos_client" style="flex:1;min-width:0;background:#fff;border:1.5px solid #94a3b8;border-radius:5px;color:#1e293b;font-family:'Cairo',sans-serif;font-size:.72rem;padding:3px 5px;font-weight:600">
             <option value="">👤 Comptoir</option>
             ${clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
           </select>
-          <button onclick="clearPOS()" title="F7 — فاتورة جديدة" style="padding:4px 10px;background:var(--primary);border:none;border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap">🆕 جديد</button>
+          <button onclick="clearPOS()" title="F7"
+            style="padding:5px 12px;background:var(--primary);border:none;border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;display:flex;flex-direction:column;align-items:center;line-height:1.2">
+            <span>🆕 جديد</span>
+            <span style="font-size:.58rem;opacity:.75;font-weight:500">F7</span>
+          </button>
         </div>
 
         <!-- Totals -->
@@ -2515,20 +2519,20 @@ async function renderPOS() {
         <!-- Action buttons -->
         <div style="flex-shrink:0">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #000">
-            <button onclick="pausePOS()" style="padding:11px 4px;background:#4c1d95;border:none;border-left:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">⏸️ تعليق</button>
-            <button onclick="resumePOS()" style="padding:11px 4px;background:#1e3a5f;border:none;color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">▶️ استئناف</button>
+            <button onclick="pausePOS()" style="padding:11px 4px;background:#4c1d95;border:none;border-left:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''"><span>⏸️ تعليق</span><span style="font-size:.58rem;opacity:.75;display:block">F4</span></button>
+            <button onclick="resumePOS()" style="padding:11px 4px;background:#1e3a5f;border:none;color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''"><span>▶️ استئناف</span><span style="font-size:.58rem;opacity:.75;display:block">F3</span></button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-            <button onclick="changePOSLastQty(1)" style="padding:10px 4px;background:#1e40af;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">Qté ＋</button>
-            <button onclick="changePOSLastQty(-1)" style="padding:10px 4px;background:#991b1b;border:none;border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">Qté －</button>
+            <button onclick="changePOSLastQty(1)" style="padding:10px 4px;background:#1e40af;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''"><span>Qté ＋</span><span style="font-size:.58rem;opacity:.75;display:block">+ في الكيبورد</span></button>
+            <button onclick="changePOSLastQty(-1)" style="padding:10px 4px;background:#991b1b;border:none;border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''"><span>Qté －</span><span style="font-size:.58rem;opacity:.75;display:block">- في الكيبورد</span></button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-            <button onclick="removePOSLast()" style="padding:10px 4px;background:#7f1d1d;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">🗑️ حذف سطر</button>
-            <button onclick="clearPOS()" style="padding:10px 4px;background:#374151;border:none;border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">❌ مسح الكل</button>
+            <button onclick="removePOSLast()" style="padding:10px 4px;background:#7f1d1d;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''"><span>🗑️ حذف سطر</span><span style="font-size:.58rem;opacity:.75;display:block">F5</span></button>
+            <button onclick="clearPOS()" style="padding:10px 4px;background:#374151;border:none;border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''"><span>❌ مسح الكل</span><span style="font-size:.58rem;opacity:.75;display:block">F6</span></button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-            <button onclick="confirmPOSSale()" style="padding:14px 4px;background:#166534;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.8rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" title="F12 أو Enter">✅ تأكيد<br><span style="font-size:.65rem;opacity:.85">F12</span></button>
-            <button onclick="confirmAndPrint()" style="padding:14px 4px;background:#064e3b;border:none;border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.78rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" title="Ctrl+P أو Ctrl+Enter">🖨️ تأكيد+طباعة<br><span style="font-size:.65rem;opacity:.85">Ctrl+P</span></button>
+            <button onclick="confirmPOSSale()" style="padding:14px 4px;background:#166534;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.8rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" title="F12 أو Enter"><span>✅ تأكيد</span><span style="font-size:.6rem;opacity:.8">F1 أو Enter</span></button>
+            <button onclick="confirmAndPrint()" style="padding:14px 4px;background:#064e3b;border:none;border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.78rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" title="Ctrl+P أو Ctrl+Enter"><span>🖨️ تأكيد+طباعة</span><span style="font-size:.6rem;opacity:.8">F2</span></button>
           </div>
         </div>
       </div>
