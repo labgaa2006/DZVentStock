@@ -2481,18 +2481,18 @@ async function renderPOS() {
         <!-- Client -->
         <div style="padding:7px 10px;border-bottom:1px solid var(--border);background:#f0f4f8;flex-shrink:0;display:flex;align-items:center;gap:8px">
           <span style="font-size:.7rem;color:var(--muted);white-space:nowrap">العميل:</span>
-          <select id="pos_client" style="flex:1;background:#1e293b;border:1px solid var(--border);border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.73rem;padding:3px 6px">
+          <select id="pos_client" style="flex:1;background:#fff;border:1.5px solid #94a3b8;border-radius:5px;color:#1e293b;font-family:'Cairo',sans-serif;font-size:.73rem;padding:3px 6px;font-weight:600">
             <option value="">👤 Comptoir</option>
             ${clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
           </select>
-          <button onclick="clearPOS()" style="padding:3px 8px;background:#374151;border:none;border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.68rem;cursor:pointer;white-space:nowrap">🆕 جديد</button>
+          <button onclick="clearPOS()" title="F7 — فاتورة جديدة" style="padding:4px 10px;background:var(--primary);border:none;border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap">🆕 جديد <span style="opacity:.7;font-size:.6rem">F7</span></button>
         </div>
 
         <!-- Totals -->
         <div style="padding:10px 12px;flex-shrink:0">
           <table style="width:100%;font-size:.78rem">
             <tr><td style="color:var(--muted);padding:2px 0">المجموع HT:</td><td style="text-align:left;font-weight:700" id="pos_ht">0 DA</td></tr>
-            <tr id="pos_tva_row"><td style="color:var(--muted);padding:2px 0">TVA (<input id="pos_tva_rate" type="number" value="${App.settings.tva||19}" oninput="recalcPOS()" style="width:28px;background:transparent;border:none;border-bottom:1px solid var(--border);color:#fff;text-align:center;font-size:.72rem">%):</td><td style="text-align:left" id="pos_tva">0 DA</td></tr>
+            <tr id="pos_tva_row"><td style="color:var(--muted);padding:2px 0">TVA (<input id="pos_tva_rate" type="number" value="${App.settings.tva||19}" oninput="recalcPOS()" style="width:28px;background:transparent;border:none;border-bottom:1px solid var(--border);color:#1e293b;text-align:center;font-size:.72rem;font-weight:700">%):</td><td style="text-align:left" id="pos_tva">0 DA</td></tr>
             <tr><td style="color:var(--success);padding:2px 0">الخصم:</td><td style="text-align:left;color:var(--success)" id="pos_disc_amt">0 DA</td></tr>
           </table>
           <div style="display:flex;justify-content:space-between;font-size:1.05rem;font-weight:900;color:var(--primary);border-top:2px solid var(--border);padding-top:8px;margin-top:6px">
@@ -2502,14 +2502,14 @@ async function renderPOS() {
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
               <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">المدفوع:</span>
               <input id="pos_paid" type="number" value="0" oninput="updateReste()"
-                style="flex:1;padding:5px 8px;background:#f0f4f8;border:1px solid var(--border);border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;text-align:center;font-size:.9rem">
+                style="flex:1;padding:5px 8px;background:#fff;border:1.5px solid #94a3b8;border-radius:5px;color:#1e293b;font-family:'Cairo',sans-serif;text-align:center;font-size:.9rem;font-weight:700">
             </div>
             <div style="display:flex;align-items:center;gap:6px">
               <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">الباقي:</span>
               <span id="pos_reste" style="color:var(--success);font-weight:700;font-size:.9rem;white-space:nowrap">0 DA</span>
             </div>
           </div>
-          <select id="pos_payment" style="width:100%;margin-top:8px;padding:6px 8px;background:#f0f4f8;border:1px solid var(--border);border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.78rem">
+          <select id="pos_payment" style="width:100%;margin-top:8px;padding:6px 8px;background:#fff;border:1.5px solid #94a3b8;border-radius:5px;color:#1e293b;font-family:'Cairo',sans-serif;font-size:.78rem;font-weight:600">
             <option>💵 نقداً</option><option>💳 تحويل</option><option>📅 آجل</option><option>🔀 مختلط</option>
           </select>
         </div>
@@ -2520,16 +2520,16 @@ async function renderPOS() {
         <!-- Action buttons -->
         <div style="flex-shrink:0">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #000">
-            <button onclick="pausePOS()" style="padding:11px 4px;background:#4c1d95;border:none;border-left:1px solid rgba(0,0,0,.3);color:var(--text);font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">⏸️ تعليق (F3)</button>
-            <button onclick="resumePOS()" style="padding:11px 4px;background:#1e3a5f;border:none;color:var(--text);font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">▶️ استئناف</button>
+            <button onclick="pausePOS()" style="padding:11px 4px;background:#4c1d95;border:none;border-left:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">⏸️ تعليق</button>
+            <button onclick="resumePOS()" style="padding:11px 4px;background:#1e3a5f;border:none;color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">▶️ استئناف</button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-            <button onclick="changePOSLastQty(1)" style="padding:10px 4px;background:#1e40af;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:1px solid rgba(0,0,0,.3);color:var(--text);font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">Qté ＋</button>
-            <button onclick="changePOSLastQty(-1)" style="padding:10px 4px;background:#991b1b;border:none;border-top:1px solid rgba(0,0,0,.3);color:var(--text);font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">Qté －</button>
+            <button onclick="changePOSLastQty(1)" style="padding:10px 4px;background:#1e40af;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">Qté ＋</button>
+            <button onclick="changePOSLastQty(-1)" style="padding:10px 4px;background:#991b1b;border:none;border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">Qté －</button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-            <button onclick="removePOSLast()" style="padding:10px 4px;background:#7f1d1d;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:1px solid rgba(0,0,0,.3);color:var(--text);font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">🗑️ حذف سطر</button>
-            <button onclick="clearPOS()" style="padding:10px 4px;background:#374151;border:none;border-top:1px solid rgba(0,0,0,.3);color:var(--text);font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">❌ مسح الكل</button>
+            <button onclick="removePOSLast()" style="padding:10px 4px;background:#7f1d1d;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">🗑️ حذف سطر</button>
+            <button onclick="clearPOS()" style="padding:10px 4px;background:#374151;border:none;border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">❌ مسح الكل</button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
             <button onclick="confirmPOSSale()" style="padding:14px 4px;background:#166534;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.8rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" title="F12 أو Enter">✅ تأكيد<br><span style="font-size:.65rem;opacity:.85">F12</span></button>
@@ -2910,10 +2910,10 @@ function renderPOSItems() {
             style="cursor:pointer;border-bottom:1px solid rgba(51,65,85,.4);transition:.1s;${window._posSelectedRow===i?'background:rgba(249,115,22,.12);outline:2px solid var(--primary);outline-offset:-1px':''}"
             id="pos_row_${i}">
             <td style="padding:7px 8px;font-size:.68rem">
-              <code style="background:#e0f2fe;padding:1px 5px;border-radius:3px;color:#0369a1">${item.ref||'—'}</code>
+              <code style="background:#e0f2fe;padding:1px 5px;border-radius:3px;color:#0369a1;font-weight:700">${item.ref||'—'}</code>
             </td>
             <td style="padding:7px 8px;font-weight:700;font-size:.78rem;max-width:90px">
-              <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.product_name}</div>
+              <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1e293b;font-weight:700">${item.product_name}</div>
             </td>
             <td style="padding:7px 4px;text-align:center">
               <div style="display:flex;align-items:center;justify-content:center;gap:2px">
@@ -2924,8 +2924,8 @@ function renderPOSItems() {
                   style="width:20px;height:20px;background:var(--success);border:none;border-radius:3px;color:var(--text);cursor:pointer;font-weight:700;font-size:.75rem">+</button>
               </div>
             </td>
-            <td style="padding:7px 8px;text-align:center;color:var(--muted);font-size:.75rem;white-space:nowrap">${fmtNum(item.price)}</td>
-            <td style="padding:7px 8px;text-align:center;font-weight:900;color:var(--primary);font-size:.82rem;white-space:nowrap">${fmtNum(item.qty*item.price)}</td>
+            <td style="padding:7px 8px;text-align:center;color:#475569;font-size:.78rem;white-space:nowrap;font-weight:600">${fmtNum(item.price)}</td>
+            <td style="padding:7px 8px;text-align:center;font-weight:900;color:#c2410c;font-size:.85rem;white-space:nowrap">${fmtNum(item.qty*item.price)}</td>
             <td style="padding:7px 4px;text-align:center">
               <button onclick="event.stopPropagation();removePOSItem(${i})"
                 style="width:20px;height:20px;background:transparent;border:1px solid rgba(239,68,68,.4);color:var(--danger);cursor:pointer;font-size:.8rem;border-radius:3px;display:flex;align-items:center;justify-content:center">✕</button>
@@ -5344,6 +5344,8 @@ document.addEventListener('keydown', e => {
   if (App.currentScreen === 'pos' && !document.getElementById('modalContainer').innerHTML.trim()) {
     // F12 → confirm sale (no print)
     if (e.key === 'F12') { e.preventDefault(); confirmPOSSale(); return; }
+    // F7 in POS → new invoice (clear)
+    if (e.key === 'F7' && App.currentScreen === 'pos') { e.preventDefault(); clearPOS(); toast('🆕 فاتورة جديدة','info',1000); return; }
     // Ctrl+P → confirm + print thermal receipt
     if ((e.ctrlKey || e.metaKey) && e.key === 'p') { e.preventDefault(); confirmAndPrint(); return; }
     // Ctrl+Enter → confirm + print (alternative)
