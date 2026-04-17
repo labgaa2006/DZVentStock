@@ -494,7 +494,7 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
     <div class="menubar" id="mainMenubar" onclick="closeAllMenus(event)">
 
       <!-- الرئيسية -->
-      <button class="menu-item home-btn" onclick="navigate('home',null);closeAllMenus()" title="F1">
+      <button class="menu-item home-btn" onclick="event.stopPropagation();navigate('home',null)" title="F1">
         🏠 الرئيسية
       </button>
       <div class="menu-sep"></div>
@@ -503,9 +503,9 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
       <div class="menu-item" id="menu-control" onclick="toggleMenu('control',event)">
         ⚡ التحكم <span class="arrow">▾</span>
         <div class="menu-dropdown" id="dd-control">
-          <div class="menu-dd-item" onclick="navigate('dashboard',null)"><span class="menu-dd-icon">📊</span>لوحة التحكم<span class="menu-dd-shortcut">F2</span></div>
-          <div class="menu-dd-item" onclick="navigate('pos',null)"><span class="menu-dd-icon">⚡</span>نقطة البيع السريع<span class="menu-dd-shortcut">F3</span></div>
-          <div class="menu-dd-item" onclick="navigate('reports',null)"><span class="menu-dd-icon">📈</span>التقارير<span class="menu-dd-shortcut">F4</span></div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('dashboard',null);closeAllMenus()"><span class="menu-dd-icon">📊</span>لوحة التحكم<span class="menu-dd-shortcut">F2</span></div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('pos',null);closeAllMenus()"><span class="menu-dd-icon">⚡</span>نقطة البيع السريع<span class="menu-dd-shortcut">F3</span></div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('reports',null);closeAllMenus()"><span class="menu-dd-icon">📈</span>التقارير<span class="menu-dd-shortcut">F4</span></div>
         </div>
       </div>
 
@@ -513,11 +513,11 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
       <div class="menu-item" id="menu-transactions" onclick="toggleMenu('transactions',event)">
         💼 المعاملات <span class="arrow">▾</span>
         <div class="menu-dropdown" id="dd-transactions">
-          <div class="menu-dd-item" onclick="navigate('ventes',null)"><span class="menu-dd-icon">💰</span>المبيعات</div>
-          <div class="menu-dd-item" onclick="navigate('achats',null)"><span class="menu-dd-icon">🛒</span>المشتريات</div>
-          <div class="menu-dd-item" onclick="navigate('quotes',null)"><span class="menu-dd-icon">📋</span>عروض الأسعار</div>
-          <div class="menu-dd-item" onclick="navigate('retours',null)"><span class="menu-dd-icon">↩️</span>المرتجعات</div>
-          <div class="menu-dd-item" onclick="navigate('ventes',null)"><span class="menu-dd-icon">🧾</span>الفواتير</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('ventes',null);closeAllMenus()"><span class="menu-dd-icon">💰</span>المبيعات</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('achats',null);closeAllMenus()"><span class="menu-dd-icon">🛒</span>المشتريات</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('quotes',null);closeAllMenus()"><span class="menu-dd-icon">📋</span>عروض الأسعار</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('retours',null);closeAllMenus()"><span class="menu-dd-icon">↩️</span>المرتجعات</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('ventes',null);closeAllMenus()"><span class="menu-dd-icon">🧾</span>الفواتير</div>
         </div>
       </div>
 
@@ -525,11 +525,11 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
       <div class="menu-item" id="menu-stock" onclick="toggleMenu('stock',event)">
         📦 المخزون <span class="arrow">▾</span>
         <div class="menu-dropdown" id="dd-stock">
-          <div class="menu-dd-item" onclick="navigate('products',null)"><span class="menu-dd-icon">📦</span>المنتجات</div>
-          <div class="menu-dd-item" onclick="navigate('categories',null)"><span class="menu-dd-icon">📂</span>الفئات</div>
-          <div class="menu-dd-item" onclick="navigate('units',null)"><span class="menu-dd-icon">📐</span>الوحدات</div>
-          <div class="menu-dd-item" onclick="navigate('mouvements',null)"><span class="menu-dd-icon">🔄</span>حركة المخزون</div>
-          <div class="menu-dd-item" onclick="navigate('expiry',null)"><span class="menu-dd-icon">📅</span>تواريخ الصلاحية</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('products',null);closeAllMenus()"><span class="menu-dd-icon">📦</span>المنتجات</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('categories',null);closeAllMenus()"><span class="menu-dd-icon">📂</span>الفئات</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('units',null);closeAllMenus()"><span class="menu-dd-icon">📐</span>الوحدات</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('mouvements',null);closeAllMenus()"><span class="menu-dd-icon">🔄</span>حركة المخزون</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('expiry',null);closeAllMenus()"><span class="menu-dd-icon">📅</span>تواريخ الصلاحية</div>
         </div>
       </div>
 
@@ -537,9 +537,9 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
       <div class="menu-item" id="menu-relations" onclick="toggleMenu('relations',event)">
         👥 العلاقات <span class="arrow">▾</span>
         <div class="menu-dropdown" id="dd-relations">
-          <div class="menu-dd-item" onclick="navigate('clients',null)"><span class="menu-dd-icon">👤</span>الزبائن</div>
-          <div class="menu-dd-item" onclick="navigate('fournisseurs',null)"><span class="menu-dd-icon">🏭</span>الموردون</div>
-          <div class="menu-dd-item" onclick="navigate('loyalty',null)"><span class="menu-dd-icon">🎁</span>ولاء الزبائن</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('clients',null);closeAllMenus()"><span class="menu-dd-icon">👤</span>الزبائن</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('fournisseurs',null);closeAllMenus()"><span class="menu-dd-icon">🏭</span>الموردون</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('loyalty',null);closeAllMenus()"><span class="menu-dd-icon">🎁</span>ولاء الزبائن</div>
         </div>
       </div>
 
@@ -547,8 +547,8 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
       <div class="menu-item" id="menu-finance" onclick="toggleMenu('finance',event)">
         💵 المالية <span class="arrow">▾</span>
         <div class="menu-dropdown" id="dd-finance">
-          <div class="menu-dd-item" onclick="navigate('caisse',null)"><span class="menu-dd-icon">🏦</span>الخزينة</div>
-          <div class="menu-dd-item" onclick="navigate('dettes',null)"><span class="menu-dd-icon">💳</span>تسوية الديون</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('caisse',null);closeAllMenus()"><span class="menu-dd-icon">🏦</span>الخزينة</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('dettes',null);closeAllMenus()"><span class="menu-dd-icon">💳</span>تسوية الديون</div>
         </div>
       </div>
 
@@ -556,7 +556,7 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
       <div class="menu-item" id="menu-branches" onclick="toggleMenu('branches',event)">
         🏪 الفروع <span class="arrow">▾</span>
         <div class="menu-dropdown" id="dd-branches">
-          <div class="menu-dd-item" onclick="navigate('branches',null)"><span class="menu-dd-icon">🏪</span>إدارة الفروع</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('branches',null);closeAllMenus()"><span class="menu-dd-icon">🏪</span>إدارة الفروع</div>
         </div>
       </div>
 
@@ -564,10 +564,10 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
       <div class="menu-item" id="menu-settings" onclick="toggleMenu('settings',event)">
         ⚙️ الإعدادات <span class="arrow">▾</span>
         <div class="menu-dropdown" id="dd-settings">
-          <div class="menu-dd-item" onclick="navigate('settings',null)"><span class="menu-dd-icon">⚙️</span>الإعدادات العامة</div>
-          <div class="menu-dd-item" onclick="navigate('permissions',null)"><span class="menu-dd-icon">🔐</span>الصلاحيات</div>
-          <div class="menu-dd-item" onclick="navigate('users',null)"><span class="menu-dd-icon">👤</span>المستخدمون</div>
-          <div class="menu-dd-item" onclick="navigate('backup',null)"><span class="menu-dd-icon">💾</span>النسخ الاحتياطي</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('settings',null);closeAllMenus()"><span class="menu-dd-icon">⚙️</span>الإعدادات العامة</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('permissions',null);closeAllMenus()"><span class="menu-dd-icon">🔐</span>الصلاحيات</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('users',null);closeAllMenus()"><span class="menu-dd-icon">👤</span>المستخدمون</div>
+          <div class="menu-dd-item" onclick="event.stopPropagation();navigate('backup',null);closeAllMenus()"><span class="menu-dd-icon">💾</span>النسخ الاحتياطي</div>
         </div>
       </div>
 
@@ -775,6 +775,7 @@ async function renderScreen(name) {
   showSkeleton();
   try {
     switch(name) {
+      case 'home':         renderHome();               break;
       case 'dashboard':    await renderDashboard();    break;
       case 'products':     await renderProducts();     break;
       case 'ventes':       await renderVentes();       break;
@@ -873,7 +874,7 @@ async function renderDashboard() {
       <div class="card anim-fadeup anim-d1">
         <div class="card-header">
           <div class="card-title">🧾 آخر المبيعات</div>
-          <button class="btn btn-sm btn-primary" onclick="navigate('ventes',null)">عرض الكل</button>
+          <button class="btn btn-sm btn-primary" onclick="event.stopPropagation();navigate('ventes',null);closeAllMenus()">عرض الكل</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -914,7 +915,7 @@ async function renderDashboard() {
         <div class="card anim-fadeup anim-d3">
           <div class="card-header">
             <div class="card-title">⚠️ مخزون منخفض</div>
-            <button class="btn btn-sm btn-primary" onclick="navigate('products',null)">إدارة</button>
+            <button class="btn btn-sm btn-primary" onclick="event.stopPropagation();navigate('products',null);closeAllMenus()">إدارة</button>
           </div>
           <div class="table-wrap">
             <table>
@@ -1569,7 +1570,7 @@ let _allVentes = [];
 
 async function renderVentes(q='') {
   document.getElementById('topbarActions').innerHTML = `
-    <button class="topbar-btn primary" onclick="navigate('pos',null)">➕ فاتورة بيع جديدة</button>
+    <button class="topbar-btn primary" onclick="event.stopPropagation();navigate('pos',null);closeAllMenus()">➕ فاتورة بيع جديدة</button>
   `;
   _allVentes = await window.api.ventes.getAll();
   let filtered = _allVentes;
@@ -1614,7 +1615,7 @@ async function renderVentes(q='') {
                     <td style="color:var(--muted);font-size:.75rem">${formatDate(v.date)}</td>
                     <td><div style="display:flex;gap:4px">
                       <button class="btn btn-sm btn-info" style="padding:4px 8px" onclick="printVente('${v.id}')">🖨️</button>
-                      ${v.reste>0?`<button class="btn btn-sm btn-success" style="padding:4px 8px" onclick="navigate('dettes',null)" title="تسديد">💵</button>`:''}
+                      ${v.reste>0?`<button class="btn btn-sm btn-success" style="padding:4px 8px" onclick="event.stopPropagation();navigate('dettes',null);closeAllMenus()" title="تسديد">💵</button>`:''}
                     </div></td>
                   </tr>`;
                 }).join('')}
@@ -3161,7 +3162,7 @@ function renderComingSoon(name) {
 // =====================================================
 async function renderQuotes() {
   document.getElementById('topbarActions').innerHTML = `
-    <button class="topbar-btn primary" onclick="navigate('pos',null)">➕ عرض سعر جديد (POS)</button>
+    <button class="topbar-btn primary" onclick="event.stopPropagation();navigate('pos',null);closeAllMenus()">➕ عرض سعر جديد (POS)</button>
   `;
   const quotes = await window.api.quotes.getAll();
   document.getElementById('mainContent').innerHTML = `
@@ -3928,7 +3929,7 @@ async function init() {
   applyPermissions();
 
   // عرض الشاشة الأخيرة أو الرئيسية
-  const startScreen = App.lastScreen || 'home';
+  const startScreen = 'home';
   const firstNavItem = document.querySelector(`.nav-item[data-screen="${startScreen}"]`);
   await navigate(startScreen, firstNavItem);
 }
@@ -4029,6 +4030,7 @@ function renderHome() {
   const mc = document.getElementById('mainContent');
   mc.style.padding = '0';
   mc.style.overflow = 'auto';
+  mc.style.background = '#f0f4f8';
 
   const company = App.settings?.company_name || 'DZ Vent & Stock';
 
@@ -4065,7 +4067,7 @@ function renderHome() {
       <!-- Tiles grid -->
       <div class="home-tiles">
         ${tiles.map(t => `
-          <button class="home-tile" onclick="navigate('${t.screen}',null)"
+          <button class="home-tile" onclick="event.stopPropagation();navigate('${t.screen}',null);closeAllMenus()"
             style="background:${t.grad}"
             title="${t.shortcut?'اختصار: '+t.shortcut:''}">
             <div class="home-tile-body">
