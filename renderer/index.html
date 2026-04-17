@@ -2485,7 +2485,7 @@ async function renderPOS() {
             <option value="">👤 Comptoir</option>
             ${clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
           </select>
-          <button onclick="clearPOS()" title="F7 — فاتورة جديدة" style="padding:4px 10px;background:var(--primary);border:none;border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap">🆕 جديد <span style="opacity:.7;font-size:.6rem">F7</span></button>
+          <button onclick="clearPOS()" title="F7 — فاتورة جديدة" style="padding:4px 10px;background:var(--primary);border:none;border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap">🆕 جديد</button>
         </div>
 
         <!-- Totals -->
@@ -2642,23 +2642,24 @@ function tryBarcodeScan(q) {
 }
 
 function handlePOSSearch(q) {
-  _posDropdownIndex = -1; // Reset selection on new search
+  _posDropdownIndex = -1;
   const dropdown = document.getElementById('posDropdown');
   const list     = document.getElementById('posDropdownList');
   if (!q || !q.trim()) {
     dropdown.classList.remove('open');
-    document.querySelectorAll('.pos-grid .pos-product').forEach(el => el.style.display='');
     return;
   }
-  // Scanner auto-detect: numeric length >= 8 + exact barcode match = instant add
+  // Scanner auto-detect: numeric ≥ 8 chars = try barcode first
   if (/^[0-9]{8,}$/.test(q.trim()) && tryBarcodeScan(q.trim())) return;
-  const by  = document.getElementById('pos_search_by')?.value || 'name';
-  const ql  = q.toLowerCase();
-  const filtered = _posProducts.filter(p => {
-    if (by==='ref')     return (p.ref||'').toLowerCase().includes(ql);
-    if (by==='barcode') return (p.barcode||'').toLowerCase().includes(ql);
-    return p.name.toLowerCase().includes(ql);
-  });
+  // Search in name + ref + all barcodes simultaneously
+  const ql = q.toLowerCase().trim();
+  const filtered = _posProducts.filter(p =>
+    (p.name||'').toLowerCase().includes(ql) ||
+    (p.ref||'').toLowerCase().includes(ql) ||
+    (p.barcode||'').toLowerCase().includes(ql) ||
+    (p.barcode2||'').toLowerCase().includes(ql) ||
+    (p.barcode3||'').toLowerCase().includes(ql)
+  );
   list.innerHTML = filtered.length===0
     ? `<div style="padding:16px;text-align:center;color:var(--muted);font-size:.8rem">لا توجد نتائج لـ "${q}"</div>`
     : filtered.slice(0,15).map(p => `
@@ -4998,7 +4999,7 @@ function renderHome() {
         ${tiles.map(t => `
           <button class="home-tile" onclick="navigate('${t.screen}',null)"
             style="background:${t.grad}"
-            title="${t.shortcut?'اختصار: '+t.shortcut:''}">
+            title="${t.shortcut?'اضغط '+t.shortcut+' من الرئيسية':''}">
             <div class="home-tile-body">
               <div class="home-tile-icon">${t.icon}</div>
               <div class="home-tile-label">${t.label}</div>
@@ -5329,23 +5330,20 @@ document.addEventListener('keydown', e => {
     }
   }
 
-  // F-keys
-  if (e.key === 'F1') { e.preventDefault(); navigate('home',         null); return; }
-  if (e.key === 'F2') { e.preventDefault(); navigate('dashboard',    null); return; }
-  if (e.key === 'F3') { e.preventDefault(); navigate('pos',          null); return; }
-  if (e.key === 'F4') { e.preventDefault(); navigate('reports',      null); return; }
-  if (e.key === 'F5') { e.preventDefault(); navigate('ventes',       null); return; }
-  if (e.key === 'F6') { e.preventDefault(); navigate('achats',       null); return; }
-  if (e.key === 'F7') { e.preventDefault(); navigate('products',     null); return; }
-  if (e.key === 'F8') { e.preventDefault(); navigate('clients',      null); return; }
-  if (e.key === 'F9') { e.preventDefault(); navigate('fournisseurs', null); return; }
+  // F1-F9: only active on home screen as tile shortcuts
+  if (App.currentScreen === 'home') {
+    const homeKeys = {
+      F1:'home', F2:'dashboard', F3:'pos', F4:'reports',
+      F5:'ventes', F6:'achats', F7:'products', F8:'clients', F9:'fournisseurs'
+    };
+    if (homeKeys[e.key]) { e.preventDefault(); navigate(homeKeys[e.key], null); return; }
+  }
 
   // POS specific shortcuts
   if (App.currentScreen === 'pos' && !document.getElementById('modalContainer').innerHTML.trim()) {
     // F12 → confirm sale (no print)
     if (e.key === 'F12') { e.preventDefault(); confirmPOSSale(); return; }
-    // F7 in POS → new invoice (clear)
-    if (e.key === 'F7' && App.currentScreen === 'pos') { e.preventDefault(); clearPOS(); toast('🆕 فاتورة جديدة','info',1000); return; }
+
     // Ctrl+P → confirm + print thermal receipt
     if ((e.ctrlKey || e.metaKey) && e.key === 'p') { e.preventDefault(); confirmAndPrint(); return; }
     // Ctrl+Enter → confirm + print (alternative)
