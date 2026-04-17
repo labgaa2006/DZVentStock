@@ -59,11 +59,30 @@ class DB {
       `CREATE TABLE IF NOT EXISTS products (
         id TEXT PRIMARY KEY, ref TEXT UNIQUE, name TEXT NOT NULL,
         category TEXT DEFAULT '', unit TEXT DEFAULT 'قطعة',
-        buy_price REAL DEFAULT 0, sell_price REAL DEFAULT 0,
+        buy_price REAL DEFAULT 0,
+        margin_pct REAL DEFAULT 0,
+        tva_pct REAL DEFAULT 0,
+        sell_price REAL DEFAULT 0,
+        sell_price_semi REAL DEFAULT 0,
+        sell_price_gros REAL DEFAULT 0,
+        sell_price_super REAL DEFAULT 0,
         stock INTEGER DEFAULT 0, stock_min INTEGER DEFAULT 5,
-        barcode TEXT DEFAULT '', notes TEXT DEFAULT '',
+        emplacement TEXT DEFAULT '',
+        expiry_date TEXT DEFAULT '',
+        expiry_alert INTEGER DEFAULT 0,
+        favorite INTEGER DEFAULT 0,
+        barcode TEXT DEFAULT '',
+        barcode2 TEXT DEFAULT '', barcode3 TEXT DEFAULT '',
+        barcode4 TEXT DEFAULT '', barcode5 TEXT DEFAULT '',
+        barcode6 TEXT DEFAULT '', barcode7 TEXT DEFAULT '',
+        barcode8 TEXT DEFAULT '',
+        image_data TEXT DEFAULT '',
+        notes TEXT DEFAULT '',
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0)`,
+      `CREATE TABLE IF NOT EXISTS units (
+        id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL,
+        created_at TEXT DEFAULT (datetime('now')))`,
       `CREATE TABLE IF NOT EXISTS clients (
         id TEXT PRIMARY KEY, name TEXT NOT NULL, phone TEXT DEFAULT '',
         address TEXT DEFAULT '', notes TEXT DEFAULT '', balance REAL DEFAULT 0,
@@ -162,6 +181,15 @@ class DB {
       try { this.db.run(`INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)`, [k,v]); } catch(e) {}
     });
 
+    // Default units
+    try {
+      const defaultUnits = ['قطعة','كغ','لتر','متر','علبة','كرتون','جهاز','طقم','زوج','دزينة'];
+      defaultUnits.forEach((u,i) => {
+        this.db.run(`INSERT OR IGNORE INTO units(id,name) VALUES(?,?)`,
+          ['unit-'+i, u]);
+      });
+    } catch(e) {}
+
     // Default branch
     try {
       this.db.run(`INSERT OR IGNORE INTO branches(id,name,address,phone,manager) VALUES(?,?,?,?,?)`,
@@ -181,22 +209,60 @@ class DB {
   getAllProducts() {
     return this.all(`SELECT * FROM products WHERE is_deleted=0 ORDER BY name`);
   }
+  // Units CRUD
+  getAllUnits() { return this.all(`SELECT * FROM units ORDER BY name`); }
+  addUnit(name) {
+    const id = this.uuid();
+    try {
+      this.run(`INSERT INTO units(id,name) VALUES(?,?)`,[id,name]);
+      return { success:true, id };
+    } catch(e) { return { success:false, error:'الوحدة موجودة مسبقاً' }; }
+  }
+  deleteUnit(id) { this.run(`DELETE FROM units WHERE id=?`,[id]); return {success:true}; }
   addProduct(data) {
     const id = this.uuid();
     const count = this.get(`SELECT COUNT(*) as c FROM products`)?.c || 0;
     const ref = data.ref || `REF-${String(Number(count)+1).padStart(3,'0')}`;
-    this.run(`INSERT INTO products (id,ref,name,category,unit,buy_price,sell_price,stock,stock_min,barcode,notes)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-      [id,ref,data.name,data.category||'',data.unit||'قطعة',
-       data.buy_price||0,data.sell_price||0,data.stock||0,data.stock_min||5,
-       data.barcode||'',data.notes||'']);
+    this.run(`INSERT INTO products
+      (id,ref,name,category,unit,buy_price,margin_pct,tva_pct,
+       sell_price,sell_price_semi,sell_price_gros,sell_price_super,
+       stock,stock_min,emplacement,expiry_date,expiry_alert,favorite,
+       barcode,barcode2,barcode3,barcode4,barcode5,barcode6,barcode7,barcode8,
+       image_data,notes)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [id, ref, data.name,
+       data.category||'', data.unit||'قطعة',
+       data.buy_price||0, data.margin_pct||0, data.tva_pct||0,
+       data.sell_price||0, data.sell_price_semi||0,
+       data.sell_price_gros||0, data.sell_price_super||0,
+       data.stock||0, data.stock_min||5,
+       data.emplacement||'', data.expiry_date||'', data.expiry_alert||0,
+       data.favorite||0,
+       data.barcode||'', data.barcode2||'', data.barcode3||'',
+       data.barcode4||'', data.barcode5||'', data.barcode6||'',
+       data.barcode7||'', data.barcode8||'',
+       data.image_data||'', data.notes||'']);
     return { success:true, id };
   }
   updateProduct(id, data) {
-    this.run(`UPDATE products SET name=?,category=?,unit=?,buy_price=?,sell_price=?,
-      stock=?,stock_min=?,barcode=?,notes=?,updated_at=datetime('now') WHERE id=?`,
-      [data.name,data.category||'',data.unit||'قطعة',data.buy_price||0,data.sell_price||0,
-       data.stock||0,data.stock_min||5,data.barcode||'',data.notes||'',id]);
+    this.run(`UPDATE products SET
+      name=?,category=?,unit=?,
+      buy_price=?,margin_pct=?,tva_pct=?,
+      sell_price=?,sell_price_semi=?,sell_price_gros=?,sell_price_super=?,
+      stock=?,stock_min=?,emplacement=?,expiry_date=?,expiry_alert=?,favorite=?,
+      barcode=?,barcode2=?,barcode3=?,barcode4=?,barcode5=?,barcode6=?,barcode7=?,barcode8=?,
+      image_data=?,notes=?,updated_at=datetime('now') WHERE id=?`,
+      [data.name, data.category||'', data.unit||'قطعة',
+       data.buy_price||0, data.margin_pct||0, data.tva_pct||0,
+       data.sell_price||0, data.sell_price_semi||0,
+       data.sell_price_gros||0, data.sell_price_super||0,
+       data.stock||0, data.stock_min||5,
+       data.emplacement||'', data.expiry_date||'', data.expiry_alert||0,
+       data.favorite||0,
+       data.barcode||'', data.barcode2||'', data.barcode3||'',
+       data.barcode4||'', data.barcode5||'', data.barcode6||'',
+       data.barcode7||'', data.barcode8||'',
+       data.image_data||'', data.notes||'', id]);
     return { success:true };
   }
   deleteProduct(id) {

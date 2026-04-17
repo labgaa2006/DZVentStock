@@ -1035,103 +1035,535 @@ function searchProducts(q) {
   window._searchT = setTimeout(() => renderProducts(q), 300);
 }
 
-function showAddProductModal() {
-  showModal(`
-    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
-      <div class="modal">
-        <div class="modal-header">
-          <div class="modal-title">➕ إضافة منتج جديد</div>
-          <button class="modal-close" onclick="closeModal()">✕</button>
-        </div>
-        <div class="modal-body">
-          <div class="grid-2">
-            <div class="form-group"><label class="form-label">اسم المنتج *</label><input class="form-input" id="p_name" placeholder="اسم المنتج"></div>
-            <div class="form-group"><label class="form-label">الفئة</label><input class="form-input" id="p_cat" placeholder="إلكترونيات، هواتف..."></div>
-            <div class="form-group"><label class="form-label">سعر الشراء (DA)</label><input class="form-input" id="p_buy" type="number" value="0"></div>
-            <div class="form-group"><label class="form-label">سعر البيع (DA)</label><input class="form-input" id="p_sell" type="number" value="0"></div>
-            <div class="form-group"><label class="form-label">المخزون الحالي</label><input class="form-input" id="p_stock" type="number" value="0"></div>
-            <div class="form-group"><label class="form-label">حد التنبيه</label><input class="form-input" id="p_min" type="number" value="5"></div>
-            <div class="form-group"><label class="form-label">الوحدة</label><input class="form-input" id="p_unit" value="قطعة"></div>
-            <div class="form-group"><label class="form-label">الباركود</label><input class="form-input" id="p_bar" placeholder="اختياري"></div>
-          </div>
-          <div class="form-group"><label class="form-label">ملاحظات</label><input class="form-input" id="p_notes" placeholder="اختياري"></div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn" style="background:var(--border);color:#fff" onclick="closeModal()">إلغاء</button>
-          <button class="btn btn-primary" onclick="addProduct()">✅ حفظ</button>
-        </div>
-      </div>
-    </div>
-  `);
-}
+// ═══════════════════════════════════════════════
+// PRODUCT MODAL — كامل الخصائص
+// ═══════════════════════════════════════════════
 
-async function showEditProductModal(id) {
-  const p = allProducts.find(x => x.id === id);
-  if (!p) return;
-  showModal(`
-    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
-      <div class="modal">
-        <div class="modal-header">
-          <div class="modal-title">✏️ تعديل: ${p.name}</div>
-          <button class="modal-close" onclick="closeModal()">✕</button>
-        </div>
-        <div class="modal-body">
-          <div class="grid-2">
-            <div class="form-group"><label class="form-label">اسم المنتج *</label><input class="form-input" id="p_name" value="${p.name}"></div>
-            <div class="form-group"><label class="form-label">الفئة</label><input class="form-input" id="p_cat" value="${p.category||''}"></div>
-            <div class="form-group"><label class="form-label">سعر الشراء (DA)</label><input class="form-input" id="p_buy" type="number" value="${p.buy_price}"></div>
-            <div class="form-group"><label class="form-label">سعر البيع (DA)</label><input class="form-input" id="p_sell" type="number" value="${p.sell_price}"></div>
-            <div class="form-group"><label class="form-label">المخزون</label><input class="form-input" id="p_stock" type="number" value="${p.stock}"></div>
-            <div class="form-group"><label class="form-label">حد التنبيه</label><input class="form-input" id="p_min" type="number" value="${p.stock_min}"></div>
-            <div class="form-group"><label class="form-label">الوحدة</label><input class="form-input" id="p_unit" value="${p.unit||'قطعة'}"></div>
-            <div class="form-group"><label class="form-label">الباركود</label><input class="form-input" id="p_bar" value="${p.barcode||''}"></div>
-          </div>
-          <div class="form-group"><label class="form-label">ملاحظات</label><input class="form-input" id="p_notes" value="${p.notes||''}"></div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn" style="background:var(--border);color:#fff" onclick="closeModal()">إلغاء</button>
-          <button class="btn btn-primary" onclick="updateProduct('${id}')">✅ حفظ التعديل</button>
-        </div>
-      </div>
-    </div>
-  `);
-}
+// ─── Code128 Barcode Generator ───
+function drawBarcode(canvas, text, opts={}) {
+  if (!canvas || !text) return;
+  const w = opts.width || canvas.width;
+  const h = opts.height || canvas.height;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0,0,w,h);
+  if (!text || text.length === 0) return;
 
-async function addProduct() {
-  const name = document.getElementById('p_name').value.trim();
-  if (!name) { toast('اسم المنتج مطلوب', 'error'); return; }
-  const data = {
-    name, category: document.getElementById('p_cat').value.trim(),
-    buy_price: parseFloat(document.getElementById('p_buy').value) || 0,
-    sell_price: parseFloat(document.getElementById('p_sell').value) || 0,
-    stock: parseInt(document.getElementById('p_stock').value) || 0,
-    stock_min: parseInt(document.getElementById('p_min').value) || 5,
-    unit: document.getElementById('p_unit').value || 'قطعة',
-    barcode: document.getElementById('p_bar').value,
-    notes: document.getElementById('p_notes').value,
+  // Simple Code128 B subset — each char maps to bars
+  const CODE128_B = {
+    ' ':11011001100, '!':11001101100, '"':11001100110,
+    '#':10010011000, '$':10010001100, '%':10001001100,
+    '&':10011001000, "'":10011000100, '(':10001100100,
+    ')':11001001000, '*':11001000100, '+':11000100100,
+    ',':10110011100, '-':10011011100, '.':10011001110,
+    '/':10111001100, '0':10011101100, '1':10011100110,
+    '2':11001110010, '3':11001011100, '4':11001001110,
+    '5':11011100100, '6':11001110100, '7':11101101110,
+    '8':11101001100, '9':11100101100, ':':11100100110,
+    ';':11101100100, '<':11100110100, '=':11100110010,
+    '>':11011011000, '?':11011000110, '@':11000110110,
+    'A':10100011000, 'B':10001011000, 'C':10001000110,
+    'D':10110001000, 'E':10001101000, 'F':10001100010,
+    'G':11010001000, 'H':11000101000, 'I':11000100010,
+    'J':10110111000, 'K':10110001110, 'L':10001101110,
+    'M':10111011000, 'N':10111000110, 'O':10001110110,
+    'P':11101110110, 'Q':11010001110, 'R':11000101110,
+    'S':11011101000, 'T':11011100010, 'U':11011101110,
+    'V':11101011000, 'W':11101000110, 'X':11100010110,
+    'Y':11101101000, 'Z':11101100010, '[':11100011010,
+    '\':11101111010, ']':11001000010, '^':11110001010,
+    '_':10100110000, '`':10100001100, 'a':10010110000,
+    'b':10010000110, 'c':10000101100, 'd':10000100110,
+    'e':10110010000, 'f':10110000100, 'g':10011010000,
+    'h':10011000010, 'i':10000110100, 'j':10000110010,
+    'k':11000010010, 'l':11001010000, 'm':11110111010,
+    'n':11000010100, 'o':10001111010, 'p':10100111100,
+    'q':10010111100, 'r':10010011110, 's':10111100100,
+    't':10011110100, 'u':10011110010, 'v':11110100100,
+    'w':11110010100, 'x':11110010010, 'y':11011011110,
+    'z':11011110110, '{':11110110110, '|':10101111000,
+    '}':10100011110, '~':10001011110,
   };
-  await window.api.products.add(data);
+
+  // Encode as pattern
+  let pattern = '11010010000'; // START B
+  for (const ch of String(text)) {
+    const enc = CODE128_B[ch];
+    if (enc) pattern += String(enc);
+    else { // fallback for unknown chars
+      pattern += '10011100110';
+    }
+  }
+  pattern += '1100011101011'; // STOP
+
+  const barW = w / pattern.length;
+  ctx.fillStyle = '#000';
+  for (let i = 0; i < pattern.length; i++) {
+    if (pattern[i] === '1') {
+      ctx.fillRect(Math.floor(i * barW), 0, Math.ceil(barW), h * 0.85);
+    }
+  }
+  // Text under barcode
+  ctx.fillStyle = '#000';
+  ctx.font = `${Math.max(8, h*0.12)}px monospace`;
+  ctx.textAlign = 'center';
+  ctx.fillText(String(text).substring(0,20), w/2, h * 0.97);
+}
+
+function buildBarcodeLabel(canvas, companyName, productName, barcode, price, size) {
+  if (!canvas) return;
+  const isSmall = size === '40x20';
+  const W = canvas.width, H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0,0,W,H);
+  // Company name
+  ctx.fillStyle = '#000';
+  ctx.font = `bold ${isSmall?8:9}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText((companyName||'المحل').substring(0,20), W/2, isSmall?10:11);
+  // Product name
+  ctx.font = `${isSmall?7:8}px sans-serif`;
+  ctx.fillText((productName||'').substring(0,25), W/2, isSmall?19:21);
+  // Barcode
+  const bcCanvas = document.createElement('canvas');
+  bcCanvas.width = W - 8;
+  bcCanvas.height = isSmall ? H*0.45 : H*0.45;
+  drawBarcode(bcCanvas, barcode || '0000000');
+  ctx.drawImage(bcCanvas, 4, isSmall?22:24);
+  // Price
+  const priceY = isSmall ? H-10 : H-11;
+  ctx.font = `bold ${isSmall?8:9}px sans-serif`;
+  ctx.fillStyle = '#000';
+  ctx.fillText(`PRIX: ${price||0} DA`, W/2, priceY);
+}
+
+function renderBarcodePreview() {
+  const barcode = document.getElementById('p_barcode')?.value || '0000000';
+  const name = document.getElementById('p_name')?.value || 'المنتج';
+  const price = document.getElementById('p_sell')?.value || '0';
+  const company = App.settings?.company_name || 'DZ Vent & Stock';
+
+  // 40x20 preview (scale ×4 = 160×80)
+  const c1 = document.getElementById('bc_preview_20');
+  if (c1) buildBarcodeLabel(c1, company, name, barcode, price, '40x20');
+
+  // 40x30 preview (scale ×4 = 160×120)
+  const c2 = document.getElementById('bc_preview_30');
+  if (c2) buildBarcodeLabel(c2, company, name, barcode, price, '40x30');
+}
+
+function calcSellPrice() {
+  const buy = parseFloat(document.getElementById('p_buy')?.value)||0;
+  const margin = parseFloat(document.getElementById('p_margin')?.value)||0;
+  const tva = parseFloat(document.getElementById('p_tva_pct')?.value)||0;
+  const sell = buy * (1 + margin/100) * (1 + tva/100);
+  const sellEl = document.getElementById('p_sell');
+  if (sellEl && document.activeElement?.id !== 'p_sell') {
+    sellEl.value = Math.round(sell);
+  }
+  setTimeout(renderBarcodePreview, 50);
+}
+
+async function showAddProductModal(editId = null) {
+  const units = await window.api.units.getAll();
+  const cats  = [...new Set((await window.api.products.getAll()).map(p=>p.category).filter(Boolean))];
+  const p = editId ? allProducts.find(x=>x.id===editId) : null;
+
+  const unitOptions = units.map(u=>
+    `<option value="${u.name}" ${p?.unit===u.name?'selected':''}>${u.name}</option>`
+  ).join('');
+  const catOptions = cats.map(c=>
+    `<option value="${c}" ${p?.category===c?'selected':''}>${c}</option>`
+  ).join('');
+
+  showModal(`
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" style="width:760px;max-width:98vw;max-height:96vh">
+    <div class="modal-header" style="background:#111827;padding:12px 18px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:32px;height:32px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem">📦</div>
+        <div class="modal-title" style="font-size:1rem">${p ? '✏️ تعديل منتج: '+p.name : '➕ منتج جديد'}</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-body" style="padding:0;overflow-y:auto">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;height:100%">
+
+      <!-- ═══ RIGHT COLUMN ═══ -->
+      <div style="padding:16px;border-left:1px solid var(--border)">
+
+        <!-- صورة المنتج + الكود الأساسي -->
+        <div style="display:flex;gap:12px;margin-bottom:14px;align-items:flex-start">
+          <div id="product_img_wrap" onclick="selectProductImage()"
+            style="width:80px;height:80px;border:2px dashed var(--border);border-radius:10px;cursor:pointer;overflow:hidden;flex-shrink:0;background:#0f172a;display:flex;align-items:center;justify-content:center;transition:.2s"
+            onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+            ${p?.image_data
+              ? `<img id="product_img" src="${p.image_data}" style="width:100%;height:100%;object-fit:cover">`
+              : `<div id="product_img" style="text-align:center;color:var(--muted)"><div style="font-size:1.8rem">📷</div><div style="font-size:.6rem;margin-top:2px">صورة المنتج</div></div>`}
+          </div>
+          <div style="flex:1;display:grid;gap:8px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div><label class="form-label">الكود</label>
+                <input class="form-input" id="p_code" value="${p?.ref||'(تلقائي)'}" placeholder="تلقائي" style="font-weight:700;color:var(--info)"></div>
+              <div><label class="form-label">المرجع / الدفعة</label>
+                <input class="form-input" id="p_ref2" value="${p?.notes||''}" placeholder="رقم الدفعة..."></div>
+            </div>
+            <div><label class="form-label">الاسم *</label>
+              <input class="form-input" id="p_name" value="${p?.name||''}" placeholder="اسم المنتج كاملاً..." oninput="renderBarcodePreview()"></div>
+          </div>
+        </div>
+
+        <!-- الوحدة + الفئة -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div>
+            <label class="form-label">الوحدة</label>
+            <div style="display:flex;gap:6px">
+              <select class="form-select" id="p_unit" style="flex:1">${unitOptions}</select>
+              <button onclick="quickAddUnit()" title="إضافة وحدة"
+                style="padding:6px 10px;background:var(--success);border:none;border-radius:7px;color:#fff;cursor:pointer;font-size:.85rem">+</button>
+            </div>
+          </div>
+          <div>
+            <label class="form-label">الفئة</label>
+            <div style="display:flex;gap:6px">
+              <select class="form-select" id="p_cat" style="flex:1">
+                <option value="">— بدون فئة —</option>
+                ${catOptions}
+              </select>
+              <button onclick="quickAddCategory()" title="إضافة فئة"
+                style="padding:6px 10px;background:var(--info);border:none;border-radius:7px;color:#fff;cursor:pointer;font-size:.85rem">+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- الأسعار -->
+        <div style="background:#0f172a;border-radius:10px;padding:12px;margin-bottom:12px">
+          <div style="font-size:.75rem;font-weight:700;color:var(--primary);margin-bottom:8px">💰 الأسعار</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+            <div><label class="form-label">سعر الشراء (DA)</label>
+              <input class="form-input" id="p_buy" type="number" value="${p?.buy_price||0}" oninput="calcSellPrice()"></div>
+            <div><label class="form-label">الهامش %</label>
+              <input class="form-input" id="p_margin" type="number" value="${p?.margin_pct||0}" placeholder="0" oninput="calcSellPrice()"></div>
+            <div><label class="form-label">TVA %</label>
+              <input class="form-input" id="p_tva_pct" type="number" value="${p?.tva_pct||0}" placeholder="0" oninput="calcSellPrice()"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div><label class="form-label">سعر التجزئة (DA) *</label>
+              <input class="form-input" id="p_sell" type="number" value="${p?.sell_price||0}" style="color:var(--primary);font-weight:700" oninput="renderBarcodePreview()"></div>
+            <div>
+              <label class="form-label">المفضلة</label>
+              <select class="form-select" id="p_fav">
+                <option value="0" ${!p?.favorite?'selected':''}>لا</option>
+                <option value="1" ${p?.favorite?'selected':''}>نعم ⭐</option>
+              </select>
+            </div>
+            <div><label class="form-label">سعر نصف الجملة (DA)</label>
+              <input class="form-input" id="p_semi" type="number" value="${p?.sell_price_semi||0}"></div>
+            <div><label class="form-label">سعر الجملة (DA)</label>
+              <input class="form-input" id="p_gros" type="number" value="${p?.sell_price_gros||0}"></div>
+            <div style="grid-column:1/-1"><label class="form-label">سعر الجملة الكبرى (DA)</label>
+              <input class="form-input" id="p_super" type="number" value="${p?.sell_price_super||0}"></div>
+          </div>
+        </div>
+
+        <!-- المخزون + الموقع -->
+        <div style="background:#0f172a;border-radius:10px;padding:12px">
+          <div style="font-size:.75rem;font-weight:700;color:var(--info);margin-bottom:8px">📦 المخزون</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+            <div><label class="form-label">الكمية الحالية</label>
+              <input class="form-input" id="p_stock" type="number" value="${p?.stock||0}"></div>
+            <div><label class="form-label">حد التنبيه</label>
+              <input class="form-input" id="p_min" type="number" value="${p?.stock_min||5}"></div>
+            <div><label class="form-label">الموقع</label>
+              <input class="form-input" id="p_empl" value="${p?.emplacement||''}" placeholder="رف A2..."></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center">
+            <div>
+              <label class="form-label" style="display:flex;align-items:center;gap:6px;cursor:pointer">
+                <input type="checkbox" id="p_has_expiry" ${p?.expiry_date?'checked':''} onchange="document.getElementById('p_expiry_row').style.display=this.checked?'grid':'none'">
+                تاريخ الصلاحية
+              </label>
+            </div>
+            <div><label class="form-label">تنبيه المخزون</label>
+              <input class="form-input" id="p_alert" type="number" value="${p?.expiry_alert||0}" placeholder="0 أيام قبل"></div>
+          </div>
+          <div id="p_expiry_row" style="display:${p?.expiry_date?'grid':'none'};grid-template-columns:1fr;gap:8px;margin-top:8px">
+            <div><label class="form-label">تاريخ الصلاحية</label>
+              <input class="form-input" id="p_expiry" type="date" value="${p?.expiry_date||''}"></div>
+          </div>
+          <div style="margin-top:8px"><label class="form-label">ملاحظات</label>
+            <input class="form-input" id="p_notes" value="${p?.notes||''}" placeholder="ملاحظات إضافية..."></div>
+        </div>
+      </div>
+
+      <!-- ═══ LEFT COLUMN — BARCODE ═══ -->
+      <div style="padding:16px">
+        <div style="font-size:.75rem;font-weight:700;color:var(--warning);margin-bottom:10px">🔖 رموز الباركود</div>
+
+        <!-- Barcodes 1-8 -->
+        <div style="display:grid;gap:6px;margin-bottom:14px">
+          ${[1,2,3,4,5,6,7,8].map(i => `
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:.68rem;color:var(--muted);width:14px;text-align:center">${i}</span>
+            <input class="form-input" id="p_bc${i}" value="${p?.[i===1?'barcode':'barcode'+i]||''}"
+              placeholder="${i===1?'كود الباركود الرئيسي...':'كود إضافي '+i}"
+              style="flex:1;font-size:.8rem" oninput="${i===1?'renderBarcodePreview()':''}">
+            ${i===1?`<button onclick="generateBarcode()" title="توليد تلقائي"
+              style="padding:5px 8px;background:#374151;border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:.75rem">🎲</button>`:''}
+          </div>`).join('')}
+        </div>
+
+        <!-- معاينة الكود بار -->
+        <div style="font-size:.75rem;font-weight:700;color:var(--muted);margin-bottom:8px">معاينة الطباعة</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div style="text-align:center">
+            <div style="font-size:.68rem;color:var(--muted);margin-bottom:4px;font-weight:600">40×20 mm</div>
+            <canvas id="bc_preview_20" width="160" height="80"
+              style="border:1px solid var(--border);border-radius:6px;background:#fff;width:100%"></canvas>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:.68rem;color:var(--muted);margin-bottom:4px;font-weight:600">40×30 mm</div>
+            <canvas id="bc_preview_30" width="160" height="120"
+              style="border:1px solid var(--border);border-radius:6px;background:#fff;width:100%"></canvas>
+          </div>
+        </div>
+
+        <!-- طباعة -->
+        <div style="background:#0f172a;border-radius:10px;padding:12px">
+          <div style="font-size:.75rem;font-weight:700;color:var(--primary);margin-bottom:8px">🖨️ طباعة الباركود</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div>
+              <label class="form-label">الحجم</label>
+              <div style="display:flex;gap:8px">
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem">
+                  <input type="radio" name="bc_size" value="40x20" checked> 40×20
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem">
+                  <input type="radio" name="bc_size" value="40x30"> 40×30
+                </label>
+              </div>
+            </div>
+            <div>
+              <label class="form-label">عدد النسخ</label>
+              <input class="form-input" id="bc_copies" type="number" value="1" min="1" max="100">
+            </div>
+          </div>
+          <button onclick="printBarcode()" style="width:100%;padding:9px;background:var(--primary);border:none;border-radius:8px;color:#fff;font-family:'Cairo',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer">
+            🖨️ طباعة الباركود
+          </button>
+        </div>
+
+        <!-- الوحدات الموجودة -->
+        <div style="margin-top:12px;background:#0f172a;border-radius:10px;padding:10px">
+          <div style="font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:6px">📋 الوحدات الموجودة</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px" id="units_list_modal">
+            ${units.map(u=>`
+            <span style="background:#1e293b;border:1px solid var(--border);border-radius:16px;padding:2px 10px;font-size:.7rem;color:#e2e8f0;display:flex;align-items:center;gap:5px">
+              ${u.name}
+              <button onclick="deleteUnitFromModal('${u.id}','${u.name}')" style="background:transparent;border:none;color:var(--danger);cursor:pointer;font-size:.75rem;padding:0">✕</button>
+            </span>`).join('')}
+          </div>
+        </div>
+
+        <!-- الفئات الموجودة -->
+        <div style="margin-top:10px;background:#0f172a;border-radius:10px;padding:10px">
+          <div style="font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:6px">📂 الفئات الموجودة</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">
+            ${cats.map(c=>`
+            <span onclick="document.getElementById('p_cat').value='${c.replace(/'/g,"\'")}'"
+              style="background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.2);border-radius:16px;padding:2px 10px;font-size:.7rem;color:var(--info);cursor:pointer">
+              📂 ${c}
+            </span>`).join('')}
+          </div>
+        </div>
+      </div>
+
+    </div><!-- grid -->
+    </div><!-- modal-body -->
+
+    <div class="modal-footer" style="background:#111827">
+      <button class="btn" style="background:var(--border);color:#fff" onclick="closeModal()">❌ إلغاء</button>
+      <button class="btn btn-primary" style="padding:8px 24px;font-size:.88rem" onclick="saveProduct('${editId||''}')">✅ حفظ المنتج</button>
+    </div>
+  </div>
+  </div>
+  `);
+
+  // Init barcode preview after modal renders
+  setTimeout(() => {
+    renderBarcodePreview();
+  }, 100);
+}
+
+// Alias for edit
+function showEditProductModal(id) { showAddProductModal(id); }
+
+// ─── Select product image ───
+function selectProductImage() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const data = ev.target.result;
+      const wrap = document.getElementById('product_img_wrap');
+      if (wrap) wrap.innerHTML = `<img id="product_img" src="${data}" style="width:100%;height:100%;object-fit:cover">`;
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+// ─── Quick add unit from modal ───
+async function quickAddUnit() {
+  const name = prompt('اسم الوحدة الجديدة:');
+  if (!name?.trim()) return;
+  const res = await window.api.units.add(name.trim());
+  if (res.success) {
+    toast('✅ تم إضافة الوحدة: '+name, 'success');
+    const sel = document.getElementById('p_unit');
+    if (sel) {
+      const opt = document.createElement('option');
+      opt.value = name.trim(); opt.textContent = name.trim(); opt.selected = true;
+      sel.appendChild(opt);
+    }
+    const list = document.getElementById('units_list_modal');
+    if (list) {
+      const span = document.createElement('span');
+      span.innerHTML = `${name.trim()} <button onclick="deleteUnitFromModal('${res.id}','${name.trim()}')" style="background:transparent;border:none;color:var(--danger);cursor:pointer;font-size:.75rem">✕</button>`;
+      span.style.cssText = 'background:#1e293b;border:1px solid var(--border);border-radius:16px;padding:2px 10px;font-size:.7rem;color:#e2e8f0;display:flex;align-items:center;gap:5px';
+      list.appendChild(span);
+    }
+  } else {
+    toast(res.error||'خطأ','error');
+  }
+}
+
+async function deleteUnitFromModal(id, name) {
+  if (!confirm(`حذف الوحدة "${name}"؟`)) return;
+  await window.api.units.delete(id);
+  toast('🗑️ تم حذف الوحدة', 'info');
+  // Remove from select
+  const sel = document.getElementById('p_unit');
+  if (sel) Array.from(sel.options).forEach(o => { if (o.value===name) o.remove(); });
+}
+
+// ─── Quick add category ───
+function quickAddCategory() {
+  const name = prompt('اسم الفئة الجديدة:');
+  if (!name?.trim()) return;
+  const sel = document.getElementById('p_cat');
+  if (sel) {
+    const opt = document.createElement('option');
+    opt.value = name.trim(); opt.textContent = name.trim(); opt.selected = true;
+    sel.appendChild(opt);
+    toast('✅ تم إضافة الفئة: '+name, 'success');
+  }
+}
+
+// ─── Generate random barcode ───
+function generateBarcode() {
+  const bc = Date.now().toString().slice(-10);
+  const el = document.getElementById('p_bc1');
+  if (el) { el.value = bc; renderBarcodePreview(); }
+}
+
+// ─── Print barcode ───
+async function printBarcode() {
+  const barcode = document.getElementById('p_bc1')?.value || '0000000';
+  const name    = document.getElementById('p_name')?.value || 'المنتج';
+  const price   = document.getElementById('p_sell')?.value || '0';
+  const company = App.settings?.company_name || 'DZ Vent & Stock';
+  const copies  = parseInt(document.getElementById('bc_copies')?.value)||1;
+  const size    = document.querySelector('input[name="bc_size"]:checked')?.value || '40x20';
+  const isSmall = size === '40x20';
+
+  let labelsHTML = '';
+  for (let i = 0; i < copies; i++) {
+    labelsHTML += `
+    <div style="width:${isSmall?'40mm':'40mm'};height:${isSmall?'20mm':'30mm'};
+      border:1px solid #ccc;display:inline-flex;flex-direction:column;
+      align-items:center;justify-content:space-around;
+      margin:2mm;padding:1mm;font-family:Arial;box-sizing:border-box">
+      <div style="font-size:${isSmall?'6pt':'7pt'};font-weight:bold;text-align:center">${company.substring(0,20)}</div>
+      <div style="font-size:${isSmall?'5pt':'6pt'};text-align:center">${name.substring(0,25)}</div>
+      <svg id="bc_svg_${i}" width="100%" height="${isSmall?'10mm':'15mm'}"></svg>
+      <div style="font-size:${isSmall?'7pt':'8pt'};font-weight:bold">PRIX: ${price} DA</div>
+    </div>`;
+  }
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <style>
+      @page{size:${isSmall?'40mm 20mm':'40mm 30mm'};margin:0}
+      body{margin:0;padding:2mm}
+      @media print{body{margin:0}}
+    </style></head>
+    <body>${labelsHTML}
+    <script>window.onload=()=>{window.print();setTimeout(()=>window.close(),500)}<\/script>
+    </body></html>`;
+
+  await window.api.print.invoice(html);
+}
+
+// ─── Save product ───
+async function saveProduct(editId) {
+  const name = document.getElementById('p_name')?.value?.trim();
+  if (!name) { toast('اسم المنتج مطلوب', 'error'); return; }
+
+  // Get image data
+  const imgEl = document.getElementById('product_img');
+  const imageData = imgEl?.tagName === 'IMG' ? imgEl.src : '';
+
+  const data = {
+    ref:   document.getElementById('p_code')?.value?.includes('تلقائي') ? '' : (document.getElementById('p_code')?.value||''),
+    name,
+    category:         document.getElementById('p_cat')?.value || '',
+    unit:             document.getElementById('p_unit')?.value || 'قطعة',
+    buy_price:        parseFloat(document.getElementById('p_buy')?.value)||0,
+    margin_pct:       parseFloat(document.getElementById('p_margin')?.value)||0,
+    tva_pct:          parseFloat(document.getElementById('p_tva_pct')?.value)||0,
+    sell_price:       parseFloat(document.getElementById('p_sell')?.value)||0,
+    sell_price_semi:  parseFloat(document.getElementById('p_semi')?.value)||0,
+    sell_price_gros:  parseFloat(document.getElementById('p_gros')?.value)||0,
+    sell_price_super: parseFloat(document.getElementById('p_super')?.value)||0,
+    stock:     parseInt(document.getElementById('p_stock')?.value)||0,
+    stock_min: parseInt(document.getElementById('p_min')?.value)||5,
+    emplacement:  document.getElementById('p_empl')?.value||'',
+    expiry_date:  document.getElementById('p_has_expiry')?.checked ? (document.getElementById('p_expiry')?.value||'') : '',
+    expiry_alert: parseInt(document.getElementById('p_alert')?.value)||0,
+    favorite:     parseInt(document.getElementById('p_fav')?.value)||0,
+    barcode:  document.getElementById('p_bc1')?.value||'',
+    barcode2: document.getElementById('p_bc2')?.value||'',
+    barcode3: document.getElementById('p_bc3')?.value||'',
+    barcode4: document.getElementById('p_bc4')?.value||'',
+    barcode5: document.getElementById('p_bc5')?.value||'',
+    barcode6: document.getElementById('p_bc6')?.value||'',
+    barcode7: document.getElementById('p_bc7')?.value||'',
+    barcode8: document.getElementById('p_bc8')?.value||'',
+    image_data: imageData,
+    notes: document.getElementById('p_notes')?.value||'',
+  };
+
+  if (editId) {
+    await window.api.products.update(editId, data);
+    toast('✅ تم حفظ التعديل', 'success');
+  } else {
+    await window.api.products.add(data);
+    toast('✅ تم إضافة المنتج', 'success');
+  }
   closeModal();
-  toast('✅ تم إضافة المنتج', 'success');
   await renderProducts();
 }
 
-async function updateProduct(id) {
-  const name = document.getElementById('p_name').value.trim();
-  if (!name) { toast('اسم المنتج مطلوب', 'error'); return; }
-  const data = {
-    name, category: document.getElementById('p_cat').value.trim(),
-    buy_price: parseFloat(document.getElementById('p_buy').value) || 0,
-    sell_price: parseFloat(document.getElementById('p_sell').value) || 0,
-    stock: parseInt(document.getElementById('p_stock').value) || 0,
-    stock_min: parseInt(document.getElementById('p_min').value) || 5,
-    unit: document.getElementById('p_unit').value || 'قطعة',
-    barcode: document.getElementById('p_bar').value,
-    notes: document.getElementById('p_notes').value,
-  };
-  await window.api.products.update(id, data);
-  closeModal();
-  toast('✅ تم حفظ التعديل', 'success');
+async function deleteProduct(id, name) {
+  if (!confirm(`هل تريد حذف "${name}"؟`)) return;
+  await window.api.products.delete(id);
+  toast('🗑️ تم الحذف', 'info');
   await renderProducts();
 }
 

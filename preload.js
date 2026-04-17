@@ -93,6 +93,12 @@ contextBridge.exposeInMainWorld('api', {
     update:   (id, d)    => ipcRenderer.invoke('users:update', id, d),
     delete:   (id)       => ipcRenderer.invoke('users:delete', id),
   },
+  // ===== الوحدات =====
+  units: {
+    getAll:  ()      => ipcRenderer.invoke('units:getAll'),
+    add:     (name)  => ipcRenderer.invoke('units:add', name),
+    delete:  (id)    => ipcRenderer.invoke('units:delete', id),
+  },
   // ===== الفئات =====
   categories: {
     rename: (oldName, newName) => ipcRenderer.invoke('categories:rename', oldName, newName),

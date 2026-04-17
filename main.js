@@ -53,6 +53,11 @@ ipcMain.handle('fournisseurs:add',     (_, d)    => db.addFournisseur(d));
 ipcMain.handle('fournisseurs:update',  (_, i, d) => db.updateFournisseur(i, d));
 ipcMain.handle('fournisseurs:delete',  (_, i)    => db.deleteFournisseur(i));
 
+// Units
+ipcMain.handle('units:getAll',  ()        => db.getAllUnits());
+ipcMain.handle('units:add',     (_, name) => db.addUnit(name));
+ipcMain.handle('units:delete',  (_, id)   => db.deleteUnit(id));
+
 // Categories
 ipcMain.handle('categories:rename',   (_, o, n) => db.renameCategory(o, n));
 ipcMain.handle('categories:delete',   (_, n)    => db.deleteCategory(n));
