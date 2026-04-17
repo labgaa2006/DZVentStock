@@ -2168,61 +2168,89 @@ function filterAchatsList(q) {
 }
 
 window.saveAchat = async () => {
-  if (!window.achatItems.length) { toast('أضف منتجاً واحداً على الأقل', 'error'); return; }
+  const items = window._achatItems || [];
+  if (!items.length) { toast('أضف منتجاً واحداً على الأقل', 'error'); return; }
   const sel = document.getElementById('a_four');
-  const total = window.achatItems.reduce((s,i) => s + i.qty*i.price, 0);
-  const paid = parseFloat(document.getElementById('a_paid').value) || 0;
+  const total = items.reduce((s,i) => s + i.qty*i.price, 0);
+  const paid = parseFloat(document.getElementById('a_paid')?.value) || 0;
   const data = {
-    fournisseur_id: sel.value || null,
-    fournisseur_name: sel.value ? sel.options[sel.selectedIndex].text : 'مورد مباشر',
+    fournisseur_id: sel?.value || null,
+    fournisseur_name: sel?.value ? sel.options[sel.selectedIndex].text : 'مورد مباشر',
     total, paid, reste: Math.max(0, total - paid),
-    payment_type: document.getElementById('a_pay').value,
+    payment_type: document.getElementById('a_pay')?.value || 'نقداً',
     notes: '', date: today(),
-    items: window.achatItems,
+    items,
   };
-  await window.api.achats.add(data);
-  closeModal();
-  toast('✅ تم حفظ فاتورة الشراء', 'success');
+  try {
+    await window.api.achats.add(data);
+    closeModal();
+    toast('✅ تم حفظ فاتورة الشراء', 'success');
+    window._achatItems = [];
+    await renderAchats();
+  } catch(e) {
+    toast('خطأ في حفظ الفاتورة: ' + (e.message||''), 'error');
+    return;
+  }
   await renderAchats();
 };
 
 // =====================================================
 // CLIENTS
 // =====================================================
+let allClients = [];
 async function renderClients() {
   document.getElementById('topbarActions').innerHTML = `
-    <button class="topbar-btn primary" onclick="showAddClientModal()">➕ عميل جديد</button>
+    <button class="topbar-btn primary" onclick="showAddClientModal()" title="Ctrl+N">➕ عميل جديد</button>
   `;
-  const clients = await window.api.clients.getAll();
-  const c = document.getElementById('mainContent');
-  c.innerHTML = `
+  allClients = await window.api.clients.getAll();
+  document.getElementById('mainContent').innerHTML = `
     <div class="card">
       <div class="card-header">
-        <div class="card-title">👥 العملاء <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${clients.length})</span></div>
+        <div class="card-title">👥 العملاء <span id="clientsCount" style="color:var(--muted);font-size:.75rem;font-weight:400">(${allClients.length})</span></div>
+        <button class="btn btn-sm" style="background:var(--success);color:#fff" onclick="showAddClientModal()">➕ إضافة</button>
       </div>
       <div class="card-search-bar">
-        <input class="card-search-input" placeholder="🔍 بحث بالاسم أو الهاتف..." oninput="filterClientsList(this.value,'${clients.map(x=>x.id).join(',')}')">
+        <input id="clientsSearchInput" class="card-search-input" placeholder="🔍 ابحث بالاسم أو الهاتف أو العنوان..." oninput="filterClientsTable(this.value)" autofocus>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>#</th><th>الاسم</th><th>الهاتف</th><th>العنوان</th><th>إجراءات</th></tr></thead>
-          <tbody>
-            ${clients.length === 0
-              ? `<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">لا يوجد عملاء بعد</td></tr>`
-              : clients.map(cl => `
-              <tr>
-                <td style="font-weight:600">${cl.name}</td>
-                <td style="color:var(--muted)">${cl.phone||'—'}</td>
-                <td style="color:var(--muted)">${cl.address||'—'}</td>
-                <td>
-                  <button class="btn btn-sm btn-danger" onclick="deleteClient('${cl.id}','${cl.name.replace(/'/g,"\\'")}')">🗑️</button>
-                </td>
-              </tr>`).join('')}
-          </tbody>
+          <thead><tr><th>#</th><th>الاسم</th><th>الهاتف</th><th>العنوان</th><th>ملاحظات</th><th>إجراءات</th></tr></thead>
+          <tbody id="clientsTableBody"></tbody>
         </table>
       </div>
     </div>
   `;
+  filterClientsTable('');
+}
+
+function filterClientsTable(q) {
+  const body = document.getElementById('clientsTableBody');
+  if (!body) return;
+  const ql = (q||'').toLowerCase().trim();
+  let filtered = allClients;
+  if (ql) filtered = filtered.filter(c =>
+    (c.name||'').toLowerCase().includes(ql) ||
+    (c.phone||'').toLowerCase().includes(ql) ||
+    (c.address||'').toLowerCase().includes(ql)
+  );
+  const countEl = document.getElementById('clientsCount');
+  if (countEl) countEl.textContent = '(' + filtered.length + ')';
+  body.innerHTML = !filtered.length
+    ? '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">لا يوجد عملاء مطابقون</td></tr>'
+    : filtered.map((cl, i) => `
+      <tr>
+        <td style="color:var(--muted);font-size:.75rem">${i+1}</td>
+        <td style="font-weight:700">${cl.name}</td>
+        <td style="color:var(--muted)">${cl.phone||'—'}</td>
+        <td style="color:var(--muted)">${cl.address||'—'}</td>
+        <td style="color:var(--muted);font-size:.75rem">${cl.notes||'—'}</td>
+        <td>
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-sm" style="background:var(--warning);color:#fff;padding:3px 8px" onclick="showEditClientModal('${cl.id}','${(cl.name||'').replace(/'/g,"\\'")}','${(cl.phone||'').replace(/'/g,"\\'")}','${(cl.address||'').replace(/'/g,"\\'")}')" title="تعديل">✏️</button>
+            <button class="btn btn-sm btn-danger" style="padding:3px 8px" onclick="deleteClient('${cl.id}','${(cl.name||'').replace(/'/g,"\\'")}')" title="حذف">🗑️</button>
+          </div>
+        </td>
+      </tr>`).join('');
 }
 
 function showAddClientModal() {
@@ -3372,36 +3400,57 @@ let allFournisseurs = [];
 
 async function renderFournisseurs() {
   document.getElementById('topbarActions').innerHTML = `
-    <button class="topbar-btn primary" onclick="showFournisseurModal()">➕ مورد جديد</button>
+    <button class="topbar-btn primary" onclick="showFournisseurModal()" title="Ctrl+N">➕ مورد جديد</button>
   `;
   allFournisseurs = await window.api.fournisseurs.getAll();
   document.getElementById('mainContent').innerHTML = `
     <div class="card">
       <div class="card-header">
-        <div class="card-title">🏭 الموردون <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${allFournisseurs.length})</span></div>
+        <div class="card-title">🏭 الموردون <span id="fournisseursCount" style="color:var(--muted);font-size:.75rem;font-weight:400">(${allFournisseurs.length})</span></div>
+        <button class="btn btn-sm" style="background:var(--success);color:#fff" onclick="showFournisseurModal()">➕ إضافة</button>
+      </div>
+      <div class="card-search-bar">
+        <input id="fournSearchInput" class="card-search-input" placeholder="🔍 ابحث بالاسم أو الهاتف أو العنوان..." oninput="filterFournisseursTable(this.value)" autofocus>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>الاسم</th><th>الهاتف</th><th>العنوان</th><th>ملاحظات</th><th>إجراءات</th></tr></thead>
-          <tbody>
-            ${allFournisseurs.length === 0
-              ? `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--muted)">لا يوجد موردون بعد</td></tr>`
-              : allFournisseurs.map(f => `
-              <tr>
-                <td style="font-weight:600">${f.name}</td>
-                <td style="color:var(--muted)">${f.phone||'—'}</td>
-                <td style="color:var(--muted)">${f.address||'—'}</td>
-                <td style="color:var(--muted);font-size:.75rem">${f.notes||'—'}</td>
-                <td><div style="display:flex;gap:4px">
-                  <button class="btn btn-sm btn-info" onclick="showFournisseurModal('${f.id}')">✏️</button>
-                  <button class="btn btn-sm btn-danger" onclick="deleteFournisseur('${f.id}','${f.name.replace(/'/g,"\'")}')">🗑️</button>
-                </div></td>
-              </tr>`).join('')}
-          </tbody>
+          <thead><tr><th>#</th><th>الاسم</th><th>الهاتف</th><th>العنوان</th><th>ملاحظات</th><th>إجراءات</th></tr></thead>
+          <tbody id="fournisseursTableBody"></tbody>
         </table>
       </div>
     </div>
   `;
+  filterFournisseursTable('');
+}
+
+function filterFournisseursTable(q) {
+  const body = document.getElementById('fournisseursTableBody');
+  if (!body) return;
+  const ql = (q||'').toLowerCase().trim();
+  let filtered = allFournisseurs;
+  if (ql) filtered = filtered.filter(f =>
+    (f.name||'').toLowerCase().includes(ql) ||
+    (f.phone||'').toLowerCase().includes(ql) ||
+    (f.address||'').toLowerCase().includes(ql)
+  );
+  const countEl = document.getElementById('fournisseursCount');
+  if (countEl) countEl.textContent = '(' + filtered.length + ')';
+  body.innerHTML = !filtered.length
+    ? '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">لا يوجد موردون مطابقون</td></tr>'
+    : filtered.map((f, i) => `
+      <tr>
+        <td style="color:var(--muted);font-size:.75rem">${i+1}</td>
+        <td style="font-weight:700">${f.name}</td>
+        <td style="color:var(--muted)">${f.phone||'—'}</td>
+        <td style="color:var(--muted)">${f.address||'—'}</td>
+        <td style="color:var(--muted);font-size:.75rem">${f.notes||'—'}</td>
+        <td>
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-sm" style="background:var(--warning);color:#fff;padding:3px 8px" onclick="showFournisseurModal('${f.id}')" title="تعديل">✏️</button>
+            <button class="btn btn-sm btn-danger" style="padding:3px 8px" onclick="deleteFournisseur('${f.id}','${(f.name||'').replace(/'/g,"\\'")}')" title="حذف">🗑️</button>
+          </div>
+        </td>
+      </tr>`).join('');
 }
 
 function showFournisseurModal(id) {
