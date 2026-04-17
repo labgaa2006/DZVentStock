@@ -1812,39 +1812,66 @@ async function printVente(id) {
 // =====================================================
 // ACHATS
 // =====================================================
+let allAchats = [];
 async function renderAchats() {
   document.getElementById('topbarActions').innerHTML = `
-    <button class="topbar-btn primary" onclick="showAddAchatModal()">➕ فاتورة شراء</button>
+    <button class="topbar-btn primary" onclick="showAddAchatModal()" title="Ctrl+N">➕ فاتورة شراء (Ctrl+N)</button>
   `;
-  const achats = await window.api.achats.getAll();
-  const c = document.getElementById('mainContent');
-  c.innerHTML = `
+  allAchats = await window.api.achats.getAll();
+  document.getElementById('mainContent').innerHTML = `
     <div class="card">
       <div class="card-header">
-        <div class="card-title">🛒 سجل المشتريات <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${achats.length})</span></div>
+        <div class="card-title">🛒 سجل المشتريات <span id="achatsCount" style="color:var(--muted);font-size:.75rem;font-weight:400">(${allAchats.length})</span></div>
+        <button class="btn btn-sm" style="background:var(--success);color:#fff" onclick="showAddAchatModal()">➕ فاتورة جديدة</button>
+      </div>
+      <div class="card-search-bar">
+        <input id="achatsSearchInput" class="card-search-input" placeholder="🔍 ابحث برقم الفاتورة أو المورد..." oninput="filterAchatsTable(this.value)" autofocus>
+        <select id="achatsFilter" class="card-filter-select" onchange="filterAchatsTable(document.getElementById('achatsSearchInput').value)">
+          <option value="all">كل الفواتير</option>
+          <option value="paid">مسددة</option>
+          <option value="debt">غير مسددة</option>
+        </select>
       </div>
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>رقم</th><th>المورد</th><th>المجموع</th><th>المدفوع</th><th>الباقي</th><th>التاريخ</th></tr>
+            <tr><th>رقم</th><th>المورد</th><th>المجموع</th><th>المدفوع</th><th>الباقي</th><th>الحالة</th><th>التاريخ</th></tr>
           </thead>
-          <tbody>
-            ${achats.length === 0
-              ? `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">لا توجد مشتريات بعد</td></tr>`
-              : achats.map(a => `
-              <tr>
-                <td><code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;color:#0369a1">${a.num}</code></td>
-                <td>${a.fournisseur_name||'—'}</td>
-                <td style="color:var(--danger);font-weight:700">${fmt(a.total)}</td>
-                <td style="color:var(--success)">${fmt(a.paid)}</td>
-                <td><span class="badge badge-${a.reste>0?'warning':'success'}">${fmt(a.reste)}</span></td>
-                <td style="color:var(--muted);font-size:.75rem">${formatDate(a.date)}</td>
-              </tr>`).join('')}
-          </tbody>
+          <tbody id="achatsTableBody"></tbody>
         </table>
       </div>
     </div>
   `;
+  filterAchatsTable('');
+}
+
+function filterAchatsTable(q) {
+  const body = document.getElementById('achatsTableBody');
+  if (!body) return;
+  const ql = (q||'').toLowerCase().trim();
+  const statusFilter = document.getElementById('achatsFilter')?.value || 'all';
+  let filtered = allAchats;
+  if (ql) filtered = filtered.filter(a =>
+    (a.num||'').toLowerCase().includes(ql) ||
+    (a.fournisseur_name||'').toLowerCase().includes(ql)
+  );
+  if (statusFilter === 'paid') filtered = filtered.filter(a => a.reste === 0);
+  if (statusFilter === 'debt') filtered = filtered.filter(a => a.reste > 0);
+
+  const countEl = document.getElementById('achatsCount');
+  if (countEl) countEl.textContent = '(' + filtered.length + ')';
+  body.innerHTML = !filtered.length
+    ? '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">لا توجد فواتير مطابقة</td></tr>'
+    : filtered.map(a => `
+      <tr>
+        <td><code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;color:#0369a1">${a.num}</code></td>
+        <td style="font-weight:700">${a.fournisseur_name||'—'}</td>
+        <td style="color:var(--danger);font-weight:700">${fmt(a.total)}</td>
+        <td style="color:var(--success)">${fmt(a.paid)}</td>
+        <td><span class="badge badge-${a.reste>0?'warning':'success'}">${fmt(a.reste)}</span></td>
+        <td><span class="badge badge-${a.reste===0?'success':'warning'}">${a.reste===0?'✅ مسددة':'⚠️ متبقي'}</span></td>
+        <td style="color:var(--muted);font-size:.75rem">${formatDate(a.date)}</td>
+      </tr>`).join('');
 }
 
 async function showAddAchatModal() {
@@ -3793,23 +3820,50 @@ function renderComingSoon(name) {
 // =====================================================
 // QUOTES — عروض الأسعار
 // =====================================================
+let _allQuotes = [];
 async function renderQuotes() {
   document.getElementById('topbarActions').innerHTML = `
     <button class="topbar-btn primary" onclick="navigate('pos',null)">➕ عرض سعر جديد (POS)</button>
   `;
-  const quotes = await window.api.quotes.getAll();
+  _allQuotes = await window.api.quotes.getAll();
   document.getElementById('mainContent').innerHTML = `
     <div class="card">
       <div class="card-header">
-        <div class="card-title">📋 عروض الأسعار <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${quotes.length})</span></div>
+        <div class="card-title">📋 عروض الأسعار <span id="quotesCount" style="color:var(--muted);font-size:.75rem;font-weight:400">(${_allQuotes.length})</span></div>
+      </div>
+      <div class="card-search-bar">
+        <input class="card-search-input" placeholder="🔍 ابحث برقم العرض أو اسم العميل..." oninput="filterQuotesTable(this.value)" autofocus>
       </div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>الرقم</th><th>العميل</th><th>المبلغ</th><th>الصلاحية</th><th>الحالة</th><th>التاريخ</th><th>إجراءات</th></tr></thead>
-          <tbody>
-            ${quotes.length === 0
-              ? `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">لا توجد عروض أسعار بعد</td></tr>`
-              : quotes.map(q => {
+          <tbody id="quotesTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="margin-top:12px;background:rgba(56,189,248,.05);border:1px solid rgba(56,189,248,.15);border-radius:8px;padding:12px;font-size:.75rem;color:var(--muted)">
+      💡 لإنشاء عرض سعر: اذهب إلى <strong style="color:var(--primary)">نقطة البيع</strong> — أضف المنتجات — اختر <strong>"حفظ كعرض سعر"</strong>
+    </div>
+  `;
+  filterQuotesTable('');
+}
+
+function filterQuotesTable(searchText) {
+  const body = document.getElementById('quotesTableBody');
+  if (!body) return;
+  const ql = (searchText||'').toLowerCase();
+  let filtered = _allQuotes;
+  if (ql) filtered = filtered.filter(q =>
+    (q.num||'').toLowerCase().includes(ql) ||
+    (q.client_name||'').toLowerCase().includes(ql) ||
+    (q.status||'').toLowerCase().includes(ql)
+  );
+  const countEl = document.getElementById('quotesCount');
+  if (countEl) countEl.textContent = '(' + filtered.length + ')';
+
+  body.innerHTML = !filtered.length
+    ? '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">لا توجد عروض أسعار مطابقة</td></tr>'
+    : filtered.map(q => {
                   const expDate = new Date(q.date);
                   expDate.setDate(expDate.getDate() + (q.validity_days||30));
                   const expired = new Date() > expDate && q.status === 'معلق';
@@ -3830,15 +3884,7 @@ async function renderQuotes() {
                       <button class="btn btn-sm" style="background:var(--border);color:#fff" onclick="deleteQuote('${q.id}')">🗑️</button>
                     </div></td>
                   </tr>`;
-                }).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div style="margin-top:12px;background:rgba(56,189,248,.05);border:1px solid rgba(56,189,248,.15);border-radius:8px;padding:12px;font-size:.75rem;color:var(--muted)">
-      💡 لإنشاء عرض سعر: اذهب إلى <strong style="color:var(--primary)">نقطة البيع</strong> — أضف المنتجات — اختر <strong>"حفظ كعرض سعر"</strong>
-    </div>
-  `;
+                }).join('');
 }
 async function updateQuoteStatus(id, status) {
   await window.api.quotes.updateStatus(id, status);
@@ -3929,33 +3975,54 @@ async function saveCaisse(type) {
 // =====================================================
 // RETOURS — المرتجعات
 // =====================================================
+let allRetours = [];
 async function renderRetours() {
   document.getElementById('topbarActions').innerHTML = `
-    <button class="topbar-btn primary" onclick="showAddRetourModal()">➕ مرتجع جديد</button>
+    <button class="topbar-btn primary" onclick="showAddRetourModal()" title="Ctrl+N">➕ مرتجع جديد</button>
   `;
-  const retours = await window.api.retours.getAll();
+  allRetours = await window.api.retours.getAll();
   document.getElementById('mainContent').innerHTML = `
     <div class="card">
-      <div class="card-header"><div class="card-title">↩️ المرتجعات <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${retours.length})</span></div></div>
+      <div class="card-header">
+        <div class="card-title">↩️ المرتجعات <span id="retoursCount" style="color:var(--muted);font-size:.75rem;font-weight:400">(${allRetours.length})</span></div>
+        <button class="btn btn-sm" style="background:var(--success);color:#fff" onclick="showAddRetourModal()">➕ إضافة</button>
+      </div>
+      <div class="card-search-bar">
+        <input class="card-search-input" placeholder="🔍 ابحث برقم المرتجع أو العميل..." oninput="filterRetoursTable(this.value)" autofocus>
+      </div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>الرقم</th><th>العميل</th><th>المبلغ</th><th>ملاحظات</th><th>التاريخ</th></tr></thead>
-          <tbody>
-            ${retours.length===0
-              ? `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--muted)">لا توجد مرتجعات بعد</td></tr>`
-              : retours.map(r=>`
-              <tr>
-                <td><code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;color:#0369a1">${r.num}</code></td>
-                <td>${r.client_name||'—'}</td>
-                <td style="color:var(--danger);font-weight:700">${fmt(r.total)}</td>
-                <td style="color:var(--muted);font-size:.75rem">${r.notes||'—'}</td>
-                <td style="color:var(--muted);font-size:.75rem">${r.date}</td>
-              </tr>`).join('')}
-          </tbody>
+          <tbody id="retoursTableBody"></tbody>
         </table>
       </div>
     </div>
   `;
+  filterRetoursTable('');
+}
+
+function filterRetoursTable(q) {
+  const body = document.getElementById('retoursTableBody');
+  if (!body) return;
+  const ql = (q||'').toLowerCase().trim();
+  let filtered = allRetours;
+  if (ql) filtered = filtered.filter(r =>
+    (r.num||'').toLowerCase().includes(ql) ||
+    (r.client_name||'').toLowerCase().includes(ql) ||
+    (r.notes||'').toLowerCase().includes(ql)
+  );
+  const countEl = document.getElementById('retoursCount');
+  if (countEl) countEl.textContent = '(' + filtered.length + ')';
+  body.innerHTML = !filtered.length
+    ? '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--muted)">لا توجد مرتجعات مطابقة</td></tr>'
+    : filtered.map(r => `
+      <tr>
+        <td><code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;color:#0369a1">${r.num}</code></td>
+        <td style="font-weight:700">${r.client_name||'—'}</td>
+        <td style="color:var(--danger);font-weight:700">${fmt(r.total)}</td>
+        <td style="color:var(--muted);font-size:.75rem">${r.notes||'—'}</td>
+        <td style="color:var(--muted);font-size:.75rem">${r.date}</td>
+      </tr>`).join('');
 }
 async function showAddRetourModal() {
   const products = await window.api.products.getAll();
@@ -4030,37 +4097,56 @@ window.saveRetour = async () => {
 // =====================================================
 // DETTES — تسوية الديون
 // =====================================================
+let allDettes = [];
 async function renderDettes() {
-  const dettes = await window.api.dettes.getAll();
-  const totalDettes = dettes.reduce((s,d)=>s+(d.reste||0),0);
+  allDettes = await window.api.dettes.getAll();
+  const totalDettes = allDettes.reduce((s,d)=>s+(d.reste||0),0);
   document.getElementById('mainContent').innerHTML = `
     <div class="stat-card mb-16" style="max-width:300px">
       <div class="stat-icon" style="background:rgba(239,68,68,.15)">💳</div>
       <div><div class="stat-val" style="color:var(--danger)">${fmt(totalDettes)}</div><div class="stat-lbl">إجمالي الديون المستحقة</div></div>
     </div>
     <div class="card">
-      <div class="card-header"><div class="card-title">💳 الفواتير غير المسددة <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${dettes.length})</span></div></div>
+      <div class="card-header">
+        <div class="card-title">💳 الفواتير غير المسددة <span id="dettesCount" style="color:var(--muted);font-size:.75rem;font-weight:400">(${allDettes.length})</span></div>
+      </div>
+      <div class="card-search-bar">
+        <input class="card-search-input" placeholder="🔍 ابحث برقم الفاتورة أو العميل..." oninput="filterDettesTable(this.value)" autofocus>
+      </div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>التاريخ</th><th>تسديد</th></tr></thead>
-          <tbody>
-            ${dettes.length===0
-              ? `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--success)">✅ لا توجد ديون مستحقة</td></tr>`
-              : dettes.map(d=>`
-              <tr>
-                <td><code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;color:#0369a1">${d.num}</code></td>
-                <td style="font-weight:600">${d.client_name}</td>
-                <td>${fmt(d.net)}</td>
-                <td style="color:var(--success)">${fmt(d.paid)}</td>
-                <td style="color:var(--danger);font-weight:700">${fmt(d.reste)}</td>
-                <td style="color:var(--muted);font-size:.75rem">${d.date}</td>
-                <td><button class="btn btn-sm btn-success" onclick="showPayDebtModal('${d.id}','${d.client_name.replace(/'/g,"\'")}',${d.reste})">💵 تسديد</button></td>
-              </tr>`).join('')}
-          </tbody>
+          <tbody id="dettesTableBody"></tbody>
         </table>
       </div>
     </div>
   `;
+  filterDettesTable('');
+}
+
+function filterDettesTable(q) {
+  const body = document.getElementById('dettesTableBody');
+  if (!body) return;
+  const ql = (q||'').toLowerCase().trim();
+  let filtered = allDettes;
+  if (ql) filtered = filtered.filter(d =>
+    (d.num||'').toLowerCase().includes(ql) ||
+    (d.client_name||'').toLowerCase().includes(ql)
+  );
+  const countEl = document.getElementById('dettesCount');
+  if (countEl) countEl.textContent = '(' + filtered.length + ')';
+  body.innerHTML = !filtered.length
+    ? '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--success)">✅ لا توجد ديون مطابقة</td></tr>'
+    : filtered.map(d => `
+      <tr>
+        <td><code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;color:#0369a1">${d.num}</code></td>
+        <td style="font-weight:700">${d.client_name}</td>
+        <td>${fmt(d.net)}</td>
+        <td style="color:var(--success)">${fmt(d.paid)}</td>
+        <td style="color:var(--danger);font-weight:800">${fmt(d.reste)}</td>
+        <td style="color:var(--muted);font-size:.75rem">${d.date}</td>
+        <td><button class="btn btn-sm btn-success" onclick="showPayDebtModal('${d.id}','${(d.client_name||'').replace(/'/g,"\\'")}',${d.reste})">💵 تسديد</button></td>
+      </tr>`).join('');
 }
 function showPayDebtModal(venteId, clientName, reste) {
   showModal(`
@@ -4864,6 +4950,15 @@ document.addEventListener('keydown', e => {
     return;
   }
 
+  // `/` to focus on current screen's search input
+  if (e.key === '/' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) {
+    const searchIds = ['prodSearchInput','ventesSearchInput','achatsSearchInput','clientsSearchInput','fournSearchInput','posSearchInput'];
+    for (const id of searchIds) {
+      const el = document.getElementById(id);
+      if (el) { e.preventDefault(); el.focus(); el.select(); return; }
+    }
+  }
+
   // F-keys
   if (e.key === 'F1') { e.preventDefault(); navigate('home',         null); return; }
   if (e.key === 'F2') { e.preventDefault(); navigate('dashboard',    null); return; }
@@ -4877,22 +4972,34 @@ document.addEventListener('keydown', e => {
 
   // POS specific shortcuts
   if (App.currentScreen === 'pos' && !document.getElementById('modalContainer').innerHTML.trim()) {
-    // F12 → confirm sale
+    // F12 → confirm sale (no print)
     if (e.key === 'F12') { e.preventDefault(); confirmPOSSale(); return; }
-    // Ctrl+P → confirm + print
+    // Ctrl+P → confirm + print thermal receipt
     if ((e.ctrlKey || e.metaKey) && e.key === 'p') { e.preventDefault(); confirmAndPrint(); return; }
+    // Ctrl+Enter → confirm + print (alternative)
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); confirmAndPrint(); return; }
     // Ctrl+D → clear POS
     if ((e.ctrlKey || e.metaKey) && e.key === 'd') { e.preventDefault(); clearPOS(); return; }
+    // Ctrl+Delete → remove last item
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'Delete' || e.key === 'Backspace')) {
+      if (document.activeElement?.tagName !== 'INPUT') {
+        e.preventDefault(); removePOSLast(); return;
+      }
+    }
     // + / - on NumPad → change qty of last item
-    if (e.key === '+' && document.activeElement?.id !== 'posSearchInput') {
+    if ((e.key === '+' || e.key === '=') && document.activeElement?.id !== 'posSearchInput') {
       e.preventDefault(); changePOSLastQty(1); return;
     }
-    if (e.key === '-' && document.activeElement?.id !== 'posSearchInput') {
+    if (e.key === '-' && document.activeElement?.id !== 'posSearchInput'
+        && document.activeElement?.tagName !== 'INPUT') {
       e.preventDefault(); changePOSLastQty(-1); return;
     }
-    // Ctrl+Enter → confirm + print
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault(); confirmAndPrint(); return;
+    // F2 → focus payment field
+    if (e.key === 'F2' && document.activeElement?.id !== 'posSearchInput') {
+      e.preventDefault();
+      const paid = document.getElementById('pos_paid');
+      if (paid) { paid.focus(); paid.select(); }
+      return;
     }
   }
 });
