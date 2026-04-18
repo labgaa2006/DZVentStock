@@ -120,6 +120,10 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);overf
 }
 .menubar-btn:hover{background:rgba(249,115,22,.15);color:#fff;border-color:var(--primary)}
 
+/* إخفاء arrows من number input في POS */
+#pos_items_list input[type=number]::-webkit-inner-spin-button,
+#pos_items_list input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+#pos_items_list input[type=number] { -moz-appearance:textfield; }
 /* HOME TILES */
 .home-tiles{
   display:grid;
@@ -2490,9 +2494,10 @@ async function renderPOS() {
         <!-- Search bar always visible at top -->
         <div class="pos-search-zone" style="padding:8px 12px;background:#fff;border-bottom:2px solid var(--border);position:relative;flex-shrink:0">
           <div style="display:flex;align-items:center;gap:8px">
-            <button onclick="togglePOSFavs()" id="pos_favs_toggle_btn"
-              style="padding:6px 12px;background:rgba(245,158,11,.15);border:1px solid var(--warning);border-radius:7px;color:var(--warning);font-size:.75rem;cursor:pointer;font-family:'Cairo',sans-serif;white-space:nowrap;font-weight:700;flex-shrink:0">
-              ⭐ المفضلة
+            <button onclick="togglePOSFavs()" id="pos_favs_toggle_btn" title="F8"
+              style="padding:6px 12px;background:rgba(245,158,11,.15);border:1px solid var(--warning);border-radius:7px;color:var(--warning);font-size:.75rem;cursor:pointer;font-family:'Cairo',sans-serif;white-space:nowrap;font-weight:700;flex-shrink:0;display:flex;flex-direction:column;align-items:center;line-height:1.3">
+              <span>⭐ المفضلة</span>
+              <span style="font-size:.55rem;opacity:.7;font-weight:500">F8</span>
             </button>
             <input id="posSearchInput"
               placeholder="🔍 اكتب الاسم أو المرجع أو امسح الباركود..."
@@ -3001,12 +3006,26 @@ function renderPOSItems() {
               <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1e293b;font-weight:700">${item.product_name}</div>
             </td>
             <td style="padding:7px 4px;text-align:center">
-              <div style="display:flex;align-items:center;justify-content:center;gap:2px">
+              <div style="display:flex;align-items:center;justify-content:center;gap:3px">
                 <button onclick="event.stopPropagation();changePOSQty(${i},-1)"
-                  style="width:20px;height:20px;background:var(--danger);border:none;border-radius:3px;color:var(--text);cursor:pointer;font-weight:700;font-size:.75rem">−</button>
-                <span style="font-size:.9rem;font-weight:900;min-width:26px;text-align:center;color:${item.stock>item.stock_min?'#22c55e':'#f97316'}">${item.qty}</span>
+                  style="width:22px;height:26px;background:var(--danger);border:none;border-radius:4px;color:#fff;cursor:pointer;font-weight:900;font-size:.9rem;line-height:1;flex-shrink:0">−</button>
+                <input type="number" min="1" max="${item.stock}" value="${item.qty}"
+                  id="pos_qty_${i}"
+                  onclick="event.stopPropagation();this.select()"
+                  onkeydown="event.stopPropagation();
+                    if(event.key==='+'){event.preventDefault();changePOSQty(${i},1);}
+                    else if(event.key==='-'){event.preventDefault();changePOSQty(${i},-1);}
+                    else if(event.key==='Enter'){event.preventDefault();setPOSQty(${i},+this.value);this.blur();document.getElementById('posSearchInput')?.focus();}
+                    else if(event.key==='ArrowUp'){event.preventDefault();changePOSQty(${i},1);}
+                    else if(event.key==='ArrowDown'){event.preventDefault();changePOSQty(${i},-1);}"
+                  onchange="event.stopPropagation();setPOSQty(${i},+this.value)"
+                  style="width:44px;height:26px;text-align:center;font-weight:900;font-size:.88rem;
+                    border:2px solid ${item.stock>item.stock_min?'#22c55e':'#f97316'};
+                    border-radius:4px;background:#fff;
+                    color:${item.stock>item.stock_min?'#16a34a':'#ea580c'};
+                    padding:0;outline:none;-moz-appearance:textfield">
                 <button onclick="event.stopPropagation();changePOSQty(${i},1)"
-                  style="width:20px;height:20px;background:var(--success);border:none;border-radius:3px;color:var(--text);cursor:pointer;font-weight:700;font-size:.75rem">+</button>
+                  style="width:22px;height:26px;background:var(--success);border:none;border-radius:4px;color:#fff;cursor:pointer;font-weight:900;font-size:.9rem;line-height:1;flex-shrink:0">+</button>
               </div>
             </td>
             <td style="padding:7px 8px;text-align:center;color:#475569;font-size:.78rem;white-space:nowrap;font-weight:600">${fmtNum(item.price)}</td>
@@ -5456,6 +5475,8 @@ document.addEventListener('keydown', e => {
     }
     // F7 → جديد بدون تأكيد
     if (e.key === 'F7') { e.preventDefault(); clearPOS(); toast('🆕 فاتورة جديدة','info',800); return; }
+    // F8 → المفضلة toggle
+    if (e.key === 'F8') { e.preventDefault(); togglePOSFavs(); return; }
     // F12 → تأكيد (بديل قديم)
     if (e.key === 'F12') { e.preventDefault(); confirmPOSSale(); return; }
 
@@ -5464,7 +5485,7 @@ document.addEventListener('keydown', e => {
     // Ctrl+D → مسح
     if ((e.ctrlKey||e.metaKey) && e.key==='d') { e.preventDefault(); clearPOS(); return; }
 
-    // Enter → يعيد التركيز لخانة البحث فقط (لا يؤكد البيع)
+    // Enter → يعيد التركيز لخانة البحث
     if (e.key === 'Enter' && !inTyping && !(e.ctrlKey||e.metaKey)) {
       e.preventDefault();
       const si = document.getElementById('posSearchInput');
@@ -5472,10 +5493,51 @@ document.addEventListener('keydown', e => {
       return;
     }
 
-    // + / - للكمية (إذا ليس في خانة كتابة)
+    // ↑↓ للتنقل بين سطور السلة + تركيز خانة الكمية
     if (!inTyping) {
-      if (e.key === '+' || e.key === 'NumpadAdd') { e.preventDefault(); changePOSLastQty(1); return; }
-      if (e.key === '-' || e.key === 'NumpadSubtract') { e.preventDefault(); changePOSLastQty(-1); return; }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = (window._posSelectedRow < App.pos.items.length-1)
+          ? window._posSelectedRow + 1 : 0;
+        window._posSelectedRow = next;
+        renderPOSItems();
+        // ركز على input الكمية
+        setTimeout(() => {
+          const inp = document.getElementById('pos_qty_' + next);
+          if (inp) { inp.focus(); inp.select(); }
+        }, 30);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = (window._posSelectedRow > 0)
+          ? window._posSelectedRow - 1 : App.pos.items.length-1;
+        window._posSelectedRow = prev;
+        renderPOSItems();
+        setTimeout(() => {
+          const inp = document.getElementById('pos_qty_' + prev);
+          if (inp) { inp.focus(); inp.select(); }
+        }, 30);
+        return;
+      }
+    }
+
+    // + / - للكمية للسطر المحدد
+    if (!inTyping) {
+      if (e.key === '+' || e.key === 'NumpadAdd') {
+        e.preventDefault();
+        if (window._posSelectedRow >= 0 && window._posSelectedRow < App.pos.items.length)
+          changePOSQty(window._posSelectedRow, 1);
+        else changePOSLastQty(1);
+        return;
+      }
+      if (e.key === '-' || e.key === 'NumpadSubtract') {
+        e.preventDefault();
+        if (window._posSelectedRow >= 0 && window._posSelectedRow < App.pos.items.length)
+          changePOSQty(window._posSelectedRow, -1);
+        else changePOSLastQty(-1);
+        return;
+      }
     }
   }
 });
