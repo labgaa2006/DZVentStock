@@ -813,6 +813,21 @@ async function navigate(name, el) {
     toast('⛔ لا تملك صلاحية الوصول لهذه الصفحة', 'error');
     return;
   }
+
+  // ══ تعليق تلقائي عند مغادرة POS مع سلة غير فارغة ══
+  if (App.currentScreen === 'pos' && name !== 'pos' && App.pos.items.length > 0) {
+    _pauseCounter++;
+    _pausedInvoices.push({
+      id: _pauseCounter,
+      label: 'فاتورة ' + _pauseCounter,
+      items: [...App.pos.items],
+      disc: document.getElementById('pos_disc')?.value || '0',
+      client: document.getElementById('pos_client')?.value || '',
+      auto: true, // علامة أنها تلقائية
+    });
+    App.pos.items = []; // نظف السلة حتى لا تُمسح مرتين
+  }
+
   App.currentScreen = name;
   // Save last screen (except POS)
   if (name !== 'pos') {
@@ -2438,6 +2453,7 @@ async function updateClientFromModal(id) {
 // POS
 // =====================================================
 async function renderPOS() {
+  // لا تمسح السلة هنا — قد تكون فيها بضاعة أو تعليق تلقائي
   App.pos.items = [];
   _posProducts = await window.api.products.getAll();
   const clients = await window.api.clients.getAll();
@@ -2642,8 +2658,14 @@ async function renderPOS() {
   }, 1000);
   document.getElementById('pos_clock').textContent = new Date().toLocaleTimeString('fr-DZ');
   setTimeout(() => {
-    document.getElementById('posSearchInput')?.focus();
-    renderPausedTabs(); // show any paused invoices from before navigation
+    // إذا كانت هناك فاتورة واحدة تلقائية معلقة → استأنفها مباشرة
+    const autoInvoices = _pausedInvoices.filter(x => x.auto);
+    if (autoInvoices.length === 1 && _pausedInvoices.length === 1) {
+      resumePausedInvoice(autoInvoices[0].id);
+    } else {
+      renderPausedTabs();
+      document.getElementById('posSearchInput')?.focus();
+    }
   }, 150);
 }
 
