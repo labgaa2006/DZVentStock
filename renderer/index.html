@@ -252,11 +252,11 @@ button:active:not(:disabled){transform:scale(.97)}
 .pos-search:focus{border-color:var(--primary);outline:none}
 .pos-search::placeholder{color:var(--muted)}
 /* Dropdown results */
-.pos-dropdown{position:absolute;top:100%;right:10px;left:10px;background:#1e293b;border:1px solid var(--primary);border-top:none;border-radius:0 0 10px 10px;z-index:100;max-height:260px;overflow-y:auto;display:none}
+.pos-dropdown{position:absolute;top:100%;right:10px;left:10px;background:#f8fafc;border:1.5px solid var(--primary);border-top:none;border-radius:0 0 12px 12px;z-index:100;max-height:280px;overflow-y:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,.12)}
 .pos-dropdown.open{display:block}
-.pos-dropdown-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;transition:.12s;border-bottom:1px solid #e2e8f0;color:#1e293b;font-weight:500}
+.pos-dropdown-item{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;transition:.1s;border-bottom:1px solid #e2e8f0;background:#fff;font-weight:500}
 .pos-dropdown-item:last-child{border-bottom:none}
-.pos-dropdown-item:hover{background:rgba(249,115,22,.07)}
+.pos-dropdown-item:hover{background:#fff7ed}
 .pos-dropdown-price{margin-right:auto;font-weight:800;color:var(--primary);font-size:.88rem;white-space:nowrap}
 .pos-dropdown-stock{font-size:.7rem;padding:2px 6px;border-radius:10px}
 .pos-cats{display:flex;gap:6px;padding:7px 10px;border-bottom:1px solid var(--border);overflow-x:auto;background:#f8fafc;flex-shrink:0}
@@ -2663,17 +2663,24 @@ function handlePOSSearch(q) {
     ? `<div style="padding:16px;text-align:center;color:var(--muted);font-size:.8rem">لا توجد نتائج لـ "${q}"</div>`
     : filtered.slice(0,15).map(p => `
       <div class="pos-dropdown-item"
-        onclick="addToPOSById('${p.id}');const si=document.getElementById('posSearchInput');if(si){si.value='';si.focus();}document.getElementById('posDropdown').classList.remove('open');_posDropdownIndex=-1"
-        style="${p.stock===0?'background:rgba(239,68,68,.08);border-right:3px solid #dc2626':p.stock<=p.stock_min?'background:rgba(249,115,22,.08);border-right:3px solid #f97316':''}">
+        onclick="addToPOSById('${p.id}');const si=document.getElementById('posSearchInput');if(si){si.value='';si.focus();}document.getElementById('posDropdown').classList.remove('open');_posDropdownIndex=-1">
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:.85rem;color:${p.stock===0?'#dc2626':p.stock<=p.stock_min?'#c2410c':'#1e293b'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
-          <div style="font-size:.68rem;color:var(--muted)">${p.ref}${p.barcode?' • '+p.barcode:''}${p.category?' • '+p.category:''}</div>
+          <div style="font-weight:800;font-size:.88rem;
+            color:${p.stock===0?'#dc2626':p.stock<=p.stock_min?'#ea580c':'#16a34a'};
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+            ${p.name}
+          </div>
+          <div style="font-size:.68rem;color:#94a3b8;margin-top:1px">
+            ${p.ref}${p.barcode?' • '+p.barcode:''}${p.category?' • '+p.category:''}
+          </div>
         </div>
-        <span class="pos-dropdown-price" style="color:${p.stock===0?'#dc2626':p.stock<=p.stock_min?'#f97316':'var(--primary)'}">${fmtNum(p.sell_price)} DA</span>
-        <span style="font-size:.72rem;font-weight:700;padding:2px 10px;border-radius:10px;white-space:nowrap;
-          background:${p.stock===0?'rgba(239,68,68,.15)':p.stock<=p.stock_min?'rgba(249,115,22,.15)':'rgba(16,185,129,.12)'};
-          color:${p.stock===0?'#dc2626':p.stock<=p.stock_min?'#c2410c':'#059669'}">
-          ${p.stock===0?'❌ نفد المخزون':p.stock<=p.stock_min?'⚠️ '+p.stock+' '+(p.unit||''):'✅ '+p.stock+' '+(p.unit||'قطعة')}
+        <span style="font-weight:800;font-size:.85rem;color:#475569;white-space:nowrap;margin:0 8px">
+          ${fmtNum(p.sell_price)} DA
+        </span>
+        <span style="font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:8px;white-space:nowrap;
+          background:${p.stock===0?'#fee2e2':p.stock<=p.stock_min?'#ffedd5':'#dcfce7'};
+          color:${p.stock===0?'#dc2626':p.stock<=p.stock_min?'#ea580c':'#16a34a'}">
+          ${p.stock===0?'نفد ❌':p.stock<=p.stock_min?p.stock+' ⚠️':p.stock+' ✅'} ${p.unit||''}
         </span>
       </div>`).join('');
   dropdown.classList.add('open');
