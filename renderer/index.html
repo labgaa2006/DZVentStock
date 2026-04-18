@@ -2634,7 +2634,6 @@ function tryBarcodeScan(q) {
     const si = document.getElementById('posSearchInput');
     if (si) si.value = '';
     document.getElementById('posDropdown')?.classList.remove('open');
-    toast('🔖 ' + exact.name + ' +1', 'success', 1200);
     return true;
   }
   return false;
@@ -2758,8 +2757,8 @@ document.addEventListener('click', e => {
 
 window.addToPOSById = (id) => {
   const p = _posProducts.find(x=>x.id===id);
-  if (!p) return;
-  window.addToPOS(p.id, p.name, p.sell_price, p.stock, p.ref);
+  if (!p) { toast('المنتج غير موجود','error'); return; }
+  window.addToPOS(p.id, p.name, p.sell_price, p.stock);
 };
 
 // Toggle POS favorites overlay — shows only favorited products
@@ -2824,14 +2823,33 @@ window.removePOSLast = () => {
 
 
 window.addToPOS = (id, name, price, stock) => {
-  if (stock === 0) { toast('المنتج نفد من المخزون', 'error'); return; }
+  // دائماً خذ المخزون من _posProducts (المحدَّث بعد كل بيع)
+  const freshProduct = (_posProducts||[]).find(x => x.id === id);
+  const realStock = freshProduct ? freshProduct.stock : stock;
+
+  if (realStock === 0) {
+    toast('❌ ' + name + ' — نفد من المخزون', 'error');
+    return;
+  }
+
   const existing = App.pos.items.find(i => i.product_id === id);
   if (existing) {
-    if (existing.qty >= stock) { toast('لا يوجد مخزون كافٍ', 'error'); return; }
+    if (existing.qty >= realStock) {
+      toast('⚠️ لا يمكن إضافة المزيد — المخزون المتبقي: ' + realStock, 'error');
+      return;
+    }
     existing.qty++;
+    existing.stock = realStock; // تحديث المرجع
   } else {
-    const p = (_posProducts||[]).find(x=>x.id===id);
-    App.pos.items.push({ product_id:id, product_name:name, ref:p?.ref||'', price, qty:1, stock, unit:p?.unit||'قطعة' });
+    App.pos.items.push({
+      product_id: id,
+      product_name: name,
+      ref: freshProduct?.ref || '',
+      price,
+      qty: 1,
+      stock: realStock,
+      unit: freshProduct?.unit || 'قطعة'
+    });
   }
   renderPOSItems();
   recalcPOS();
