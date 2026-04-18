@@ -2593,7 +2593,7 @@ async function renderPOS() {
             <button onclick="clearPOS()" style="padding:10px 4px;background:#374151;border:none;border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''"><span>❌ مسح الكل</span><span style="font-size:.58rem;opacity:.75;display:block">F6</span></button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-            <button onclick="confirmPOSSale()" style="padding:14px 4px;background:#166534;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.8rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" title="F12 أو Enter"><span>✅ تأكيد</span><span style="font-size:.6rem;opacity:.8">F1</span></button>
+            <button onclick="confirmPOSSale()" style="padding:14px 4px;background:#166534;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.8rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" title="F12 أو Enter"><span>✅ تأكيد</span><span style="font-size:.6rem;opacity:.8;letter-spacing:.5px">F1</span></button>
             <button onclick="confirmAndPrint()" style="padding:14px 4px;background:#064e3b;border:none;border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.78rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" title="Ctrl+P أو Ctrl+Enter"><span>🖨️ تأكيد+طباعة</span><span style="font-size:.6rem;opacity:.8">F2</span></button>
           </div>
         </div>
@@ -5477,31 +5477,47 @@ document.addEventListener('keydown', e => {
     if (e.key === 'F7') { e.preventDefault(); clearPOS(); toast('🆕 فاتورة جديدة','info',800); return; }
     // F8 → المفضلة toggle
     if (e.key === 'F8') { e.preventDefault(); togglePOSFavs(); return; }
-    // F12 → تأكيد (بديل قديم)
-    if (e.key === 'F12') { e.preventDefault(); confirmPOSSale(); return; }
+    // F12 → تأكيد+طباعة (بديل)
+    if (e.key === 'F12') { e.preventDefault(); confirmAndPrint(); return; }
 
     // Ctrl+P → طباعة
     if ((e.ctrlKey||e.metaKey) && e.key==='p') { e.preventDefault(); confirmAndPrint(); return; }
     // Ctrl+D → مسح
     if ((e.ctrlKey||e.metaKey) && e.key==='d') { e.preventDefault(); clearPOS(); return; }
 
-    // Enter → يعيد التركيز لخانة البحث
-    if (e.key === 'Enter' && !inTyping && !(e.ctrlKey||e.metaKey)) {
+    // Enter — المنطق:
+    // 1. إذا كانت السلة فارغة → لا شيء
+    // 2. إذا كان التركيز في البحث وDropdown مفتوح → اختيار سلعة (يتم في handlePOSSearchKey)
+    // 3. إذا كانت السلة فيها سلع → ينتقل للسطر التالي ويركز على كميته
+    if (e.key === 'Enter' && !(e.ctrlKey||e.metaKey)) {
       e.preventDefault();
-      const si = document.getElementById('posSearchInput');
-      if (si) { si.focus(); si.select(); }
+      if (!App.pos.items.length) {
+        // سلة فارغة → ركز على البحث
+        document.getElementById('posSearchInput')?.focus();
+        return;
+      }
+      // انتقل للسطر التالي في السلة
+      const cur = (window._posSelectedRow >= 0 && window._posSelectedRow < App.pos.items.length)
+        ? window._posSelectedRow : -1;
+      const next = cur < App.pos.items.length - 1 ? cur + 1 : 0;
+      window._posSelectedRow = next;
+      renderPOSItems();
+      setTimeout(() => {
+        const inp = document.getElementById('pos_qty_' + next);
+        if (inp) { inp.focus(); inp.select(); }
+      }, 30);
       return;
     }
 
-    // ↑↓ للتنقل بين سطور السلة + تركيز خانة الكمية
+    // ↑↓ للتنقل بين سطور السلة
     if (!inTyping) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
+        if (!App.pos.items.length) return;
         const next = (window._posSelectedRow < App.pos.items.length-1)
           ? window._posSelectedRow + 1 : 0;
         window._posSelectedRow = next;
         renderPOSItems();
-        // ركز على input الكمية
         setTimeout(() => {
           const inp = document.getElementById('pos_qty_' + next);
           if (inp) { inp.focus(); inp.select(); }
@@ -5510,6 +5526,7 @@ document.addEventListener('keydown', e => {
       }
       if (e.key === 'ArrowUp') {
         e.preventDefault();
+        if (!App.pos.items.length) return;
         const prev = (window._posSelectedRow > 0)
           ? window._posSelectedRow - 1 : App.pos.items.length-1;
         window._posSelectedRow = prev;
