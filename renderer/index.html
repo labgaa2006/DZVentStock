@@ -686,7 +686,20 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
       <!-- TOPBAR 2: عنوان الصفحة + إجراءاتها (تحت) -->
       <div class="topbar" style="height:42px;padding:0 16px;background:#f8fafc;
                                  border-bottom:2px solid var(--border);
-                                 display:flex;align-items:center;gap:12px;flex-shrink:0">
+                                 display:flex;align-items:center;gap:10px;flex-shrink:0">
+        <!-- زر الخروج الذكي — مخفي في الرئيسية -->
+        <button id="smartExitBtn" onclick="smartGoHome()"
+          title="رجوع للرئيسية"
+          style="display:none;padding:4px 10px;border-radius:6px;
+                 border:1px solid #e2e8f0;background:#fff;
+                 color:#64748b;cursor:pointer;font-size:.78rem;
+                 font-family:'Cairo',sans-serif;font-weight:600;
+                 align-items:center;gap:5px;transition:.15s;flex-shrink:0"
+          onmouseover="this.style.borderColor='#94a3b8';this.style.color='#1e293b'"
+          onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b'">
+          ← رجوع
+        </button>
+
         <div style="flex:1;display:flex;align-items:center;gap:8px">
           <div class="page-title" id="pageTitle" style="font-size:.9rem;font-weight:700;color:#1e293b">🏠 الرئيسية</div>
           <div id="pageSub" style="font-size:.68rem;color:#94a3b8;font-weight:500"></div>
@@ -864,14 +877,16 @@ async function navigate(name, el) {
   // Reset content padding for non-POS screens
   document.getElementById('mainContent').style.padding = name === 'pos' ? '0' : '18px';
 
-  // أظهر/أخفِ زر F10 حسب الشاشة
+  // أظهر/أخفِ زر F10 + زر الرجوع حسب الشاشة
   const f10Btn = document.getElementById('f10HomeBtn');
   const f10Sep = document.getElementById('f10Sep');
+  const exitBtn = document.getElementById('smartExitBtn');
+  const isHome = name === 'home';
   if (f10Btn) {
-    const isHome = name === 'home';
     f10Btn.style.display = isHome ? 'none' : 'flex';
     if (f10Sep) f10Sep.style.display = isHome ? 'none' : 'block';
   }
+  if (exitBtn) exitBtn.style.display = isHome ? 'none' : 'flex';
 
   await renderScreen(name);
 }
@@ -5621,6 +5636,90 @@ document.addEventListener('keydown', e => {
 
 // ===== THEME: light mode permanent (no dark toggle) =====
 // (stubs kept for backward compat with any leftover calls)
+
+// ===== SMART EXIT / BACK TO HOME =====
+function smartGoHome() {
+  const screen = App.currentScreen;
+
+  // ── 1. بالفعل في الرئيسية ──
+  if (screen === 'home') return;
+
+  // ── 2. POS فيها سلع → تعليق تلقائي بدون سؤال ──
+  if (screen === 'pos' && App.pos.items.length > 0) {
+    // الفاتورة ستُعلَّق تلقائياً في navigate()
+    navigate('home', null);
+    toast('⏸️ الفاتورة معلقة — تجدها عند العودة لـ POS', 'info', 2500);
+    return;
+  }
+
+  // ── 3. مودال شراء مفتوح ──
+  if (document.getElementById('achatItemsBody')) {
+    showSmartExitDialog(
+      '🛒 فاتورة شراء غير محفوظة',
+      'لديك فاتورة شراء مفتوحة. إذا رجعت الآن ستُفقد البيانات المُدخلة.',
+      '⚠️ رجوع وفقدان الفاتورة',
+      () => { closeModal(); navigate('home', null); }
+    );
+    return;
+  }
+
+  // ── 4. مودال منتج مفتوح ──
+  if (document.getElementById('p_name')) {
+    showSmartExitDialog(
+      '📦 بيانات منتج غير محفوظة',
+      'لديك نموذج منتج مفتوح. إذا رجعت الآن ستُفقد البيانات.',
+      '⚠️ رجوع وفقدان البيانات',
+      () => { closeModal(); navigate('home', null); }
+    );
+    return;
+  }
+
+  // ── 5. أي مودال آخر مفتوح ──
+  if (document.querySelector('.modal-overlay')) {
+    showSmartExitDialog(
+      '📋 عمل غير محفوظ',
+      'لديك نافذة مفتوحة. إذا رجعت الآن قد تفقد البيانات غير المحفوظة.',
+      '⚠️ رجوع مع الإغلاق',
+      () => { closeModal(); navigate('home', null); }
+    );
+    return;
+  }
+
+  // ── 6. لا يوجد عمل جارٍ → رجوع مباشر ──
+  navigate('home', null);
+}
+
+function showSmartExitDialog(title, msg, confirmLabel, onConfirm) {
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:400px;max-width:95vw">
+        <div class="modal-header" style="background:linear-gradient(135deg,#1e293b,#334155)">
+          <div class="modal-title" style="color:#fff">${title}</div>
+          <button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <div style="font-size:2.2rem;flex-shrink:0">⚠️</div>
+            <div>
+              <p style="margin:0 0 10px;font-size:.9rem;font-weight:600;color:#1e293b">${msg}</p>
+              <p style="margin:0;font-size:.78rem;color:#64748b">هل تريد العودة للشاشة الرئيسية؟</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" style="gap:8px">
+          <button class="btn" onclick="closeModal()"
+            style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;padding:8px 20px">
+            لا، أكمل العمل
+          </button>
+          <button class="btn" onclick="(${onConfirm.toString()})()"
+            style="background:#dc2626;color:#fff;padding:8px 20px;font-weight:700">
+            ${confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  `);
+}
 
 // ===== STARTUP =====
 async function startup() {
