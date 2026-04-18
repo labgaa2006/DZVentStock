@@ -578,40 +578,97 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
         </div>
       </div>
 
-      <!-- Right side -->
-      <div class="menubar-right">
-        <button class="menubar-btn" onclick="openGlobalSearch()" title="Ctrl+K">🔍 بحث</button>
-        <button class="menubar-btn" onclick="showShortcutsHelp()" title="اختصارات (?)">⌨️</button>
-        <button class="menubar-btn" onclick="refreshCurrentScreen()">🔄</button>
-        <button class="menubar-btn" onclick="printCurrentScreen()">🖨️</button>
-        <div style="width:1px;background:rgba(255,255,255,.1);height:24px;margin:0 4px"></div>
-        <!-- Notification -->
-        <div style="position:relative">
-          <button class="menubar-btn" id="notifBtn" onclick="toggleNotifPanel()">
-            🔔 <span class="notif-badge" id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px">0</span>
-          </button>
-          <div class="notif-panel" id="notifPanel" style="display:none;left:auto;right:0"></div>
-        </div>
-        <div style="width:1px;background:rgba(255,255,255,.1);height:24px;margin:0 4px"></div>
-        <!-- User info -->
-        <div class="menubar-info">
-          <span id="userAvatar" style="background:var(--primary);color:var(--text);width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700">م</span>
-          <span id="userName" style="color:#cbd5e1;font-size:.75rem">مدير النظام</span>
-        </div>
-        <button class="menubar-btn" onclick="doLogout()" style="color:#f87171;border-color:rgba(239,68,68,.3)">🚪 خروج</button>
-      </div>
-
     </div><!-- end menubar -->
 
     <!-- MAIN CONTENT AREA -->
     <div class="main">
-      <!-- Slim topbar: page title + actions -->
-      <div class="topbar" style="height:44px;padding:0 16px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
-        <div style="flex:1">
-          <div class="page-title" id="pageTitle" style="font-size:.9rem">🏠 الرئيسية</div>
+
+      <!-- TOPBAR 1: أدوات + مستخدم + إشعارات (فوق) -->
+      <div style="height:40px;padding:0 14px;background:#fff;border-bottom:1px solid #e2e8f0;
+                  display:flex;align-items:center;gap:8px;flex-shrink:0;
+                  box-shadow:0 1px 3px rgba(0,0,0,.06)">
+        <!-- عنوان الشركة + فرع -->
+        <span id="branchTag" style="font-size:.75rem;font-weight:700;color:#475569;white-space:nowrap">🏪 الفرع الرئيسي</span>
+        <div style="flex:1"></div>
+
+        <!-- أدوات سريعة -->
+        <button onclick="openGlobalSearch()" title="Ctrl+K"
+          style="padding:5px 11px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;
+                 color:#475569;cursor:pointer;font-size:.75rem;font-family:'Cairo',sans-serif;
+                 display:flex;align-items:center;gap:5px;font-weight:600;transition:.15s"
+          onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)'"
+          onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#475569'">
+          🔍 بحث <kbd style="font-size:.6rem;background:#e2e8f0;padding:1px 5px;border-radius:3px;font-family:monospace">Ctrl+K</kbd>
+        </button>
+        <button onclick="showShortcutsHelp()" title="اختصارات (?)"
+          style="padding:5px 9px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;
+                 color:#475569;cursor:pointer;font-size:.75rem;font-family:'Cairo',sans-serif;transition:.15s"
+          onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)'"
+          onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#475569'">
+          ⌨️
+        </button>
+        <button onclick="refreshCurrentScreen()" title="تحديث"
+          style="padding:5px 9px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;
+                 color:#475569;cursor:pointer;font-size:.75rem;transition:.15s"
+          onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)'"
+          onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#475569'">
+          🔄
+        </button>
+        <button onclick="printCurrentScreen()" title="طباعة"
+          style="padding:5px 9px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;
+                 color:#475569;cursor:pointer;font-size:.75rem;transition:.15s"
+          onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)'"
+          onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#475569'">
+          🖨️
+        </button>
+
+        <div style="width:1px;background:#e2e8f0;height:20px;margin:0 2px"></div>
+
+        <!-- إشعارات -->
+        <div style="position:relative">
+          <button id="notifBtn" onclick="toggleNotifPanel()"
+            style="padding:5px 9px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;
+                   color:#475569;cursor:pointer;font-size:.75rem;position:relative;transition:.15s"
+            onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)'"
+            onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#475569'">
+            🔔
+            <span class="notif-badge" id="notifBadge"
+              style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;
+                     border-radius:8px;font-size:.6rem;font-weight:800;
+                     display:none;align-items:center;justify-content:center;
+                     background:var(--danger);color:#fff;padding:0 3px">0</span>
+          </button>
+          <div class="notif-panel" id="notifPanel" style="display:none;left:auto;right:0;top:100%"></div>
+        </div>
+
+        <div style="width:1px;background:#e2e8f0;height:20px;margin:0 2px"></div>
+
+        <!-- المستخدم -->
+        <div style="display:flex;align-items:center;gap:6px">
+          <span id="userAvatar"
+            style="background:var(--primary);color:#fff;width:26px;height:26px;border-radius:50%;
+                   display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800">م</span>
+          <span id="userName" style="font-size:.75rem;font-weight:600;color:#334155">مدير النظام</span>
+        </div>
+
+        <button onclick="doLogout()"
+          style="padding:5px 11px;border-radius:6px;border:1px solid rgba(239,68,68,.3);
+                 background:rgba(239,68,68,.05);color:#dc2626;cursor:pointer;
+                 font-size:.75rem;font-family:'Cairo',sans-serif;font-weight:600;transition:.15s"
+          onmouseover="this.style.background='rgba(239,68,68,.12)'"
+          onmouseout="this.style.background='rgba(239,68,68,.05)'">
+          🚪 خروج
+        </button>
+      </div>
+
+      <!-- TOPBAR 2: عنوان الصفحة + إجراءاتها (تحت) -->
+      <div class="topbar" style="height:42px;padding:0 16px;background:#f8fafc;
+                                 border-bottom:2px solid var(--border);
+                                 display:flex;align-items:center;gap:12px;flex-shrink:0">
+        <div style="flex:1;display:flex;align-items:center;gap:8px">
+          <div class="page-title" id="pageTitle" style="font-size:.9rem;font-weight:700;color:#1e293b">🏠 الرئيسية</div>
           <div id="pageSub" style="font-size:.68rem;color:#94a3b8;font-weight:500"></div>
         </div>
-        <span class="branch-tag" id="branchTag">🏠 الفرع الرئيسي</span>
         <div id="topbarActions" style="display:flex;align-items:center;gap:6px"></div>
       </div>
 
