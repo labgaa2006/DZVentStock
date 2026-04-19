@@ -1449,8 +1449,7 @@ async function showAddProductModal(editId = null) {
               <input class="form-input" id="p_semi" type="number" value="${p?.sell_price_semi||0}"></div>
             <div><label class="form-label">سعر الجملة (DA)</label>
               <input class="form-input" id="p_gros" type="number" value="${p?.sell_price_gros||0}"></div>
-            <div style="grid-column:1/-1"><label class="form-label">سعر الجملة الكبرى (DA)</label>
-              <input class="form-input" id="p_super" type="number" value="${p?.sell_price_super||0}"></div>
+
           </div>
         </div>
 
@@ -1728,7 +1727,6 @@ async function saveProduct(editId) {
     sell_price:       parseFloat(document.getElementById('p_sell')?.value)||0,
     sell_price_semi:  parseFloat(document.getElementById('p_semi')?.value)||0,
     sell_price_gros:  parseFloat(document.getElementById('p_gros')?.value)||0,
-    sell_price_super: parseFloat(document.getElementById('p_super')?.value)||0,
     stock:     parseInt(document.getElementById('p_stock')?.value)||0,
     stock_min: parseInt(document.getElementById('p_min')?.value)||5,
     emplacement:  document.getElementById('p_empl')?.value||'',
@@ -2516,9 +2514,11 @@ async function renderPOS() {
     <div style="background:#1e293b;border-bottom:2px solid var(--primary);padding:6px 14px;display:flex;align-items:center;gap:14px;flex-shrink:0">
       <div>
         <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;margin-bottom:2px">وضع البيع</div>
-        <select id="pos_mode" style="background:#1e293b;border:1px solid var(--border);border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.78rem;padding:3px 8px">
-          <option value="detail">تجزئة (Détail)</option>
-          <option value="gros">جملة (Gros)</option>
+        <select id="pos_mode" onchange="applyPOSMode(this.value)"
+          style="background:#1e293b;border:1px solid var(--border);border-radius:5px;color:#fff;font-family:'Cairo',sans-serif;font-size:.78rem;padding:3px 8px">
+          <option value="detail">تجزئة</option>
+          <option value="semi">نصف جملة</option>
+          <option value="gros">جملة</option>
         </select>
       </div>
       <div>
@@ -2757,7 +2757,7 @@ function tryBarcodeScan(q) {
     (p.barcode3 && p.barcode3 === q)
   );
   if (exact) {
-    window.addToPOS(exact.id, exact.name, exact.sell_price, exact.stock);
+    window.addToPOS(exact.id, exact.name, getPOSPrice(exact), exact.stock);
     const si = document.getElementById('posSearchInput');
     if (si) si.value = '';
     document.getElementById('posDropdown')?.classList.remove('open');
@@ -2885,7 +2885,7 @@ document.addEventListener('click', e => {
 window.addToPOSById = (id) => {
   const p = _posProducts.find(x=>x.id===id);
   if (!p) { toast('المنتج غير موجود','error'); return; }
-  window.addToPOS(p.id, p.name, p.sell_price, p.stock);
+  window.addToPOS(p.id, p.name, getPOSPrice(p), p.stock);
 };
 
 // Toggle POS favorites overlay — shows only favorited products
@@ -2948,6 +2948,34 @@ window.removePOSLast = () => {
   renderPOSItems(); recalcPOS();
 };
 
+
+// تطبيق وضع البيع على السلة — يغير أسعار كل السلع
+function applyPOSMode(mode) {
+  if (!App.pos.items.length) return;
+  let changed = 0;
+  App.pos.items.forEach(item => {
+    const p = (_posProducts||[]).find(x => x.id === item.product_id);
+    if (!p) return;
+    let newPrice = p.sell_price; // تجزئة افتراضي
+    if (mode === 'semi' && p.sell_price_semi > 0) newPrice = p.sell_price_semi;
+    if (mode === 'gros' && p.sell_price_gros > 0) newPrice = p.sell_price_gros;
+    if (newPrice !== item.price) { item.price = newPrice; changed++; }
+  });
+  renderPOSItems();
+  recalcPOS();
+  if (changed > 0) {
+    const labels = { detail:'تجزئة', semi:'نصف جملة', gros:'جملة' };
+    toast('💱 تم تطبيق أسعار ' + (labels[mode]||mode) + ' على ' + changed + ' سلعة', 'success', 2000);
+  }
+}
+
+// عند إضافة سلعة: استخدم السعر الصحيح حسب الوضع الحالي
+function getPOSPrice(p) {
+  const mode = document.getElementById('pos_mode')?.value || 'detail';
+  if (mode === 'semi' && p.sell_price_semi > 0) return p.sell_price_semi;
+  if (mode === 'gros' && p.sell_price_gros > 0) return p.sell_price_gros;
+  return p.sell_price;
+}
 
 window.addToPOS = (id, name, price, stock) => {
   // دائماً خذ المخزون من _posProducts (المحدَّث بعد كل بيع)
