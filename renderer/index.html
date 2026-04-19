@@ -3123,7 +3123,19 @@ function renderPOSItems() {
                   style="width:22px;height:26px;background:var(--success);border:none;border-radius:4px;color:#fff;cursor:pointer;font-weight:900;font-size:.9rem;line-height:1;flex-shrink:0">+</button>
               </div>
             </td>
-            <td style="padding:7px 8px;text-align:center;color:#475569;font-size:.78rem;white-space:nowrap;font-weight:600">${fmtNum(item.price)}</td>
+            <td style="padding:4px 4px;text-align:center">
+              <input type="number" min="0" value="${item.price}"
+                id="pos_price_${i}"
+                onclick="event.stopPropagation();this.select()"
+                onkeydown="event.stopPropagation();
+                  if(event.key==='Enter'){event.preventDefault();setPOSPrice(${i},+this.value);this.blur();}"
+                onchange="event.stopPropagation();setPOSPrice(${i},+this.value)"
+                style="width:72px;height:24px;text-align:center;font-weight:700;font-size:.78rem;
+                  border:1.5px solid #e2e8f0;border-radius:4px;background:#fff;
+                  color:#475569;padding:0 4px;outline:none;
+                  -moz-appearance:textfield"
+                title="انقر لتعديل السعر">
+            </td>
             <td style="padding:7px 8px;text-align:center;font-weight:900;color:#c2410c;font-size:.85rem;white-space:nowrap">${fmtNum(item.qty*item.price)}</td>
             <td style="padding:7px 4px;text-align:center">
               <button onclick="event.stopPropagation();removePOSItem(${i})"
@@ -3153,6 +3165,17 @@ window.changePOSQty = (i, d) => {
   item.qty = newQty;
   renderPOSItems(); recalcPOS();
 };
+window.setPOSPrice = (i, price) => {
+  const item = App.pos.items[i];
+  if (!item) return;
+  if (isNaN(price) || price < 0) { renderPOSItems(); return; }
+  item.price = price;
+  // تحديث خانة المجموع فوراً بدون إعادة رسم كاملة
+  renderPOSItems();
+  recalcPOS();
+  toast('💱 سعر "' + item.product_name + '" → ' + fmtNum(price) + ' DA', 'info', 1500);
+};
+
 window.setPOSQty = (i, qty) => {
   const item = App.pos.items[i];
   const newQty = Math.round(qty);
