@@ -2534,10 +2534,18 @@ async function renderPOS() {
         <div style="font-size:.72rem;color:var(--muted)">فاتورة رقم: <strong style="color:var(--info)">${venteNum}</strong></div>
         <div style="font-size:.72rem;color:var(--muted)">أصناف السلة: <span id="pos_count" style="color:#fff;font-weight:700">0</span></div>
       </div>
-      <!-- عداد اليوم -->
-      <div style="border-right:1px solid var(--border);padding-right:14px;margin-right:0;text-align:center">
-        <div style="font-size:.55rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">مبيعات اليوم</div>
-        <div style="display:flex;gap:12px;align-items:center">
+      <!-- عداد اليوم مع زر إخفاء -->
+      <div style="border-right:1px solid var(--border);padding-right:14px;margin-right:0;text-align:center;position:relative">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+          <div style="font-size:.55rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase">مبيعات اليوم</div>
+          <button id="pos_today_toggle" onclick="toggleTodayStats()"
+            title="إخفاء/إظهار"
+            style="background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:3px;
+                   color:var(--muted);cursor:pointer;font-size:.55rem;padding:1px 5px;line-height:1">
+            👁
+          </button>
+        </div>
+        <div id="pos_today_data" style="display:flex;gap:12px;align-items:center">
           <div style="text-align:center">
             <div id="pos_today_count" style="font-size:1.3rem;font-weight:900;color:#00ff88;font-family:monospace;line-height:1">0</div>
             <div style="font-size:.55rem;color:var(--muted)">فاتورة</div>
@@ -2547,6 +2555,9 @@ async function renderPOS() {
             <div id="pos_today_ca" style="font-size:1.1rem;font-weight:900;color:#00ff88;font-family:monospace;line-height:1">0</div>
             <div style="font-size:.55rem;color:var(--muted)">DA</div>
           </div>
+        </div>
+        <div id="pos_today_hidden" style="display:none;font-size:.7rem;color:var(--muted);padding:4px 0">
+          ••••••
         </div>
       </div>
       <div style="margin-right:auto;text-align:center">
@@ -2721,7 +2732,13 @@ async function renderPOS() {
   document.getElementById('pos_clock').textContent = new Date().toLocaleTimeString('fr-DZ');
   // تحميل ديون العملاء + إحصائية اليوم
   loadClientDettes();
-  loadTodayStats();
+  loadTodayStats().then(() => {
+    // استعادة حالة الإخفاء المحفوظة
+    try {
+      const saved = localStorage.getItem('pos_today_visible');
+      if (saved === '0') toggleTodayStats();
+    } catch(e) {}
+  });
 
   setTimeout(() => {
     // إذا كانت هناك فاتورة واحدة تلقائية معلقة → استأنفها مباشرة
@@ -2974,6 +2991,18 @@ window.removePOSLast = () => {
 
 // ═══ تنبيه ديون الزبون ═══
 let _clientDettes = [];
+
+function toggleTodayStats() {
+  const data   = document.getElementById('pos_today_data');
+  const hidden = document.getElementById('pos_today_hidden');
+  const btn    = document.getElementById('pos_today_toggle');
+  if (!data) return;
+  const isVisible = data.style.display !== 'none';
+  data.style.display   = isVisible ? 'none'  : 'flex';
+  hidden.style.display = isVisible ? 'block' : 'none';
+  if (btn) btn.textContent = isVisible ? '🙈' : '👁';
+  try { localStorage.setItem('pos_today_visible', isVisible ? '0' : '1'); } catch(e) {}
+}
 
 async function loadTodayStats() {
   try {
@@ -4599,23 +4628,74 @@ window.saveRetour = async () => {
 let allDettes = [];
 async function renderDettes() {
   allDettes = await window.api.dettes.getAll();
-  const totalDettes = allDettes.reduce((s,d)=>s+(d.reste||0),0);
+  const allAchats = await window.api.achats.getAll();
+  const achDettes = allAchats.filter(a => (a.reste||0) > 0);
+  const totalClient = allDettes.reduce((s,d)=>s+(d.reste||0),0);
+  const totalFourn  = achDettes.reduce((s,a)=>s+(a.reste||0),0);
+  const totalAll    = totalClient + totalFourn;
+
   document.getElementById('mainContent').innerHTML = `
-    <div class="stat-card mb-16" style="max-width:300px">
-      <div class="stat-icon" style="background:rgba(239,68,68,.15)">💳</div>
-      <div><div class="stat-val" style="color:var(--danger)">${fmt(totalDettes)}</div><div class="stat-lbl">إجمالي الديون المستحقة</div></div>
+    <!-- 3 بطاقات إحصائية -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(239,68,68,.15)">💳</div>
+        <div><div class="stat-val" style="color:var(--danger)">${fmt(totalAll)}</div><div class="stat-lbl">إجمالي الديون</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(239,68,68,.1)">👥</div>
+        <div><div class="stat-val" style="color:var(--danger);font-size:1.1rem">${fmt(totalClient)}</div><div class="stat-lbl">ديون العملاء</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(249,115,22,.1)">🏭</div>
+        <div><div class="stat-val" style="color:var(--warning);font-size:1.1rem">${fmt(totalFourn)}</div><div class="stat-lbl">ديون الموردين</div></div>
+      </div>
     </div>
-    <div class="card">
+
+    <!-- ديون العملاء -->
+    <div class="card mb-16">
       <div class="card-header">
-        <div class="card-title">💳 الفواتير غير المسددة <span id="dettesCount" style="color:var(--muted);font-size:.75rem;font-weight:400">(${allDettes.length})</span></div>
+        <div class="card-title">💳 ديون العملاء
+          <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${allDettes.length})</span>
+        </div>
       </div>
       <div class="card-search-bar">
-        <input class="card-search-input" placeholder="🔍 ابحث برقم الفاتورة أو العميل..." oninput="filterDettesTable(this.value)" autofocus>
+        <input class="card-search-input" placeholder="🔍 ابحث برقم الفاتورة أو العميل..."
+          oninput="filterDettesTable(this.value)" autofocus>
       </div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>التاريخ</th><th>تسديد</th></tr></thead>
           <tbody id="dettesTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ديون الموردين -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🏭 ديون الموردين
+          <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${achDettes.length})</span>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>الفاتورة</th><th>المورد</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>التاريخ</th><th>تسديد</th></tr></thead>
+          <tbody>
+            ${achDettes.length===0
+              ? '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--success)">✅ لا توجد ديون للموردين</td></tr>'
+              : achDettes.map(a=>`
+                <tr>
+                  <td><code style="background:#fef3c7;padding:2px 6px;border-radius:4px;color:#d97706">${a.num}</code></td>
+                  <td style="font-weight:600">${a.fournisseur_name||'—'}</td>
+                  <td>${fmt(a.total)}</td>
+                  <td style="color:var(--success)">${fmt(a.paid)}</td>
+                  <td style="color:var(--warning);font-weight:700">${fmt(a.reste)}</td>
+                  <td style="color:var(--muted);font-size:.75rem">${a.date}</td>
+                  <td><button class="btn btn-sm" style="background:var(--warning);color:#fff"
+                    onclick="showPayAchatDebtModal('${a.id}','${(a.fournisseur_name||'').replace(/'/g,"\\'")}',${a.reste})">
+                    💵 تسديد</button></td>
+                </tr>`).join('')}
+          </tbody>
         </table>
       </div>
     </div>
@@ -4632,10 +4712,8 @@ function filterDettesTable(q) {
     (d.num||'').toLowerCase().includes(ql) ||
     (d.client_name||'').toLowerCase().includes(ql)
   );
-  const countEl = document.getElementById('dettesCount');
-  if (countEl) countEl.textContent = '(' + filtered.length + ')';
   body.innerHTML = !filtered.length
-    ? '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--success)">✅ لا توجد ديون مطابقة</td></tr>'
+    ? '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--success)">✅ لا توجد ديون على العملاء</td></tr>'
     : filtered.map(d => `
       <tr>
         <td><code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;color:#0369a1">${d.num}</code></td>
@@ -4644,7 +4722,9 @@ function filterDettesTable(q) {
         <td style="color:var(--success)">${fmt(d.paid)}</td>
         <td style="color:var(--danger);font-weight:800">${fmt(d.reste)}</td>
         <td style="color:var(--muted);font-size:.75rem">${d.date}</td>
-        <td><button class="btn btn-sm btn-success" onclick="showPayDebtModal('${d.id}','${(d.client_name||'').replace(/'/g,"\\'")}',${d.reste})">💵 تسديد</button></td>
+        <td><button class="btn btn-sm btn-success"
+          onclick="showPayDebtModal('${d.id}','${(d.client_name||'').replace(/'/g,"\\'")}',${d.reste})">
+          💵 تسديد</button></td>
       </tr>`).join('');
 }
 function showPayDebtModal(venteId, clientName, reste) {
