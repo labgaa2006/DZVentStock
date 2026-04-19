@@ -2340,7 +2340,7 @@ window.saveAchat = async () => {
     fournisseur_name: sel?.value ? sel.options[sel.selectedIndex].text : 'مورد مباشر',
     total, paid, reste: Math.max(0, total - paid),
     payment_type: document.getElementById('a_pay')?.value || 'نقداً',
-    notes: '', date: today(),
+    notes: document.getElementById('pos_notes')?.value?.trim() || '', date: today(),
     items,
   };
   try {
@@ -2662,6 +2662,17 @@ async function renderPOS() {
           <select id="pos_payment" style="width:100%;margin-top:8px;padding:6px 8px;background:#fff;border:1.5px solid #94a3b8;border-radius:5px;color:#1e293b;font-family:'Cairo',sans-serif;font-size:.78rem;font-weight:600">
             <option>💵 نقداً</option><option>💳 تحويل</option><option>📅 آجل</option><option>🔀 مختلط</option>
           </select>
+          <!-- ملاحظة الفاتورة -->
+          <textarea id="pos_notes" rows="2"
+            placeholder="📝 ملاحظة... (اختياري)"
+            style="width:100%;margin-top:6px;padding:5px 8px;
+                   background:#fff;border:1.5px solid #e2e8f0;border-radius:5px;
+                   color:#475569;font-family:'Cairo',sans-serif;font-size:.75rem;
+                   resize:none;outline:none;box-sizing:border-box;
+                   transition:.15s"
+            onkeydown="event.stopPropagation()"
+            onfocus="this.style.borderColor='var(--primary)'"
+            onblur="this.style.borderColor='#e2e8f0'"></textarea>
         </div>
 
         <!-- Spacer -->
@@ -3330,7 +3341,7 @@ window.confirmPOSSale = async (opts = {}) => {
     paid: paid,   // الصفر يعني لم يدفع — يُسجَّل كدين
     reste: Math.max(0, Math.round(net) - paid),
     payment_type: (document.getElementById('pos_payment')?.value || 'نقداً').replace(/^[^ ]+ /,''),
-    notes: '', date: today(),
+    notes: document.getElementById('pos_notes')?.value?.trim() || '', date: today(),
     items,
   };
   try {
@@ -3342,6 +3353,8 @@ window.confirmPOSSale = async (opts = {}) => {
       await printQuickReceipt({ ...data, num: res.num });
     }
     clearPOS();
+    const notesEl = document.getElementById('pos_notes');
+    if (notesEl) notesEl.value = '';
     // Return focus to search for next sale
     setTimeout(() => document.getElementById('posSearchInput')?.focus(), 100);
   } catch(e) {
@@ -3454,6 +3467,10 @@ async function printQuickReceipt(sale) {
   </div>
 
   <!-- Footer -->
+  ${sale.notes ? `
+  <div style="border-top:1px dashed #999;border-bottom:1px dashed #999;margin:6px 0;padding:5px 0;text-align:center;font-size:9pt;font-style:italic;color:#333">
+    📝 ${sale.notes}
+  </div>` : ''}
   <div class="ftr">Merci de votre visite, à la prochaine.</div>
 
   <!-- Barcode area -->
