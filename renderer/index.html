@@ -2957,7 +2957,46 @@ window.removePOSLast = () => {
 };
 
 
-// تطبيق وضع البيع على السلة — يغير أسعار كل السلع
+// ═══ تنبيه ديون الزبون ═══
+let _clientDettes = [];
+
+async function loadClientDettes() {
+  try { _clientDettes = await window.api.dettes.getAll(); }
+  catch(e) { _clientDettes = []; }
+}
+
+async function checkClientDebt(clientId) {
+  const oldWarn = document.getElementById('pos_debt_warn');
+  if (oldWarn) oldWarn.remove();
+  if (!clientId) return;
+
+  const debts = _clientDettes.filter(d => d.client_id === clientId);
+  const totalDebt = debts.reduce((s, d) => s + (d.reste || 0), 0);
+  if (totalDebt <= 0) return;
+
+  const sel = document.getElementById('pos_client');
+  const clientName = sel?.options[sel.selectedIndex]?.text || '';
+
+  const warn = document.createElement('div');
+  warn.id = 'pos_debt_warn';
+  warn.style.cssText = 'background:linear-gradient(135deg,#fff5f5,#fee2e2);border:1.5px solid #fca5a5;border-radius:6px;padding:5px 10px;margin-top:5px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;animation:slideDown .2s ease';
+  warn.innerHTML = `
+    <div style="display:flex;align-items:center;gap:7px">
+      <span style="font-size:1.1rem">⚠️</span>
+      <div>
+        <div style="font-size:.72rem;font-weight:800;color:#dc2626">دين مستحق على ${clientName}</div>
+        <div style="font-size:.68rem;color:#991b1b;font-weight:600">${fmtNum(totalDebt)} DA — ${debts.length} فاتورة غير مسددة</div>
+      </div>
+    </div>
+    <button onclick="document.getElementById('pos_debt_warn').remove()"
+      style="background:transparent;border:none;color:#dc2626;cursor:pointer;font-size:.85rem;padding:2px 5px">✕</button>
+  `;
+  const clientRow = document.getElementById('pos_client')?.closest('div');
+  if (clientRow) clientRow.insertAdjacentElement('afterend', warn);
+  toast('⚠️ ' + clientName + ' عنده دين: ' + fmtNum(totalDebt) + ' DA', 'error', 3000);
+}
+
+// ═══ تطبيق وضع البيع على السلة ═══
 function applyPOSMode(mode) {
   if (!App.pos.items.length) return;
   let changed = 0;
