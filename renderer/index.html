@@ -2618,16 +2618,36 @@ async function renderPOS() {
           <div style="display:flex;justify-content:space-between;font-size:1.05rem;font-weight:900;color:var(--primary);border-top:2px solid var(--border);padding-top:8px;margin-top:6px">
             <span>الصافي TTC:</span><span id="pos_net">0 DA</span>
           </div>
+          <!-- المدفوع -->
           <div style="margin-top:8px">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-              <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">المدفوع:</span>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+              <span style="font-size:.72rem;color:var(--muted);white-space:nowrap;font-weight:600">المدفوع:</span>
               <input id="pos_paid" type="number" value="0" oninput="updateReste()"
-                style="flex:1;padding:5px 8px;background:#fff;border:1.5px solid #94a3b8;border-radius:5px;color:#1e293b;font-family:'Cairo',sans-serif;text-align:center;font-size:.9rem;font-weight:700">
+                style="flex:1;padding:6px 8px;background:#fff;border:2px solid #94a3b8;border-radius:6px;
+                       color:#1e293b;font-family:'Cairo',sans-serif;text-align:center;font-size:1rem;font-weight:800"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();updateReste();}">
             </div>
-            <div style="display:flex;align-items:center;gap:6px">
-              <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">الباقي:</span>
-              <span id="pos_reste" style="color:var(--success);font-weight:700;font-size:.9rem;white-space:nowrap">0 DA</span>
+          </div>
+
+          <!-- الباقي للزبون — كبير وواضح -->
+          <div id="pos_reste_box"
+            style="margin-top:4px;border-radius:10px;padding:8px 10px;
+                   background:linear-gradient(135deg,#f0fdf4,#dcfce7);
+                   border:2px solid #86efac;
+                   display:flex;align-items:center;justify-content:space-between;
+                   transition:all .2s">
+            <div>
+              <div style="font-size:.6rem;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">
+                الباقي للزبون
+              </div>
+              <div id="pos_reste"
+                style="font-size:1.7rem;font-weight:900;color:#16a34a;font-family:monospace;
+                       letter-spacing:1px;line-height:1">
+                0.00
+              </div>
+              <div style="font-size:.6rem;color:#16a34a;opacity:.7">دينار جزائري</div>
             </div>
+            <div class="pos-reste-icon" style="font-size:2rem;opacity:.35">💰</div>
           </div>
           <select id="pos_payment" style="width:100%;margin-top:8px;padding:6px 8px;background:#fff;border:1.5px solid #94a3b8;border-radius:5px;color:#1e293b;font-family:'Cairo',sans-serif;font-size:.78rem;font-weight:600">
             <option>💵 نقداً</option><option>💳 تحويل</option><option>📅 آجل</option><option>🔀 مختلط</option>
@@ -3021,11 +3041,53 @@ window.recalcPOS = () => {
 };
 
 window.updateReste = () => {
-  const net = parseFloat(document.getElementById('pos_net')?.textContent?.replace(/[^\d.]/g,'')) || 0;
-  const paid = parseFloat(document.getElementById('pos_paid')?.value) || 0;
+  const netEl = document.getElementById('pos_net');
+  const net   = parseFloat((netEl?.textContent||'0').replace(/[^\d.]/g,'')) || 0;
+  const paid  = parseFloat(document.getElementById('pos_paid')?.value) || 0;
   const reste = Math.max(0, net - paid);
-  document.getElementById('pos_reste').textContent = fmt(reste);
-  document.getElementById('pos_reste').style.color = reste > 0 ? 'var(--warning)' : 'var(--success)';
+  const change = paid > net ? paid - net : 0; // فكة إذا دفع أكثر
+
+  const resteEl = document.getElementById('pos_reste');
+  const box     = document.getElementById('pos_reste_box');
+  if (!resteEl || !box) return;
+
+  if (net === 0) {
+    // لا توجد فاتورة
+    resteEl.textContent = '0.00';
+    resteEl.style.color = '#16a34a';
+    box.style.background = 'linear-gradient(135deg,#f0fdf4,#dcfce7)';
+    box.style.borderColor = '#86efac';
+    box.querySelector('div div:first-child').textContent = 'الباقي للزبون';
+    box.querySelector('div div:last-child').textContent  = 'دينار جزائري';
+    box.querySelector('.pos-reste-icon').textContent = '💰';
+  } else if (reste > 0) {
+    // لا يزال عليه باقي → أحمر/برتقالي
+    resteEl.textContent = fmtNum(reste) + ' DA';
+    resteEl.style.color = '#dc2626';
+    box.style.background = 'linear-gradient(135deg,#fff5f5,#fee2e2)';
+    box.style.borderColor = '#fca5a5';
+    box.querySelector('div div:first-child').textContent = '⚠️ متبقي على الزبون';
+    box.querySelector('div div:last-child').textContent  = 'دينار جزائري';
+    box.querySelector('.pos-reste-icon').textContent = '⚠️';
+  } else if (change > 0) {
+    // دفع أكثر → فكة
+    resteEl.textContent = fmtNum(change) + ' DA';
+    resteEl.style.color = '#f97316';
+    box.style.background = 'linear-gradient(135deg,#fff7ed,#ffedd5)';
+    box.style.borderColor = '#fdba74';
+    box.querySelector('div div:first-child').textContent = '💵 الفكة للزبون';
+    box.querySelector('div div:last-child').textContent  = 'دينار جزائري';
+    box.querySelector('.pos-reste-icon').textContent = '💵';
+  } else {
+    // مسدد بالكامل → أخضر
+    resteEl.textContent = '0.00';
+    resteEl.style.color = '#16a34a';
+    box.style.background = 'linear-gradient(135deg,#f0fdf4,#dcfce7)';
+    box.style.borderColor = '#86efac';
+    box.querySelector('div div:first-child').textContent = '✅ مسدد بالكامل';
+    box.querySelector('div div:last-child').textContent  = 'شكراً للزبون';
+    box.querySelector('.pos-reste-icon').textContent = '✅';
+  }
 };
 
 function renderPOSItems() {
