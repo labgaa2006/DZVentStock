@@ -379,12 +379,6 @@ class DB {
     return { success: true };
   }
 
-  updateVenteNotes(id, notes) {
-    this.db.run(`UPDATE ventes SET notes=? WHERE id=?`, [notes||'', id]);
-    this.saveNow();
-    return { success: true };
-  }
-
   getVenteById(id) {
     const v = this.get(`SELECT * FROM ventes WHERE id=?`,[id]);
     if (!v) return null;
