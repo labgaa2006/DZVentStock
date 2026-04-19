@@ -1932,6 +1932,7 @@ async function printVente(id) {
       paid: v.paid,
       reste: v.reste,
       notes: v.notes || '',
+      seller_name: v.seller_name || App.currentUser?.name || 'الكاشير',
     });
     return;
   }
@@ -3416,10 +3417,12 @@ window.confirmPOSSale = async (opts = {}) => {
     client_name: clientSel?.value ? clientSel.options[clientSel.selectedIndex].text : 'عميل عابر',
     total: afterDisc, discount: discAmt, tva: tvaAmt,
     net: Math.round(net),
-    paid: paid,   // الصفر يعني لم يدفع — يُسجَّل كدين
+    paid: paid,
     reste: Math.max(0, Math.round(net) - paid),
     payment_type: (document.getElementById('pos_payment')?.value || 'نقداً').replace(/^[^ ]+ /,''),
-    notes: document.getElementById('pos_notes')?.value?.trim() || '', date: today(),
+    notes: document.getElementById('pos_notes')?.value?.trim() || '',
+    seller_name: App.currentUser?.name || 'الكاشير',
+    date: today(),
     items,
   };
   try {
@@ -3447,7 +3450,7 @@ async function printQuickReceipt(sale) {
   const phone    = App.settings.company_phone || '';
   const address  = App.settings.company_address || 'الأغواط، الجزائر';
   const subtitle = App.settings.company_subtitle || 'برنامج إدارة المبيعات';
-  const seller   = App.currentUser?.name || 'الكاشير';
+  const seller   = sale.seller_name || App.currentUser?.name || 'الكاشير';
   const w = size === '58mm' ? '58mm' : '80mm';
   const now = new Date();
   const dateStr = now.toLocaleDateString('fr-DZ') + ' ' + now.toLocaleTimeString('fr-DZ',{hour:'2-digit',minute:'2-digit',second:'2-digit'});

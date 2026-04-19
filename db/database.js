@@ -116,7 +116,7 @@ class DB {
         id TEXT PRIMARY KEY, num TEXT UNIQUE, client_id TEXT, client_name TEXT DEFAULT 'عميل نقدي',
         total REAL DEFAULT 0, discount REAL DEFAULT 0, tva REAL DEFAULT 0,
         net REAL DEFAULT 0, paid REAL DEFAULT 0, reste REAL DEFAULT 0,
-        payment_type TEXT DEFAULT 'نقداً', notes TEXT DEFAULT '',
+        payment_type TEXT DEFAULT 'نقداً', notes TEXT DEFAULT '', seller_name TEXT DEFAULT '',
         date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0)`,
       `CREATE TABLE IF NOT EXISTS vente_items (
@@ -127,7 +127,7 @@ class DB {
         id TEXT PRIMARY KEY, num TEXT UNIQUE, fournisseur_id TEXT,
         fournisseur_name TEXT DEFAULT '', total REAL DEFAULT 0,
         paid REAL DEFAULT 0, reste REAL DEFAULT 0,
-        payment_type TEXT DEFAULT 'نقداً', notes TEXT DEFAULT '',
+        payment_type TEXT DEFAULT 'نقداً', notes TEXT DEFAULT '', seller_name TEXT DEFAULT '',
         date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0)`,
       `CREATE TABLE IF NOT EXISTS achat_items (
@@ -391,10 +391,10 @@ class DB {
     const prefix = this.get(`SELECT value FROM settings WHERE key='vente_num_prefix'`)?.value || 'F';
     const num = `${prefix}${String(counter).padStart(5,'0')}`;
 
-    this.db.run(`INSERT INTO ventes(id,num,client_id,client_name,total,discount,tva,net,paid,reste,payment_type,notes,date)
-      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    this.db.run(`INSERT INTO ventes(id,num,client_id,client_name,total,discount,tva,net,paid,reste,payment_type,notes,seller_name,date)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id,num,data.client_id||null,data.client_name,data.total||0,data.discount||0,
-       data.tva||0,data.net||0,data.paid||0,data.reste||0,data.payment_type,data.notes||'',data.date]);
+       data.tva||0,data.net||0,data.paid||0,data.reste||0,data.payment_type,data.notes||'',data.seller_name||'',data.date]);
 
     (data.items||[]).forEach(item => {
       this.db.run(`INSERT INTO vente_items(id,vente_id,product_id,product_name,ref,qty,price,total)
