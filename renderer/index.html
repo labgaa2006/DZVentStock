@@ -2532,8 +2532,22 @@ async function renderPOS() {
       </div>
       <div style="border-right:1px solid var(--border);padding-right:14px;margin-right:0">
         <div style="font-size:.72rem;color:var(--muted)">فاتورة رقم: <strong style="color:var(--info)">${venteNum}</strong></div>
-        <div style="font-size:.72rem;color:var(--muted)">عدد الأصناف: <span id="pos_count" style="color:var(--text);font-weight:700">0</span></div>
-        <div style="font-size:.72rem;color:var(--muted)">Nombre de produits: <span id="pos_items_count" style="color:var(--info);font-weight:700">0</span></div>
+        <div style="font-size:.72rem;color:var(--muted)">أصناف السلة: <span id="pos_count" style="color:#fff;font-weight:700">0</span></div>
+      </div>
+      <!-- عداد اليوم -->
+      <div style="border-right:1px solid var(--border);padding-right:14px;margin-right:0;text-align:center">
+        <div style="font-size:.55rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">مبيعات اليوم</div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="text-align:center">
+            <div id="pos_today_count" style="font-size:1.3rem;font-weight:900;color:#00ff88;font-family:monospace;line-height:1">0</div>
+            <div style="font-size:.55rem;color:var(--muted)">فاتورة</div>
+          </div>
+          <div style="width:1px;height:24px;background:rgba(255,255,255,.1)"></div>
+          <div style="text-align:center">
+            <div id="pos_today_ca" style="font-size:1.1rem;font-weight:900;color:#00ff88;font-family:monospace;line-height:1">0</div>
+            <div style="font-size:.55rem;color:var(--muted)">DA</div>
+          </div>
+        </div>
       </div>
       <div style="margin-right:auto;text-align:center">
         <div style="font-size:.6rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase">TOTAL</div>
@@ -2705,8 +2719,9 @@ async function renderPOS() {
     else clearInterval(window._posClock);
   }, 1000);
   document.getElementById('pos_clock').textContent = new Date().toLocaleTimeString('fr-DZ');
-  // تحميل ديون العملاء في الخلفية
+  // تحميل ديون العملاء + إحصائية اليوم
   loadClientDettes();
+  loadTodayStats();
 
   setTimeout(() => {
     // إذا كانت هناك فاتورة واحدة تلقائية معلقة → استأنفها مباشرة
@@ -2959,6 +2974,16 @@ window.removePOSLast = () => {
 
 // ═══ تنبيه ديون الزبون ═══
 let _clientDettes = [];
+
+async function loadTodayStats() {
+  try {
+    const s = await window.api.stats.getDashboard();
+    const countEl = document.getElementById('pos_today_count');
+    const caEl    = document.getElementById('pos_today_ca');
+    if (countEl) countEl.textContent = s.ventes_today || 0;
+    if (caEl)    caEl.textContent    = fmtNum(s.ca_today || 0);
+  } catch(e) {}
+}
 
 async function loadClientDettes() {
   try { _clientDettes = await window.api.dettes.getAll(); }
