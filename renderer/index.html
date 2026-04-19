@@ -5935,32 +5935,23 @@ document.addEventListener('keydown', e => {
       return;
     }
 
-    // ↑↓ للتنقل بين سطور السلة
+    // ↑↓ للتنقل بين سطور السلة — بدون تركيز على أي input
     if (!inTyping) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         if (!App.pos.items.length) return;
-        const next = (window._posSelectedRow < App.pos.items.length-1)
+        window._posSelectedRow = window._posSelectedRow < App.pos.items.length-1
           ? window._posSelectedRow + 1 : 0;
-        window._posSelectedRow = next;
         renderPOSItems();
-        setTimeout(() => {
-          const inp = document.getElementById('pos_qty_' + next);
-          if (inp) { inp.focus(); inp.select(); }
-        }, 30);
+        // لا نركز على input — فقط نحرك الإطار البرتقالي
         return;
       }
       if (e.key === 'ArrowUp') {
         e.preventDefault();
         if (!App.pos.items.length) return;
-        const prev = (window._posSelectedRow > 0)
+        window._posSelectedRow = window._posSelectedRow > 0
           ? window._posSelectedRow - 1 : App.pos.items.length-1;
-        window._posSelectedRow = prev;
         renderPOSItems();
-        setTimeout(() => {
-          const inp = document.getElementById('pos_qty_' + prev);
-          if (inp) { inp.focus(); inp.select(); }
-        }, 30);
         return;
       }
     }
