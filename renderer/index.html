@@ -3219,7 +3219,8 @@ window.recalcPOS = () => {
   if ($('pos_tva'))      $('pos_tva').textContent       = fmt(tvaAmt);
   if ($('pos_disc_amt')) $('pos_disc_amt').textContent  = fmt(discAmt);
   if ($('pos_net'))      $('pos_net').textContent       = fmt(net);
-  // لا تعبئ المدفوع تلقائياً — الصفر يعني دين
+  if ($('pos_paid') && document.activeElement?.id !== 'pos_paid')
+    $('pos_paid').value = Math.round(net) || 0;
 
   // Items count
   const qtyTotal = App.pos.items.reduce((s,i)=>s+i.qty,0);
