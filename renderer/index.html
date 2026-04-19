@@ -1818,7 +1818,7 @@ function filterVentesTable(q) {
   if (countEl) countEl.textContent = '(' + filtered.length + ')';
 
   body.innerHTML = filtered.length === 0
-    ? '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">لا توجد نتائج</td></tr>'
+    ? '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted)">لا توجد نتائج</td></tr>'
     : filtered.map(v => {
         const ht = v.tva > 0 ? v.net / (1 + v.tva/100) : v.total;
         return `<tr>
@@ -1830,9 +1830,12 @@ function filterVentesTable(q) {
           <td><span class="badge badge-${v.reste>0?'warning':'success'}">${fmt(v.reste)}</span></td>
           <td>${v.payment_type}</td>
           <td><span class="badge badge-${v.reste===0?'success':v.reste<v.net?'warning':'danger'}">${v.reste===0?'✅ مؤكدة':v.reste<v.net?'⏳ جزئي':'⚠️ آجل'}</span></td>
+          <td style="max-width:120px">
+            ${v.notes ? `<span title="${v.notes}" style="font-size:.7rem;color:#475569;background:#f1f5f9;padding:2px 6px;border-radius:4px;display:inline-block;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:default">📝 ${v.notes}</span>` : '<span style="color:var(--muted);font-size:.7rem">—</span>'}
+          </td>
           <td style="color:var(--muted);font-size:.75rem">${formatDate(v.date)}</td>
           <td><div style="display:flex;gap:4px">
-            <button class="btn btn-sm btn-info" style="padding:4px 8px" onclick="printVente('${v.id}')" title="طباعة">🖨️</button>
+            <button class="btn btn-sm btn-info" style="padding:4px 8px" onclick="printVente('${v.id}')" title="طباعة 🖨️">🖨️</button>
             ${v.reste>0?`<button class="btn btn-sm btn-success" style="padding:4px 8px" onclick="navigate('dettes',null)" title="تسديد">💵</button>`:''}
           </div></td>
         </tr>`;
@@ -1855,6 +1858,7 @@ async function printVente(id) {
       net: v.net,
       paid: v.paid,
       reste: v.reste,
+      notes: v.notes || '',
     });
     return;
   }
