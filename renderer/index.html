@@ -3077,7 +3077,7 @@ window.recalcPOS = () => {
   if ($('pos_tva'))      $('pos_tva').textContent       = fmt(tvaAmt);
   if ($('pos_disc_amt')) $('pos_disc_amt').textContent  = fmt(discAmt);
   if ($('pos_net'))      $('pos_net').textContent       = fmt(net);
-  if ($('pos_paid'))     $('pos_paid').value            = Math.round(net);
+  // لا تعبئ المدفوع تلقائياً — الصفر يعني دين
 
   // Items count
   const qtyTotal = App.pos.items.reduce((s,i)=>s+i.qty,0);
@@ -3273,8 +3273,8 @@ window.confirmPOSSale = async (opts = {}) => {
     client_name: clientSel?.value ? clientSel.options[clientSel.selectedIndex].text : 'عميل عابر',
     total: afterDisc, discount: discAmt, tva: tvaAmt,
     net: Math.round(net),
-    paid: paid > 0 ? paid : Math.round(net), // if no paid entered, assume full
-    reste: Math.max(0, net - (paid > 0 ? paid : Math.round(net))),
+    paid: paid,   // الصفر يعني لم يدفع — يُسجَّل كدين
+    reste: Math.max(0, Math.round(net) - paid),
     payment_type: (document.getElementById('pos_payment')?.value || 'نقداً').replace(/^[^ ]+ /,''),
     notes: '', date: today(),
     items,
@@ -4652,6 +4652,54 @@ async function saveDebtPayment(venteId, clientName) {
   if(!amount){ toast('أدخل مبلغاً','error'); return; }
   await window.api.dettes.addPayment({ vente_id: venteId, client_name: clientName, amount, notes: document.getElementById('dp_notes').value, date: document.getElementById('dp_date').value });
   closeModal(); toast('✅ تم تسجيل الدفعة','success'); await renderDettes();
+}
+
+function showPayAchatDebtModal(achatId, fournName, reste) {
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">💵 تسديد دين المورد: ${fournName}</div>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.2);border-radius:8px;padding:10px;margin-bottom:14px;text-align:center">
+            <div style="font-size:.75rem;color:var(--muted)">المبلغ المتبقي للمورد</div>
+            <div style="font-size:1.4rem;font-weight:900;color:var(--warning)">${fmt(reste)}</div>
+          </div>
+          <div class="form-group"><label class="form-label">المبلغ المدفوع (DA) *</label>
+            <input class="form-input" id="adp_amount" type="number" value="${reste}" max="${reste}"></div>
+          <div class="form-group"><label class="form-label">ملاحظات</label>
+            <input class="form-input" id="adp_notes" placeholder="اختياري"></div>
+          <div class="form-group"><label class="form-label">التاريخ</label>
+            <input class="form-input" id="adp_date" type="date" value="${today()}"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" style="background:var(--border);color:#fff" onclick="closeModal()">إلغاء</button>
+          <button class="btn" style="background:var(--warning);color:#fff" onclick="saveAchatDebtPayment('${achatId}')">✅ تأكيد التسديد</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+async function saveAchatDebtPayment(achatId) {
+  const amount = parseFloat(document.getElementById('adp_amount').value)||0;
+  if(!amount){ toast('أدخل مبلغاً','error'); return; }
+  // تحديث الدفع في فاتورة الشراء
+  try {
+    const achats = await window.api.achats.getAll();
+    const a = achats.find(x => x.id === achatId);
+    if (!a) { toast('فاتورة غير موجودة','error'); return; }
+    const newPaid  = (a.paid||0) + amount;
+    const newReste = Math.max(0, (a.total||0) - newPaid);
+    await window.api.achats.update(achatId, { paid: newPaid, reste: newReste });
+    closeModal();
+    toast('✅ تم تسجيل الدفعة للمورد','success');
+    await renderDettes();
+  } catch(e) {
+    toast('خطأ: '+(e.message||''),'error');
+  }
 }
 
 // =====================================================

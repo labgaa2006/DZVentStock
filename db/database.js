@@ -438,6 +438,15 @@ class DB {
     return { success:true, id, num };
   }
 
+  updateAchat(id, data) {
+    if (data.paid !== undefined) {
+      this.db.run(`UPDATE achats SET paid=?, reste=? WHERE id=?`,
+        [data.paid, data.reste, id]);
+    }
+    this.saveNow();
+    return { success: true };
+  }
+
   // ===== STATS =====
   getDashboardStats() {
     const today = new Date().toISOString().slice(0,10);
@@ -584,7 +593,7 @@ class DB {
 
   // ===== DETTES =====
   getAllDettes() {
-    return this.all(`SELECT v.id, v.num, v.client_name, v.net, v.paid, v.reste, v.date, v.payment_type
+    return this.all(`SELECT v.id, v.num, v.client_id, v.client_name, v.net, v.paid, v.reste, v.date, v.payment_type
       FROM ventes v WHERE v.is_deleted=0 AND v.reste>0 ORDER BY v.reste DESC`);
   }
   addDebtPayment(data) {
