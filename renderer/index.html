@@ -1801,6 +1801,15 @@ async function renderVentes() {
   filterVentesTable('');
 }
 
+async function deleteVenteNote(id) {
+  await window.api.ventes.updateNotes(id, '');
+  // تحديث محلي فوري بدون إعادة تحميل
+  const v = _allVentes.find(x => x.id === id);
+  if (v) v.notes = '';
+  filterVentesTable(document.getElementById('ventesSearchInput')?.value || '');
+  toast('🗑️ تم حذف الملاحظة', 'info', 1500);
+}
+
 function filterVentesTable(q) {
   const body = document.getElementById('ventesTableBody');
   if (!body) return;
@@ -1831,7 +1840,23 @@ function filterVentesTable(q) {
           <td>${v.payment_type}</td>
           <td><span class="badge badge-${v.reste===0?'success':v.reste<v.net?'warning':'danger'}">${v.reste===0?'✅ مؤكدة':v.reste<v.net?'⏳ جزئي':'⚠️ آجل'}</span></td>
           <td style="max-width:120px">
-            ${v.notes ? `<span title="${v.notes}" style="font-size:.7rem;color:#475569;background:#f1f5f9;padding:2px 6px;border-radius:4px;display:inline-block;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:default">📝 ${v.notes}</span>` : '<span style="color:var(--muted);font-size:.7rem">—</span>'}
+            ${v.notes
+              ? `<div style="display:flex;align-items:center;gap:3px;max-width:130px">
+                  <span title="${v.notes}"
+                    style="font-size:.7rem;color:#475569;background:#f1f5f9;padding:2px 6px;
+                           border-radius:4px;overflow:hidden;text-overflow:ellipsis;
+                           white-space:nowrap;cursor:default;flex:1;min-width:0">
+                    📝 ${v.notes}
+                  </span>
+                  <button onclick="deleteVenteNote('${v.id}')"
+                    title="حذف الملاحظة"
+                    style="flex-shrink:0;background:transparent;border:none;
+                           color:#94a3b8;cursor:pointer;font-size:.75rem;
+                           padding:1px 3px;border-radius:3px;line-height:1"
+                    onmouseover="this.style.color='#dc2626'"
+                    onmouseout="this.style.color='#94a3b8'">✕</button>
+                </div>`
+              : '<span style="color:var(--muted);font-size:.7rem">—</span>'}
           </td>
           <td style="color:var(--muted);font-size:.75rem">${formatDate(v.date)}</td>
           <td><div style="display:flex;gap:4px">

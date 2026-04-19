@@ -373,6 +373,12 @@ class DB {
         FROM vente_items GROUP BY vente_id) vi_sum ON v.id=vi_sum.vente_id
       WHERE v.is_deleted=0 ORDER BY v.created_at DESC LIMIT 200`);
   }
+  updateVenteNotes(id, notes) {
+    this.db.run(`UPDATE ventes SET notes=? WHERE id=?`, [notes||'', id]);
+    this.saveNow();
+    return { success: true };
+  }
+
   getVenteById(id) {
     const v = this.get(`SELECT * FROM ventes WHERE id=?`,[id]);
     if (!v) return null;
