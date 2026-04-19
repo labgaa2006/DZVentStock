@@ -120,6 +120,10 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);overf
 }
 .menubar-btn:hover{background:rgba(249,115,22,.15);color:#fff;border-color:var(--primary)}
 
+@keyframes slideDown {
+  from { opacity:0; transform:translateY(-6px); }
+  to   { opacity:1; transform:translateY(0); }
+}
 /* إخفاء arrows من number input في POS */
 #pos_items_list input[type=number]::-webkit-inner-spin-button,
 #pos_items_list input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
@@ -2597,7 +2601,8 @@ async function renderPOS() {
         <!-- Client -->
         <div style="padding:6px 10px;border-bottom:1px solid var(--border);background:#f0f4f8;flex-shrink:0;display:flex;align-items:center;gap:6px">
           <span style="font-size:.68rem;color:var(--muted);white-space:nowrap;flex-shrink:0">العميل:</span>
-          <select id="pos_client" style="flex:1;min-width:0;background:#fff;border:1.5px solid #94a3b8;border-radius:5px;color:#1e293b;font-family:'Cairo',sans-serif;font-size:.72rem;padding:3px 5px;font-weight:600">
+          <select id="pos_client" onchange="checkClientDebt(this.value)"
+            style="flex:1;min-width:0;background:#fff;border:1.5px solid #94a3b8;border-radius:5px;color:#1e293b;font-family:'Cairo',sans-serif;font-size:.72rem;padding:3px 5px;font-weight:600">
             <option value="">👤 Comptoir</option>
             ${clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
           </select>
@@ -2700,6 +2705,9 @@ async function renderPOS() {
     else clearInterval(window._posClock);
   }, 1000);
   document.getElementById('pos_clock').textContent = new Date().toLocaleTimeString('fr-DZ');
+  // تحميل ديون العملاء في الخلفية
+  loadClientDettes();
+
   setTimeout(() => {
     // إذا كانت هناك فاتورة واحدة تلقائية معلقة → استأنفها مباشرة
     const autoInvoices = _pausedInvoices.filter(x => x.auto);
