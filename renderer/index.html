@@ -1810,6 +1810,54 @@ async function deleteVenteNote(id) {
   toast('🗑️ تم حذف الملاحظة', 'info', 1500);
 }
 
+function editVenteNotes(venteId, currentNotes) {
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:420px">
+        <div class="modal-header">
+          <div class="modal-title">📝 تعديل الملاحظة</div>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">الملاحظة</label>
+            <textarea id="edit_notes_input" rows="3" class="form-input"
+              style="resize:vertical;font-family:'Cairo',sans-serif"
+              placeholder="اكتب ملاحظة... أو اتركها فارغة لحذفها"
+            >${currentNotes||''}</textarea>
+          </div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:6px">
+            💡 اترك الخانة فارغة لحذف الملاحظة نهائياً
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" style="background:#f1f5f9;color:#475569" onclick="closeModal()">إلغاء</button>
+          <button class="btn" style="background:var(--danger);color:#fff"
+            onclick="saveVenteNotes('${venteId}','')">🗑️ حذف الملاحظة</button>
+          <button class="btn btn-primary"
+            onclick="saveVenteNotes('${venteId}', document.getElementById('edit_notes_input').value)">
+            ✅ حفظ
+          </button>
+        </div>
+      </div>
+    </div>
+  `);
+  // ركز على الـ textarea
+  setTimeout(() => {
+    const ta = document.getElementById('edit_notes_input');
+    if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+  }, 100);
+}
+
+async function saveVenteNotes(venteId, notes) {
+  await window.api.ventes.updateNotes(venteId, notes.trim());
+  closeModal();
+  toast(notes.trim() ? '✅ تم تحديث الملاحظة' : '🗑️ تم حذف الملاحظة', 'success', 1500);
+  // تحديث محلي بدون إعادة تحميل كاملة
+  const v = _allVentes.find(x => x.id === venteId);
+  if (v) { v.notes = notes.trim(); filterVentesTable(document.getElementById('ventesSearchInput')?.value || ''); }
+}
+
 function filterVentesTable(q) {
   const body = document.getElementById('ventesTableBody');
   if (!body) return;

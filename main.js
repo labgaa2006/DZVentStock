@@ -128,6 +128,7 @@ ipcMain.handle('backup:import', async () => {
 ipcMain.handle('ventes:getAll',    ()        => db.getAllVentes());
 ipcMain.handle('ventes:add',       (_, d)    => db.addVente(d));
 ipcMain.handle('ventes:getById',   (_, i)    => db.getVenteById(i));
+ipcMain.handle('ventes:updateNotes', safe((_, id, notes) => db.updateVenteNotes(id, notes)));
 
 // Achats
 ipcMain.handle('achats:getAll',    ()        => db.getAllAchats());
