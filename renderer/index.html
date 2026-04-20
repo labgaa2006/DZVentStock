@@ -3057,29 +3057,42 @@ window.togglePOSFavs = () => {
   _posGridOpen = !_posGridOpen;
   const overlay = document.getElementById('posGridOverlay');
   const btn = document.getElementById('pos_favs_toggle_btn');
-  if (overlay) {
-    if (_posGridOpen) {
-      // Filter grid to favorites only
-      const grid = document.getElementById('pos_grid');
-      if (grid) {
-        grid.querySelectorAll('.pos-product').forEach(el => {
-          const isFav = _posFavorites.some(f => f.id === el.dataset.id);
-          el.style.display = isFav ? '' : 'none';
-        });
-        // Show message if no favorites
-        const visible = grid.querySelectorAll('.pos-product:not([style*="none"])').length;
-        const noFavMsg = document.getElementById('pos_no_fav_msg');
-        if (noFavMsg) noFavMsg.style.display = visible === 0 ? 'block' : 'none';
+
+  if (overlay && _posGridOpen) {
+    // بناء الشبكة من المفضلة مباشرة
+    const grid = document.getElementById('pos_grid');
+    const noFavMsg = document.getElementById('pos_no_fav_msg');
+
+    if (grid) {
+      // جلب المنتجات المفضلة من _posProducts
+      const favProducts = _posProducts.filter(p =>
+        _posFavorites.some(f => f.id === p.id)
+      );
+
+      if (favProducts.length === 0) {
+        // لا توجد مفضلة
+        grid.innerHTML = '';
+        if (noFavMsg) noFavMsg.style.display = 'block';
+      } else {
+        if (noFavMsg) noFavMsg.style.display = 'none';
+        // بناء كروت المفضلة فقط
+        grid.innerHTML = favProducts.map(p => buildPOSCard(p)).join('');
       }
     }
+  }
+
+  if (overlay) {
     overlay.style.height = _posGridOpen ? '65%' : '0';
     overlay.style.pointerEvents = _posGridOpen ? 'auto' : 'none';
   }
+
   if (btn) {
     btn.style.background = _posGridOpen ? 'var(--warning)' : 'rgba(245,158,11,.15)';
     btn.style.color = _posGridOpen ? '#fff' : 'var(--warning)';
     btn.style.borderColor = _posGridOpen ? 'var(--warning)' : 'var(--warning)';
-    btn.textContent = _posGridOpen ? '✕ إغلاق' : '⭐ المفضلة';
+    btn.innerHTML = _posGridOpen
+      ? '✕ إغلاق'
+      : '<span>⭐ المفضلة</span><span style="font-size:.55rem;opacity:.7;display:block">F8</span>';
   }
 };
 
