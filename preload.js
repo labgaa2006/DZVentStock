@@ -10,7 +10,9 @@ contextBridge.exposeInMainWorld('api', {
   products: {
     getAll:  ()         => ipcRenderer.invoke('products:getAll'),
     add:     (data)     => ipcRenderer.invoke('products:add', data),
-    update:  (id, data) => ipcRenderer.invoke('products:update', id, data),
+    update:      (id, data)             => ipcRenderer.invoke('products:update', id, data),
+    updateStock: (id, change, reason, note, user) => ipcRenderer.invoke('products:updateStock', id, change, reason, note, user),
+    stockLog:    (id)                    => ipcRenderer.invoke('products:stockLog', id),
     delete:  (id)       => ipcRenderer.invoke('products:delete', id),
     search:  (q)        => ipcRenderer.invoke('products:search', q),
   },

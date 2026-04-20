@@ -64,7 +64,9 @@ function adminOnly(fn) {
 // Products
 ipcMain.handle('products:getAll',  safe(()        => db.getAllProducts()));
 ipcMain.handle('products:add',     safe((_, d)    => db.addProduct(d)));
-ipcMain.handle('products:update',  safe((_, i, d) => db.updateProduct(i, d)));
+ipcMain.handle('products:update',       safe((_, i, d)        => db.updateProduct(i, d)));
+ipcMain.handle('products:updateStock',  safe((_, i, c, r, n, u) => db.updateProductStock(i, c, r, n, u)));
+ipcMain.handle('products:stockLog',     safe((_, i)             => db.getStockLog(i)));
 ipcMain.handle('products:delete',  safe((_, i)    => db.deleteProduct(i)));
 ipcMain.handle('products:search',  safe((_, q)    => db.searchProducts(q)));
 

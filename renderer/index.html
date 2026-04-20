@@ -1145,10 +1145,17 @@ async function renderProducts() {
         <table>
           <thead>
             <tr>
-              <th>#</th><th>المرجع</th><th>الاسم</th>
-              <th>س.الشراء</th><th>الهامش</th><th>س.التجزئة</th>
+              <th onclick="sortProducts('index')" style="cursor:pointer"># ⇅</th>
+              <th onclick="sortProducts('ref')" style="cursor:pointer">المرجع ⇅</th>
+              <th onclick="sortProducts('name')" style="cursor:pointer">الاسم ⇅</th>
+              <th onclick="sortProducts('buy_price')" style="cursor:pointer">س.الشراء ⇅</th>
+              <th>الهامش</th>
+              <th onclick="sortProducts('sell_price')" style="cursor:pointer">س.التجزئة ⇅</th>
               <th>نصف جملة</th><th>الجملة</th>
-              <th>المخزون</th><th>الموقع</th><th>إجراءات</th>
+              <th onclick="sortProducts('stock')" style="cursor:pointer">المخزون ⇅</th>
+              <th>الموقع</th>
+              <th>آخر تحديث</th>
+              <th>إجراءات</th>
             </tr>
           </thead>
           <tbody id="productsTableBody"></tbody>
@@ -1199,7 +1206,7 @@ function filterProductsTable(q) {
   `;
 
   if (!filtered.length) {
-    body.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted)">📦 لا توجد منتجات مطابقة</td></tr>';
+    body.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted)">📦 لا توجد منتجات مطابقة</td></tr>';
     return;
   }
 
@@ -1211,7 +1218,9 @@ function filterProductsTable(q) {
         ${p.favorite?'<span style="color:var(--warning)"> ⭐</span>':''}
       </td>
       <td style="max-width:180px">
-        <div style="font-weight:700;font-size:.85rem;color:var(--text)">${p.name}</div>
+        <div style="font-weight:700;font-size:.85rem;color:var(--text)">${p.name}
+          ${(p.sell_price||0)===0?'<span style="font-size:.6rem;background:#fef3c7;color:#b45309;padding:1px 5px;border-radius:4px;margin-right:4px">⚠️ سعر 0</span>':''}
+        </div>
         <div style="display:flex;gap:4px;margin-top:2px;flex-wrap:wrap">
           ${p.category?`<span style="font-size:.62rem;background:rgba(56,189,248,.1);color:#0369a1;padding:1px 6px;border-radius:8px">📂 ${p.category}</span>`:''}
           ${p.barcode?`<span style="font-size:.62rem;background:rgba(245,158,11,.1);color:#b45309;padding:1px 6px;border-radius:8px">🔖 ${p.barcode}</span>`:''}
@@ -1226,12 +1235,23 @@ function filterProductsTable(q) {
       </td>
       <td style="color:var(--muted);font-size:.78rem;white-space:nowrap">${(p.sell_price_semi||0)>0?fmt(p.sell_price_semi):'—'}</td>
       <td style="color:var(--muted);font-size:.78rem;white-space:nowrap">${(p.sell_price_gros||0)>0?fmt(p.sell_price_gros):'—'}</td>
-      <td ondblclick="quickEditField('${p.id}','stock',${p.stock},'المخزون')"
-        title="نقر مزدوج للتعديل" style="white-space:nowrap;cursor:pointer">
-        <span class="badge badge-${p.stock===0?'danger':p.stock<=p.stock_min?'warning':'success'}">
-          ${p.stock===0?'❌ نفد':p.stock<=p.stock_min?`⚠️ ${p.stock}`:`${p.stock}`} ${p.unit||''}
-        </span>
-        ${p.expiry_date?`<div style="font-size:.6rem;color:var(--warning);margin-top:2px">📅 ${p.expiry_date}</div>`:''}
+      <td style="min-width:90px">
+        <div style="display:flex;align-items:center;gap:5px">
+          <span class="badge badge-${p.stock===0?'danger':p.stock<=p.stock_min?'warning':'success'}" style="flex-shrink:0">
+            ${p.stock===0?'❌ 0':p.stock<=p.stock_min?`⚠️ ${p.stock}`:`${p.stock}`}
+          </span>
+          <button onclick="showStockUpdateModal('${p.id}','${(p.name||'').replace(/'/g,"\'")}')"
+            title="تحديث المخزون"
+            style="background:transparent;border:1px solid #e2e8f0;border-radius:4px;color:#64748b;cursor:pointer;font-size:.65rem;padding:1px 5px;flex-shrink:0"
+            onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)'"
+            onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b'">±</button>
+        </div>
+        <div style="height:4px;background:#e2e8f0;border-radius:2px;margin-top:3px;min-width:60px">
+          <div style="height:100%;border-radius:2px;transition:.3s;
+            background:${p.stock===0?'#dc2626':p.stock<=p.stock_min?'#f97316':'#16a34a'};
+            width:${p.stock_min>0?Math.min(100,Math.round(p.stock/(p.stock_min*2)*100)):p.stock>0?100:0}%"></div>
+        </div>
+        ${p.expiry_date?`<div style="font-size:.58rem;color:var(--warning);margin-top:2px">📅 ${p.expiry_date}</div>`:''}
       </td>
       <td style="color:var(--muted);font-size:.76rem">${p.emplacement||'—'}</td>
       <td style="white-space:nowrap">
@@ -1251,6 +1271,197 @@ function filterProductsTable(q) {
 }
 
 function searchProducts(q) { filterProductsTable(q); }
+
+// ═══ ترتيب المنتجات ═══
+let _sortField = null;
+let _sortDir   = 1;
+function sortProducts(field) {
+  if (_sortField === field) { _sortDir *= -1; }
+  else { _sortField = field; _sortDir = 1; }
+  allProducts.sort((a,b) => {
+    const av = a[field]??'', bv = b[field]??'';
+    if (typeof av === 'number') return (av - bv) * _sortDir;
+    return String(av).localeCompare(String(bv)) * _sortDir;
+  });
+  filterProductsTable(document.getElementById('prodSearchInput')?.value||'');
+}
+
+// ═══ توليد مرجع تلقائي ═══
+function generateRef() {
+  const prefix = 'P';
+  const max = allProducts.reduce((m,p) => {
+    const n = parseInt((p.ref||'').replace(/^P/,''))||0;
+    return Math.max(m,n);
+  }, 0);
+  return prefix + String(max+1).padStart(4,'0');
+}
+
+// ═══ مودال تحديث المخزون ═══
+function showStockUpdateModal(productId, productName) {
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:400px">
+        <div class="modal-header">
+          <div class="modal-title">🔄 تحديث المخزون: ${productName}</div>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <button onclick="document.getElementById('su_type').value='add';this.style.background='#dcfce7';this.style.color='#16a34a';document.getElementById('su_type_minus').style.background='#f1f5f9';document.getElementById('su_type_minus').style.color='#475569'"
+              id="su_type_plus"
+              style="padding:10px;border-radius:8px;border:2px solid #86efac;background:#dcfce7;color:#16a34a;font-weight:800;cursor:pointer;font-family:'Cairo',sans-serif;font-size:.85rem">
+              ➕ إضافة
+            </button>
+            <button onclick="document.getElementById('su_type').value='sub';this.style.background='#fee2e2';this.style.color='#dc2626';document.getElementById('su_type_plus').style.background='#f1f5f9';document.getElementById('su_type_plus').style.color='#475569'"
+              id="su_type_minus"
+              style="padding:10px;border-radius:8px;border:1px solid #e2e8f0;background:#f1f5f9;color:#475569;font-weight:800;cursor:pointer;font-family:'Cairo',sans-serif;font-size:.85rem">
+              ➖ طرح
+            </button>
+          </div>
+          <input type="hidden" id="su_type" value="add">
+
+          <div class="form-group">
+            <label class="form-label">الكمية *</label>
+            <input class="form-input" id="su_qty" type="number" min="1" value="1" autofocus
+              onkeydown="event.stopPropagation()" style="font-size:1.1rem;font-weight:700;text-align:center">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">السبب *</label>
+            <select class="form-select" id="su_reason">
+              <option value="شراء">🛒 شراء</option>
+              <option value="تصحيح" selected>✏️ تصحيح يدوي</option>
+              <option value="تلف">💔 تلف / خسارة</option>
+              <option value="إرجاع">↩️ إرجاع من زبون</option>
+              <option value="هدية">🎁 هدية / عينة</option>
+              <option value="نقل">📦 نقل بين فروع</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">ملاحظة</label>
+            <input class="form-input" id="su_note" placeholder="اختياري..."
+              onkeydown="event.stopPropagation()">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" style="background:#f1f5f9;color:#475569" onclick="closeModal()">إلغاء</button>
+          <button class="btn btn-primary" onclick="executeStockUpdate('${productId}')">✅ تأكيد</button>
+        </div>
+      </div>
+    </div>
+  `);
+  setTimeout(()=>document.getElementById('su_qty')?.focus(),80);
+}
+
+async function executeStockUpdate(productId) {
+  const qty    = parseInt(document.getElementById('su_qty')?.value)||0;
+  const type   = document.getElementById('su_type')?.value || 'add';
+  const reason = document.getElementById('su_reason')?.value || 'تصحيح';
+  const note   = document.getElementById('su_note')?.value || '';
+  if (!qty || qty < 1) { toast('أدخل كمية صحيحة','error'); return; }
+  const change = type === 'add' ? qty : -qty;
+  const user   = App.currentUser?.name || '';
+  const res    = await window.api.products.updateStock(productId, change, reason, note, user);
+  if (!res.success) { toast('خطأ: '+(res.error||''),'error'); return; }
+  closeModal();
+  toast((type==='add'?'✅ أُضيف ':'✅ طُرح ') + qty + ' — المخزون الآن: ' + res.qty_after, 'success', 2500);
+  // تحديث محلي
+  const p = allProducts.find(x=>x.id===productId);
+  if (p) p.stock = res.qty_after;
+  filterProductsTable(document.getElementById('prodSearchInput')?.value||'');
+}
+
+// ═══ عرض تفاصيل المنتج + التاريخ ═══
+async function showProductDetails(productId) {
+  const p    = allProducts.find(x=>x.id===productId);
+  if (!p) return;
+  const logs = await window.api.products.stockLog(productId);
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:600px;max-width:96vw">
+        <div class="modal-header" style="background:#1e293b">
+          <div>
+            <div class="modal-title" style="color:#fff">📦 ${p.name}</div>
+            <div style="font-size:.7rem;color:#94a3b8;margin-top:2px">${p.ref||''} ${p.barcode?'• '+p.barcode:''} ${p.category?'• '+p.category:''}</div>
+          </div>
+          <button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button>
+        </div>
+        <div class="modal-body" style="padding:0">
+
+          <!-- بيانات المنتج -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:2px solid #e2e8f0">
+            ${[
+              ['💰 سعر الشراء', fmtNum(p.buy_price)+' DA'],
+              ['💵 سعر البيع',  fmtNum(p.sell_price)+' DA'],
+              ['📦 المخزون',    p.stock+' '+(p.unit||'')],
+              ['📈 الهامش',     (p.margin_pct||0)+'%'],
+            ].map(([l,v])=>`
+              <div style="padding:12px;border-left:1px solid #e2e8f0;text-align:center">
+                <div style="font-size:.68rem;color:#64748b;margin-bottom:4px">${l}</div>
+                <div style="font-weight:800;font-size:.95rem;color:#1e293b">${v}</div>
+              </div>`).join('')}
+          </div>
+
+          <!-- progress bar -->
+          <div style="padding:10px 16px;border-bottom:1px solid #e2e8f0">
+            <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#64748b;margin-bottom:4px">
+              <span>المخزون</span>
+              <span>${p.stock} / ${p.stock_min} (الحد الأدنى)</span>
+            </div>
+            <div style="height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden">
+              <div style="height:100%;border-radius:4px;transition:.5s;
+                background:${p.stock===0?'#dc2626':p.stock<=p.stock_min?'#f97316':'#16a34a'};
+                width:${p.stock_min>0?Math.min(100,Math.round(p.stock/(p.stock_min*2)*100)):p.stock>0?100:0}%"></div>
+            </div>
+          </div>
+
+          <!-- تاريخ الحركات -->
+          <div style="padding:10px 14px;background:#f8fafc">
+            <div style="font-weight:700;font-size:.82rem;color:#1e293b;margin-bottom:8px">
+              📜 سجل حركة المخزون (آخر ${logs.length} عملية)
+            </div>
+            ${logs.length===0
+              ? '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:.8rem">لا توجد سجلات بعد</div>'
+              : `<div style="max-height:240px;overflow-y:auto">
+                  <table style="width:100%;font-size:.75rem;border-collapse:collapse">
+                    <thead><tr style="background:#e2e8f0">
+                      <th style="padding:5px 8px;text-align:right">التاريخ</th>
+                      <th style="padding:5px 8px;text-align:center">قبل</th>
+                      <th style="padding:5px 8px;text-align:center">التغيير</th>
+                      <th style="padding:5px 8px;text-align:center">بعد</th>
+                      <th style="padding:5px 8px;text-align:right">السبب</th>
+                      <th style="padding:5px 8px;text-align:right">المستخدم</th>
+                    </tr></thead>
+                    <tbody>
+                      ${logs.map(l=>`
+                        <tr style="border-bottom:1px solid #f1f5f9">
+                          <td style="padding:5px 8px;color:#64748b">${(l.created_at||'').slice(0,16)}</td>
+                          <td style="padding:5px 8px;text-align:center;font-weight:600">${l.qty_before}</td>
+                          <td style="padding:5px 8px;text-align:center;font-weight:800;
+                            color:${l.qty_change>=0?'#16a34a':'#dc2626'}">
+                            ${l.qty_change>=0?'+':''}${l.qty_change}
+                          </td>
+                          <td style="padding:5px 8px;text-align:center;font-weight:700">${l.qty_after}</td>
+                          <td style="padding:5px 8px;color:#475569">${l.reason||'—'} ${l.note?'<span style="color:#94a3b8">('+l.note+')</span>':''}</td>
+                          <td style="padding:5px 8px;color:#64748b">${l.user_name||'—'}</td>
+                        </tr>`).join('')}
+                    </tbody>
+                  </table>
+                </div>`}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" style="background:#f1f5f9;color:#475569" onclick="closeModal()">إغلاق</button>
+          <button class="btn btn-primary" onclick="closeModal();showEditProductModal('${p.id}')">✏️ تعديل</button>
+          <button class="btn" style="background:#059669;color:#fff"
+            onclick="closeModal();showStockUpdateModal('${p.id}','${(p.name||'').replace(/'/g,"\'")}')">🔄 تحديث المخزون</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
 
 // ═══ 1. تصدير Excel ═══
 function exportProductsExcel() {

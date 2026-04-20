@@ -119,6 +119,17 @@ class DB {
         payment_type TEXT DEFAULT 'نقداً', notes TEXT DEFAULT '', seller_name TEXT DEFAULT '',
         date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0)`,
+      `CREATE TABLE IF NOT EXISTS stock_log (
+        id TEXT PRIMARY KEY,
+        product_id TEXT NOT NULL,
+        product_name TEXT DEFAULT '',
+        qty_before INTEGER DEFAULT 0,
+        qty_change INTEGER DEFAULT 0,
+        qty_after INTEGER DEFAULT 0,
+        reason TEXT DEFAULT 'تصحيح',
+        note TEXT DEFAULT '',
+        user_name TEXT DEFAULT '',
+        created_at TEXT DEFAULT (datetime('now')))`,
       `CREATE TABLE IF NOT EXISTS categories (
         id TEXT PRIMARY KEY,
         name TEXT UNIQUE,
@@ -214,7 +225,6 @@ class DB {
       `ALTER TABLE products ADD COLUMN image_data TEXT DEFAULT ''`,
       `ALTER TABLE ventes ADD COLUMN seller_name TEXT DEFAULT ''`,
       `ALTER TABLE ventes ADD COLUMN notes TEXT DEFAULT ''`,
-      `CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, name TEXT UNIQUE, color TEXT DEFAULT '#6366f1', icon TEXT DEFAULT '📂', sort_order INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now')))`,
     ];
     migrations.forEach(sql => {
       try { this.db.run(sql); } catch(e) {} // ignore "duplicate column" errors
@@ -367,6 +377,41 @@ class DB {
     this.run(`UPDATE fournisseurs SET is_deleted=1 WHERE id=?`, [id]);
     return { success: true };
   }
+  addStockLog(data) {
+    const id = this.uuid();
+    this.db.run(
+      `INSERT INTO stock_log(id,product_id,product_name,qty_before,qty_change,qty_after,reason,note,user_name)
+       VALUES(?,?,?,?,?,?,?,?,?)`,
+      [id, data.product_id, data.product_name||'', data.qty_before||0,
+       data.qty_change||0, data.qty_after||0, data.reason||'تصحيح',
+       data.note||'', data.user_name||'']
+    );
+    this.save();
+    return { success:true };
+  }
+
+  getStockLog(productId) {
+    if (productId) {
+      return this.all(
+        `SELECT * FROM stock_log WHERE product_id=? ORDER BY created_at DESC LIMIT 50`,
+        [productId]
+      );
+    }
+    return this.all(`SELECT * FROM stock_log ORDER BY created_at DESC LIMIT 200`);
+  }
+
+  updateProductStock(id, qtyChange, reason, note, userName) {
+    const p = this.get(`SELECT stock, name FROM products WHERE id=?`, [id]);
+    if (!p) return { success:false, error:'منتج غير موجود' };
+    const qtyBefore = p.stock || 0;
+    const qtyAfter  = Math.max(0, qtyBefore + qtyChange);
+    this.db.run(`UPDATE products SET stock=?, updated_at=datetime('now') WHERE id=?`, [qtyAfter, id]);
+    this.addStockLog({ product_id:id, product_name:p.name, qty_before:qtyBefore,
+      qty_change:qtyChange, qty_after:qtyAfter, reason, note, user_name:userName||'' });
+    this.saveNow();
+    return { success:true, qty_before:qtyBefore, qty_after:qtyAfter };
+  }
+
   addCategory(name, color='#6366f1', icon='📂') {
     try {
       const id = this.uuid();
@@ -471,7 +516,14 @@ class DB {
         [this.uuid(),id,item.product_id||null,item.product_name,item.ref||'',
          item.qty,item.price,item.qty*item.price]);
       if (item.product_id) {
-        this.db.run(`UPDATE products SET stock=stock-? WHERE id=?`,[item.qty,item.product_id]);
+        const before = this.get(`SELECT stock,name FROM products WHERE id=?`,[item.product_id]);
+        this.db.run(`UPDATE products SET stock=stock-?,updated_at=datetime('now') WHERE id=?`,[item.qty,item.product_id]);
+        if (before) {
+          this.addStockLog({ product_id:item.product_id, product_name:before.name,
+            qty_before:before.stock||0, qty_change:-item.qty,
+            qty_after:Math.max(0,(before.stock||0)-item.qty),
+            reason:'بيع', note:'فاتورة '+num, user_name:data.seller_name||'' });
+        }
       }
     });
     this.db.run(`UPDATE settings SET value=? WHERE key='vente_num_counter'`,[String(counter+1)]);
@@ -504,8 +556,15 @@ class DB {
         [this.uuid(),id,item.product_id||null,item.product_name,item.ref||'',
          item.qty,item.price,item.qty*item.price]);
       if (item.product_id) {
-        this.db.run(`UPDATE products SET stock=stock+?, buy_price=? WHERE id=?`,
+        const before2 = this.get(`SELECT stock,name FROM products WHERE id=?`,[item.product_id]);
+        this.db.run(`UPDATE products SET stock=stock+?,buy_price=?,updated_at=datetime('now') WHERE id=?`,
           [item.qty,item.price,item.product_id]);
+        if (before2) {
+          this.addStockLog({ product_id:item.product_id, product_name:before2.name,
+            qty_before:before2.stock||0, qty_change:item.qty,
+            qty_after:(before2.stock||0)+item.qty,
+            reason:'شراء', note:'فاتورة '+num, user_name:'' });
+        }
       }
     });
     this.db.run(`UPDATE settings SET value=? WHERE key='achat_num_counter'`,[String(counter+1)]);
