@@ -3315,10 +3315,7 @@ function handlePOSSearchKey(e) {
       _posDropdownIndex = -1;
       return;
     }
-    // If search empty + has items in cart → confirm sale
-    if (!val && App.pos.items.length) {
-      confirmPOSSale();
-    }
+    // البحث فارغ والـ dropdown مغلق → لا شيء (التأكيد بـ F1 فقط)
     return;
   }
 
