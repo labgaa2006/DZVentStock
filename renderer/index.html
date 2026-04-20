@@ -125,7 +125,7 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);overf
   to   { opacity:1; transform:translateY(0); }
 }
 /* إخفاء arrows من number input في POS */
-#pos_items_list input[type=number]::-webkit-inner-spin-button,
+#pos_items_list input::-webkit-inner-spin-button,
 #pos_items_list input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
 #pos_items_list input[type=number] { -moz-appearance:textfield; }
 /* HOME TILES */
@@ -3753,25 +3753,20 @@ function renderPOSItems() {
             <td style="padding:7px 8px;font-weight:700;font-size:.78rem;max-width:90px">
               <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1e293b;font-weight:700">${item.product_name}</div>
             </td>
-            <td style="padding:7px 4px;text-align:center">
+            <td style="padding:7px 4px;text-align:center" onclick="event.stopPropagation()">
               <div style="display:flex;align-items:center;justify-content:center;gap:3px">
                 <button onclick="event.stopPropagation();changePOSQty(${i},-1)"
                   style="width:22px;height:26px;background:var(--danger);border:none;border-radius:4px;color:#fff;cursor:pointer;font-weight:900;font-size:.9rem;line-height:1;flex-shrink:0">−</button>
-                <input type="number" min="1" max="${item.stock}" value="${item.qty}"
-                  id="pos_qty_${i}"
-                  onclick="event.stopPropagation();this.select()"
-                  onkeydown="event.stopPropagation();
-                    if(event.key==='+'){event.preventDefault();changePOSQty(${i},1);}
-                    else if(event.key==='-'){event.preventDefault();changePOSQty(${i},-1);}
-                    else if(event.key==='Enter'){event.preventDefault();setPOSQty(${i},+this.value);this.blur();document.getElementById('posSearchInput')?.focus();}
-                    else if(event.key==='ArrowUp'){event.preventDefault();changePOSQty(${i},1);}
-                    else if(event.key==='ArrowDown'){event.preventDefault();changePOSQty(${i},-1);}"
-                  onchange="event.stopPropagation();setPOSQty(${i},+this.value)"
-                  style="width:44px;height:26px;text-align:center;font-weight:900;font-size:.88rem;
+                <span id="pos_qty_display_${i}"
+                  onclick="event.stopPropagation();activatePOSQtyInput(${i})"
+                  title="انقر للتعديل"
+                  style="display:inline-flex;align-items:center;justify-content:center;
+                    min-width:44px;height:26px;padding:0 4px;font-weight:900;font-size:.92rem;
                     border:2px solid ${item.stock>item.stock_min?'#22c55e':'#f97316'};
-                    border-radius:4px;background:#fff;
-                    color:${item.stock>item.stock_min?'#16a34a':'#ea580c'};
-                    padding:0;outline:none;-moz-appearance:textfield">
+                    border-radius:4px;background:#fff;cursor:text;user-select:none;
+                    color:${item.stock>item.stock_min?'#16a34a':'#ea580c'}">
+                  ${item.qty}
+                </span>
                 <button onclick="event.stopPropagation();changePOSQty(${i},1)"
                   style="width:22px;height:26px;background:var(--success);border:none;border-radius:4px;color:#fff;cursor:pointer;font-weight:900;font-size:.9rem;line-height:1;flex-shrink:0">+</button>
               </div>
@@ -3831,6 +3826,49 @@ window.setPOSPrice = (i, price) => {
   renderPOSItems();
   recalcPOS();
   toast('💱 سعر "' + item.product_name + '" → ' + fmtNum(price) + ' DA', 'info', 1500);
+};
+
+// تحويل عرض الكمية لـ input عند النقر — الحل الصحيح
+window.activatePOSQtyInput = (i) => {
+  const span = document.getElementById('pos_qty_display_' + i);
+  if (!span) return;
+  const item = App.pos.items[i];
+  const borderColor = item.stock > item.stock_min ? '#22c55e' : '#f97316';
+  const textColor   = item.stock > item.stock_min ? '#16a34a' : '#ea580c';
+
+  const inp = document.createElement('input');
+  inp.type = 'text'; // text وليس number — يمنع سلوك ArrowUp/Down للمتصفح
+  inp.inputMode = 'numeric';
+  inp.pattern = '[0-9]*';
+  inp.value = item.qty;
+  inp.style.cssText = `width:44px;height:26px;text-align:center;font-weight:900;
+    font-size:.92rem;border:2px solid ${borderColor};border-radius:4px;
+    background:#fff;color:${textColor};padding:0;outline:2px solid ${borderColor};
+    -moz-appearance:textfield;box-sizing:border-box`;
+
+  inp.onkeydown = (e) => {
+    e.stopPropagation(); // منع أي اختصار POS عند الكتابة
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const v = parseInt(inp.value) || 1;
+      setPOSQty(i, v);
+      // بعد الحفظ يعود span ويركز على البحث
+      setTimeout(() => document.getElementById('posSearchInput')?.focus(), 30);
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      span.textContent = item.qty;
+      inp.replaceWith(span);
+      setTimeout(() => document.getElementById('posSearchInput')?.focus(), 30);
+    }
+  };
+  inp.onblur = () => {
+    const v = parseInt(inp.value) || 1;
+    setPOSQty(i, v);
+  };
+
+  span.replaceWith(inp);
+  inp.select();
 };
 
 window.setPOSQty = (i, qty) => {
@@ -6341,11 +6379,14 @@ document.addEventListener('keydown', e => {
     if (modalOpen) return;
 
     const activeEl = document.activeElement;
+    // inTyping = true فقط إذا كان المستخدم يكتب في خانة غير البحث
+    // أو إذا كان dropdown البحث مفتوح (ArrowUp/Down للـ dropdown)
+    const searchDropOpen = document.getElementById('posDropdown')?.classList.contains('open');
     const inTyping = activeEl && (
-      activeEl.id === 'posSearchInput' ||
-      activeEl.tagName === 'INPUT' ||
-      activeEl.tagName === 'TEXTAREA'
-    );
+      activeEl.tagName === 'TEXTAREA' ||
+      activeEl.tagName === 'SELECT' ||
+      (activeEl.tagName === 'INPUT' && activeEl.id !== 'posSearchInput')
+    ) || searchDropOpen;
 
     // F1 → تأكيد
     if (e.key === 'F1') { e.preventDefault(); confirmPOSSale(); return; }
