@@ -3802,6 +3802,10 @@ function renderPOSItems() {
 window.selectPOSRow = (i) => {
   window._posSelectedRow = i;
   renderPOSItems();
+  // أعد التركيز لخانة البحث — لا نريد التركيز على input الكمية
+  setTimeout(() => {
+    document.getElementById('posSearchInput')?.focus();
+  }, 20);
 };
 
 window.changePOSQtySelected = (d) => {
