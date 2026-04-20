@@ -2961,6 +2961,75 @@ async function renderPOS() {
               : _posFavorites.map(f=>`<button onclick="addToPOSById('${f.id}')" style="padding:3px 10px;border-radius:16px;border:1px solid var(--warning);background:rgba(245,158,11,.1);color:var(--warning);font-size:.7rem;cursor:pointer;white-space:nowrap;font-family:'Cairo',sans-serif">${f.name} — ${fmtNum(f.price)}</button>`).join('')}
           </div>
         </div>
+
+        <!-- ═══ شريط الأزرار أسفل السلة — من اليمين لليسار ═══ -->
+        <div style="display:flex;flex-direction:row;flex-shrink:0;border-top:2px solid #1e293b;background:#0f172a">
+          <!-- تعليق -->
+          <button onclick="pausePOS()" title="F4"
+            style="flex:1;padding:9px 2px;background:#4c1d95;border:none;border-left:1px solid rgba(255,255,255,.1);
+                   color:#fff;font-family:'Cairo',sans-serif;font-size:.65rem;font-weight:700;
+                   cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px"
+            onmouseover="this.style.filter='brightness(1.25)'" onmouseout="this.style.filter=''">
+            <span>⏸️</span><span>تعليق</span><span style="font-size:.52rem;opacity:.65">F4</span>
+          </button>
+          <!-- استئناف -->
+          <button onclick="resumePOS()" title="F3"
+            style="flex:1;padding:9px 2px;background:#1e3a5f;border:none;border-left:1px solid rgba(255,255,255,.1);
+                   color:#fff;font-family:'Cairo',sans-serif;font-size:.65rem;font-weight:700;
+                   cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px"
+            onmouseover="this.style.filter='brightness(1.25)'" onmouseout="this.style.filter=''">
+            <span>▶️</span><span>استئناف</span><span style="font-size:.52rem;opacity:.65">F3</span>
+          </button>
+          <!-- Qté + -->
+          <button onclick="changePOSLastQty(1)" title="+"
+            style="flex:1;padding:9px 2px;background:#1e40af;border:none;border-left:1px solid rgba(255,255,255,.1);
+                   color:#fff;font-family:'Cairo',sans-serif;font-size:.65rem;font-weight:700;
+                   cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px"
+            onmouseover="this.style.filter='brightness(1.25)'" onmouseout="this.style.filter=''">
+            <span>➕</span><span>Qté +</span><span style="font-size:.52rem;opacity:.65">+</span>
+          </button>
+          <!-- Qté - -->
+          <button onclick="changePOSLastQty(-1)" title="-"
+            style="flex:1;padding:9px 2px;background:#7c2020;border:none;border-left:1px solid rgba(255,255,255,.1);
+                   color:#fff;font-family:'Cairo',sans-serif;font-size:.65rem;font-weight:700;
+                   cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px"
+            onmouseover="this.style.filter='brightness(1.25)'" onmouseout="this.style.filter=''">
+            <span>➖</span><span>Qté -</span><span style="font-size:.52rem;opacity:.65">-</span>
+          </button>
+          <!-- حذف سطر -->
+          <button onclick="removePOSLast()" title="F5"
+            style="flex:1;padding:9px 2px;background:#7f1d1d;border:none;border-left:1px solid rgba(255,255,255,.1);
+                   color:#fff;font-family:'Cairo',sans-serif;font-size:.65rem;font-weight:700;
+                   cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px"
+            onmouseover="this.style.filter='brightness(1.25)'" onmouseout="this.style.filter=''">
+            <span>🗑️</span><span>حذف سطر</span><span style="font-size:.52rem;opacity:.65">F5</span>
+          </button>
+          <!-- مسح الكل -->
+          <button onclick="clearPOS()" title="F6"
+            style="flex:1;padding:9px 2px;background:#374151;border:none;border-left:1px solid rgba(255,255,255,.1);
+                   color:#fff;font-family:'Cairo',sans-serif;font-size:.65rem;font-weight:700;
+                   cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px"
+            onmouseover="this.style.filter='brightness(1.25)'" onmouseout="this.style.filter=''">
+            <span>❌</span><span>مسح الكل</span><span style="font-size:.52rem;opacity:.65">F6</span>
+          </button>
+          <!-- تأكيد -->
+          <button onclick="confirmPOSSale()" title="F1"
+            style="flex:1.4;padding:9px 2px;background:#166534;border:none;border-left:1px solid rgba(255,255,255,.1);
+                   color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:900;
+                   cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px"
+            onmouseover="this.style.filter='brightness(1.25)'" onmouseout="this.style.filter=''">
+            <span>✅</span><span>تأكيد</span><span style="font-size:.55rem;opacity:.75">F1</span>
+          </button>
+          <!-- تأكيد + طباعة -->
+          <button onclick="confirmAndPrint()" title="F2"
+            style="flex:1.4;padding:9px 2px;background:#064e3b;border:none;
+                   color:#fff;font-family:'Cairo',sans-serif;font-size:.68rem;font-weight:900;
+                   cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px"
+            onmouseover="this.style.filter='brightness(1.25)'" onmouseout="this.style.filter=''">
+            <span>🖨️</span><span>تأكيد+طباعة</span><span style="font-size:.55rem;opacity:.75">F2</span>
+          </button>
+        </div>
+
       </div>
 
       <!-- RIGHT: TOTALS + ACTIONS -->
@@ -3052,26 +3121,6 @@ async function renderPOS() {
 
         <!-- Spacer -->
         <div style="flex:1"></div>
-
-        <!-- Action buttons -->
-        <div style="flex-shrink:0">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #000">
-            <button onclick="pausePOS()" style="padding:11px 4px;background:#4c1d95;border:none;border-left:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''"><span>⏸️ تعليق</span><span style="font-size:.58rem;opacity:.75;display:block">F4</span></button>
-            <button onclick="resumePOS()" style="padding:11px 4px;background:#1e3a5f;border:none;color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''"><span>▶️ استئناف</span><span style="font-size:.58rem;opacity:.75;display:block">F3</span></button>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-            <button onclick="changePOSLastQty(1)" style="padding:10px 4px;background:#1e40af;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''"><span>Qté ＋</span><span style="font-size:.58rem;opacity:.75;display:block">+ في الكيبورد</span></button>
-            <button onclick="changePOSLastQty(-1)" style="padding:10px 4px;background:#991b1b;border:none;border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''"><span>Qté －</span><span style="font-size:.58rem;opacity:.75;display:block">- في الكيبورد</span></button>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-            <button onclick="removePOSLast()" style="padding:10px 4px;background:#7f1d1d;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''"><span>🗑️ حذف سطر</span><span style="font-size:.58rem;opacity:.75;display:block">F5</span></button>
-            <button onclick="clearPOS()" style="padding:10px 4px;background:#374151;border:none;border-top:1px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''"><span>❌ مسح الكل</span><span style="font-size:.58rem;opacity:.75;display:block">F6</span></button>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-            <button onclick="confirmPOSSale()" style="padding:14px 4px;background:#166534;border:none;border-left:1px solid rgba(0,0,0,.3);border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.8rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" title="F12 أو Enter"><span>✅ تأكيد</span><span style="font-size:.6rem;opacity:.8;letter-spacing:.5px">F1</span></button>
-            <button onclick="confirmAndPrint()" style="padding:14px 4px;background:#064e3b;border:none;border-top:2px solid rgba(0,0,0,.3);color:#fff;font-family:'Cairo',sans-serif;font-size:.78rem;font-weight:900;cursor:pointer" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" title="Ctrl+P أو Ctrl+Enter"><span>🖨️ تأكيد+طباعة</span><span style="font-size:.6rem;opacity:.8">F2</span></button>
-          </div>
-        </div>
       </div>
     </div>
 
