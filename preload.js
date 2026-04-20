@@ -117,6 +117,7 @@ contextBridge.exposeInMainWorld('api', {
     add:      (d)  => ipcRenderer.invoke('ventes:add', d),
     getById:      (id)          => ipcRenderer.invoke('ventes:getById', id),
     updateNotes:  (id, notes)  => ipcRenderer.invoke('ventes:updateNotes', id, notes),
+    delete:       (id)          => ipcRenderer.invoke('ventes:delete', id),
   },
 
   // ===== المشتريات =====

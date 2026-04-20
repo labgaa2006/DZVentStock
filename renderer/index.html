@@ -1767,34 +1767,71 @@ async function deleteProduct(id, name) {
 // VENTES
 // =====================================================
 let _ventesFilter = 'all';
+let _ventesDateFrom = '';
+let _ventesDateTo = '';
 let _allVentes = [];
 
 async function renderVentes() {
   document.getElementById('topbarActions').innerHTML = `
-    <button class="topbar-btn primary" onclick="navigate('pos',null)">➕ فاتورة بيع جديدة (F3)</button>
+    <button class="topbar-btn" onclick="exportVentesExcel()" title="تصدير Excel">📊 Excel</button>
+    <button class="topbar-btn" onclick="printVentesList()" title="طباعة القائمة">🖨️ طباعة</button>
+    <button class="topbar-btn primary" onclick="navigate('pos',null)">➕ فاتورة جديدة</button>
   `;
   _allVentes = await window.api.ventes.getAll();
+
   document.getElementById('mainContent').innerHTML = `
     <div class="card">
       <div class="card-header">
-        <div class="card-title">💰 المبيعات <span id="ventesCount" style="color:var(--muted);font-size:.75rem;font-weight:400">(${_allVentes.length})</span></div>
-        <button class="btn btn-sm" style="background:var(--success);color:#fff" onclick="navigate('pos',null)">➕ فاتورة جديدة</button>
+        <div class="card-title">💰 المبيعات
+          <span id="ventesCount" style="color:var(--muted);font-size:.75rem;font-weight:400">(${_allVentes.length})</span>
+        </div>
       </div>
-      <div class="card-search-bar">
-        <input id="ventesSearchInput" class="card-search-input" placeholder="🔍 ابحث برقم الفاتورة أو اسم العميل..." oninput="filterVentesTable(this.value)" autofocus>
-        <select id="ventesFilterSelect" class="card-filter-select" onchange="_ventesFilter=this.value;filterVentesTable(document.getElementById('ventesSearchInput').value)">
+
+      <!-- شريط البحث والفلاتر -->
+      <div style="padding:10px 14px;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input id="ventesSearchInput" class="card-search-input" style="flex:1;min-width:160px"
+          placeholder="🔍 ابحث بالرقم أو العميل أو السلعة..."
+          oninput="filterVentesTable(this.value)" autofocus>
+
+        <select id="ventesFilterSelect" class="card-filter-select"
+          onchange="_ventesFilter=this.value;filterVentesTable(document.getElementById('ventesSearchInput').value)">
           <option value="all">كل الحالات</option>
-          <option value="paid">مسددة فقط</option>
-          <option value="debt">غير مسددة فقط</option>
+          <option value="paid">مسددة</option>
+          <option value="debt">غير مسددة</option>
         </select>
+
+        <!-- فلتر التاريخ -->
+        <input type="date" id="ventesDateFrom" class="card-filter-select"
+          title="من تاريخ" style="width:130px"
+          onchange="_ventesDateFrom=this.value;filterVentesTable(document.getElementById('ventesSearchInput').value)">
+        <span style="font-size:.75rem;color:var(--muted)">→</span>
+        <input type="date" id="ventesDateTo" class="card-filter-select"
+          title="إلى تاريخ" style="width:130px"
+          onchange="_ventesDateTo=this.value;filterVentesTable(document.getElementById('ventesSearchInput').value)">
+        <button onclick="_ventesDateFrom='';_ventesDateTo='';document.getElementById('ventesDateFrom').value='';document.getElementById('ventesDateTo').value='';filterVentesTable('')"
+          style="padding:4px 8px;border-radius:5px;border:1px solid #e2e8f0;background:#fff;color:#64748b;cursor:pointer;font-size:.72rem">
+          ✕ مسح
+        </button>
       </div>
+
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>رقم الفاتورة</th><th>العميل</th><th>HT</th><th>TTC</th><th>مدفوع</th><th>باقي</th><th>وسيلة الدفع</th><th>الحالة</th><th>التاريخ</th><th>إجراءات</th></tr>
+            <tr>
+              <th>رقم الفاتورة</th><th>العميل</th><th>البائع</th>
+              <th>HT</th><th>TTC</th><th>مدفوع</th><th>باقي</th>
+              <th>وسيلة الدفع</th><th>الحالة</th><th>📝</th>
+              <th>التاريخ</th><th>إجراءات</th>
+            </tr>
           </thead>
           <tbody id="ventesTableBody"></tbody>
         </table>
+      </div>
+
+      <!-- إجماليات في الأسفل -->
+      <div id="ventesTotals"
+        style="padding:10px 16px;background:#f8fafc;border-top:2px solid var(--border);
+               display:flex;gap:20px;flex-wrap:wrap;font-size:.78rem">
       </div>
     </div>
   `;
@@ -1863,56 +1900,283 @@ function filterVentesTable(q) {
   if (!body) return;
   const ql = (q||'').toLowerCase();
   let filtered = _allVentes;
+
+  // بحث نصي: رقم + عميل + وسيلة دفع + سلعة + بائع
   if (ql) filtered = filtered.filter(v =>
     (v.num||'').toLowerCase().includes(ql) ||
     (v.client_name||'').toLowerCase().includes(ql) ||
-    (v.payment_type||'').toLowerCase().includes(ql)
+    (v.payment_type||'').toLowerCase().includes(ql) ||
+    (v.seller_name||'').toLowerCase().includes(ql) ||
+    (v.items||'').toLowerCase().includes(ql)
   );
+
+  // فلتر الحالة
   if (_ventesFilter === 'paid') filtered = filtered.filter(v => v.reste === 0);
   else if (_ventesFilter === 'debt') filtered = filtered.filter(v => v.reste > 0);
+
+  // فلتر التاريخ
+  if (_ventesDateFrom) filtered = filtered.filter(v => v.date >= _ventesDateFrom);
+  if (_ventesDateTo)   filtered = filtered.filter(v => v.date <= _ventesDateTo);
 
   const countEl = document.getElementById('ventesCount');
   if (countEl) countEl.textContent = '(' + filtered.length + ')';
 
-  body.innerHTML = filtered.length === 0
-    ? '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted)">لا توجد نتائج</td></tr>'
-    : filtered.map(v => {
-        const ht = v.tva > 0 ? v.net / (1 + v.tva/100) : v.total;
-        return `<tr>
-          <td><code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;color:#0369a1">${v.num}</code></td>
-          <td style="font-weight:600">${v.client_name}</td>
-          <td style="color:var(--muted)">${fmt(ht)}</td>
-          <td style="color:var(--primary);font-weight:700">${fmt(v.net)}</td>
-          <td style="color:var(--success)">${fmt(v.paid)}</td>
-          <td><span class="badge badge-${v.reste>0?'warning':'success'}">${fmt(v.reste)}</span></td>
-          <td>${v.payment_type}</td>
-          <td><span class="badge badge-${v.reste===0?'success':v.reste<v.net?'warning':'danger'}">${v.reste===0?'✅ مؤكدة':v.reste<v.net?'⏳ جزئي':'⚠️ آجل'}</span></td>
-          <td style="max-width:120px">
-            ${v.notes
-              ? `<div style="display:flex;align-items:center;gap:3px;max-width:130px">
-                  <span title="${v.notes}"
-                    style="font-size:.7rem;color:#475569;background:#f1f5f9;padding:2px 6px;
-                           border-radius:4px;overflow:hidden;text-overflow:ellipsis;
-                           white-space:nowrap;cursor:default;flex:1;min-width:0">
-                    📝 ${v.notes}
-                  </span>
-                  <button onclick="deleteVenteNote('${v.id}')"
-                    title="حذف الملاحظة"
-                    style="flex-shrink:0;background:transparent;border:none;
-                           color:#94a3b8;cursor:pointer;font-size:.75rem;
-                           padding:1px 3px;border-radius:3px;line-height:1"
-                    onmouseover="this.style.color='#dc2626'"
-                    onmouseout="this.style.color='#94a3b8'">✕</button>
-                </div>`
-              : '<span style="color:var(--muted);font-size:.7rem">—</span>'}
-          </td>
-          <td style="color:var(--muted);font-size:.75rem">${formatDate(v.date)}</td>
-          <td><div style="display:flex;gap:4px">
-            <button class="btn btn-sm btn-info" style="padding:4px 8px" onclick="printVente('${v.id}')" title="طباعة 🖨️">🖨️</button>
-            ${v.reste>0?`<button class="btn btn-sm btn-success" style="padding:4px 8px" onclick="navigate('dettes',null)" title="تسديد">💵</button>`:''}
-          </div></td>
-        </tr>`;
-      }).join('');
+  // إجماليات
+  const totNet  = filtered.reduce((s,v)=>s+(v.net||0),0);
+  const totPaid = filtered.reduce((s,v)=>s+(v.paid||0),0);
+  const totReste= filtered.reduce((s,v)=>s+(v.reste||0),0);
+  const totEl = document.getElementById('ventesTotals');
+  if (totEl) totEl.innerHTML = `
+    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">
+      <span style="color:var(--muted)">إجمالي <strong style="color:#1e293b">${filtered.length}</strong> فاتورة:</span>
+      <span>💰 TTC: <strong style="color:var(--primary)">${fmt(totNet)}</strong></span>
+      <span>✅ مدفوع: <strong style="color:var(--success)">${fmt(totPaid)}</strong></span>
+      ${totReste>0?`<span>⚠️ باقي: <strong style="color:var(--danger)">${fmt(totReste)}</strong></span>`:''}
+    </div>`;
+
+  if (!filtered.length) {
+    body.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted)">لا توجد نتائج</td></tr>';
+    return;
+  }
+
+  body.innerHTML = filtered.map(v => {
+    const ht = v.tva>0 ? v.net/(1+v.tva/100) : v.total;
+    return `<tr style="cursor:pointer" onclick="showVenteDetails('${v.id}')">
+      <td onclick="event.stopPropagation()">
+        <code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;color:#0369a1">${v.num}</code>
+      </td>
+      <td style="font-weight:600">${v.client_name}</td>
+      <td style="font-size:.72rem;color:#64748b">${v.seller_name||'—'}</td>
+      <td style="color:var(--muted);font-size:.78rem">${fmt(ht)}</td>
+      <td style="color:var(--primary);font-weight:700">${fmt(v.net)}</td>
+      <td style="color:var(--success)">${fmt(v.paid)}</td>
+      <td><span class="badge badge-${v.reste>0?'warning':'success'}">${fmt(v.reste)}</span></td>
+      <td style="font-size:.75rem">${v.payment_type}</td>
+      <td><span class="badge badge-${v.reste===0?'success':v.reste<v.net?'warning':'danger'}">
+        ${v.reste===0?'✅ مؤكدة':v.reste<v.net?'⏳ جزئي':'⚠️ آجل'}</span></td>
+      <td style="max-width:120px" onclick="event.stopPropagation()">
+        ${v.notes
+          ? `<div style="display:flex;align-items:center;gap:3px">
+              <span title="${(v.notes||'').replace(/"/g,'&quot;')}"
+                style="font-size:.68rem;color:#475569;background:#f1f5f9;padding:2px 5px;
+                       border-radius:4px;overflow:hidden;text-overflow:ellipsis;
+                       white-space:nowrap;flex:1;min-width:0;max-width:90px">📝 ${v.notes}</span>
+              <button onclick="editVenteNotes('${v.id}','${(v.notes||'').replace(/'/g,"\'")}')"
+                style="background:transparent;border:1px solid #e2e8f0;border-radius:3px;
+                       color:#94a3b8;cursor:pointer;font-size:.6rem;padding:1px 4px"
+                onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)'"
+                onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#94a3b8'">✏️</button>
+            </div>`
+          : `<button onclick="editVenteNotes('${v.id}','')"
+              style="background:transparent;border:1px dashed #e2e8f0;border-radius:3px;
+                     color:#cbd5e1;cursor:pointer;font-size:.65rem;padding:1px 6px"
+              onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)'"
+              onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#cbd5e1'">+ ملاحظة</button>`}
+      </td>
+      <td style="color:var(--muted);font-size:.75rem;white-space:nowrap">${formatDate(v.date)}</td>
+      <td onclick="event.stopPropagation()">
+        <div style="display:flex;gap:3px;flex-wrap:nowrap">
+          <button class="btn btn-sm btn-info" style="padding:3px 7px" onclick="printVente('${v.id}')" title="طباعة">🖨️</button>
+          ${v.reste>0?`<button class="btn btn-sm btn-success" style="padding:3px 7px" onclick="navigate('dettes',null)" title="تسديد">💵</button>`:''}
+          <button class="btn btn-sm btn-danger" style="padding:3px 7px" onclick="confirmDeleteVente('${v.id}','${v.num}')" title="إلغاء الفاتورة">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══ 1. تفاصيل الفاتورة ═══
+async function showVenteDetails(id) {
+  const v = await window.api.ventes.getById(id);
+  if (!v) return;
+  const items = v.items || [];
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:560px;max-width:96vw">
+        <div class="modal-header" style="background:linear-gradient(135deg,#1e293b,#334155)">
+          <div>
+            <div class="modal-title" style="color:#fff">🧾 فاتورة ${v.num}</div>
+            <div style="font-size:.7rem;color:#94a3b8;margin-top:2px">${formatDate(v.date)} — ${v.client_name} — ${v.seller_name||'—'}</div>
+          </div>
+          <button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button>
+        </div>
+        <div class="modal-body" style="padding:0">
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="background:#f8fafc">
+                <th style="padding:8px 12px;text-align:right;font-size:.75rem;color:#475569;border-bottom:2px solid #e2e8f0">المنتج</th>
+                <th style="padding:8px 12px;text-align:center;font-size:.75rem;color:#475569;border-bottom:2px solid #e2e8f0">الكمية</th>
+                <th style="padding:8px 12px;text-align:center;font-size:.75rem;color:#475569;border-bottom:2px solid #e2e8f0">السعر</th>
+                <th style="padding:8px 12px;text-align:left;font-size:.75rem;color:#475569;border-bottom:2px solid #e2e8f0">المجموع</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map(it=>`
+                <tr style="border-bottom:1px solid #f1f5f9">
+                  <td style="padding:8px 12px;font-weight:600;font-size:.82rem">${it.product_name}
+                    ${it.ref?`<span style="font-size:.65rem;color:#94a3b8;margin-right:4px">${it.ref}</span>`:''}
+                  </td>
+                  <td style="padding:8px 12px;text-align:center;color:#475569">${it.qty}</td>
+                  <td style="padding:8px 12px;text-align:center;color:#475569">${fmtNum(it.price)}</td>
+                  <td style="padding:8px 12px;text-align:left;font-weight:700;color:var(--primary)">${fmtNum(it.qty*it.price)} DA</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+          <!-- الإجماليات -->
+          <div style="padding:12px 14px;background:#f8fafc;border-top:2px solid #e2e8f0">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:.8rem">
+              <span style="color:#64748b">المجموع:</span><span style="font-weight:600">${fmt(v.total)}</span>
+            </div>
+            ${v.discount>0?`<div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:.8rem">
+              <span style="color:var(--success)">الخصم:</span><span style="color:var(--success)">-${fmt(v.discount)}</span>
+            </div>`:''}
+            ${v.tva>0?`<div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:.8rem">
+              <span style="color:#64748b">TVA:</span><span>${fmt(v.tva)}</span>
+            </div>`:''}
+            <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid #e2e8f0;font-size:.95rem">
+              <span style="font-weight:800">الصافي TTC:</span><span style="font-weight:900;color:var(--primary)">${fmt(v.net)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:.8rem">
+              <span style="color:var(--success)">المدفوع:</span><span style="color:var(--success);font-weight:600">${fmt(v.paid)}</span>
+            </div>
+            ${v.reste>0?`<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:.8rem">
+              <span style="color:var(--danger)">الباقي:</span><span style="color:var(--danger);font-weight:700">${fmt(v.reste)}</span>
+            </div>`:''}
+            ${v.notes?`<div style="margin-top:8px;padding:6px 8px;background:#fff;border-radius:6px;font-size:.75rem;color:#475569;border:1px solid #e2e8f0">📝 ${v.notes}</div>`:''}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" style="background:#f1f5f9;color:#475569" onclick="closeModal()">إغلاق</button>
+          <button class="btn btn-info" onclick="closeModal();printVente('${v.id}')">🖨️ طباعة</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+// ═══ 3. إلغاء الفاتورة ═══
+function confirmDeleteVente(id, num) {
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:380px">
+        <div class="modal-header" style="background:#7f1d1d">
+          <div class="modal-title" style="color:#fff">🗑️ إلغاء الفاتورة ${num}</div>
+          <button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="font-size:2rem">⚠️</div>
+            <div>
+              <p style="margin:0 0 8px;font-weight:700;color:#1e293b">هل تريد إلغاء هذه الفاتورة؟</p>
+              <p style="margin:0;font-size:.8rem;color:#64748b">سيتم إرجاع الكميات للمخزون تلقائياً</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" style="background:#f1f5f9;color:#475569" onclick="closeModal()">لا، تراجع</button>
+          <button class="btn btn-danger" onclick="deleteVente('${id}')">✅ نعم، إلغاء الفاتورة</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+async function deleteVente(id) {
+  await window.api.ventes.delete(id);
+  closeModal();
+  toast('🗑️ تم إلغاء الفاتورة وإرجاع المخزون', 'success', 2000);
+  _allVentes = _allVentes.filter(v => v.id !== id);
+  filterVentesTable(document.getElementById('ventesSearchInput')?.value || '');
+}
+
+// ═══ 4. تصدير Excel ═══
+function exportVentesExcel() {
+  const q = document.getElementById('ventesSearchInput')?.value || '';
+  // نفس الفلترة
+  let filtered = _allVentes;
+  if (q) filtered = filtered.filter(v =>
+    (v.num||'').toLowerCase().includes(q.toLowerCase()) ||
+    (v.client_name||'').toLowerCase().includes(q.toLowerCase())
+  );
+  if (_ventesFilter==='paid') filtered=filtered.filter(v=>v.reste===0);
+  if (_ventesFilter==='debt') filtered=filtered.filter(v=>v.reste>0);
+  if (_ventesDateFrom) filtered=filtered.filter(v=>v.date>=_ventesDateFrom);
+  if (_ventesDateTo)   filtered=filtered.filter(v=>v.date<=_ventesDateTo);
+
+  const bom = '\uFEFF';
+  const rows = [
+    ['رقم الفاتورة','العميل','البائع','TTC','مدفوع','باقي','وسيلة الدفع','الحالة','التاريخ','ملاحظة'],
+    ...filtered.map(v=>[
+      v.num, v.client_name, v.seller_name||'',
+      v.net, v.paid, v.reste, v.payment_type,
+      v.reste===0?'مؤكدة':v.reste<v.net?'جزئي':'آجل',
+      v.date, v.notes||''
+    ])
+  ];
+  const csv = rows.map(r=>r.map(c=>'"'+String(c||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob = new Blob([bom+csv],{type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='المبيعات_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click(); URL.revokeObjectURL(url);
+  toast('✅ تم تصدير '+filtered.length+' فاتورة','success',2000);
+}
+
+// ═══ 8. طباعة القائمة ═══
+async function printVentesList() {
+  const q = document.getElementById('ventesSearchInput')?.value || '';
+  let filtered = _allVentes;
+  if (q) filtered = filtered.filter(v =>
+    (v.num||'').toLowerCase().includes(q.toLowerCase()) ||
+    (v.client_name||'').toLowerCase().includes(q.toLowerCase())
+  );
+  if (_ventesFilter==='paid') filtered=filtered.filter(v=>v.reste===0);
+  if (_ventesFilter==='debt') filtered=filtered.filter(v=>v.reste>0);
+  if (_ventesDateFrom) filtered=filtered.filter(v=>v.date>=_ventesDateFrom);
+  if (_ventesDateTo)   filtered=filtered.filter(v=>v.date<=_ventesDateTo);
+
+  const totNet=filtered.reduce((s,v)=>s+(v.net||0),0);
+  const totPaid=filtered.reduce((s,v)=>s+(v.paid||0),0);
+  const totReste=filtered.reduce((s,v)=>s+(v.reste||0),0);
+  const company=App.settings.company_name||'المحل';
+
+  const html=`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8">
+<style>
+  @page{size:A4;margin:12mm}
+  body{font-family:Arial,sans-serif;direction:rtl;font-size:10pt}
+  h1{text-align:center;color:#f97316;margin-bottom:4px}
+  .sub{text-align:center;color:#64748b;font-size:9pt;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse;font-size:9pt}
+  th{background:#1e293b;color:#fff;padding:6px 8px;text-align:right}
+  td{padding:5px 8px;border-bottom:1px solid #e2e8f0}
+  tr:nth-child(even) td{background:#f8fafc}
+  .foot{margin-top:12px;padding-top:8px;border-top:2px solid #f97316;display:flex;gap:20px;font-weight:700}
+</style></head>
+<body>
+<h1>💰 سجل المبيعات</h1>
+<div class="sub">${company} — ${new Date().toLocaleDateString('ar-DZ',{year:'numeric',month:'long',day:'numeric'})}</div>
+<table>
+  <thead><tr><th>رقم</th><th>العميل</th><th>البائع</th><th>TTC</th><th>مدفوع</th><th>باقي</th><th>الحالة</th><th>التاريخ</th></tr></thead>
+  <tbody>${filtered.map(v=>`
+    <tr>
+      <td>${v.num}</td><td>${v.client_name}</td><td>${v.seller_name||'—'}</td>
+      <td style="font-weight:700">${fmtNum(v.net)} DA</td>
+      <td style="color:green">${fmtNum(v.paid)} DA</td>
+      <td style="color:${v.reste>0?'red':'green'}">${fmtNum(v.reste)} DA</td>
+      <td>${v.reste===0?'✅':'⚠️'}</td>
+      <td>${v.date}</td>
+    </tr>`).join('')}
+  </tbody>
+</table>
+<div class="foot">
+  <span>${filtered.length} فاتورة</span>
+  <span>الإجمالي: ${fmtNum(totNet)} DA</span>
+  <span style="color:green">مدفوع: ${fmtNum(totPaid)} DA</span>
+  ${totReste>0?`<span style="color:red">باقي: ${fmtNum(totReste)} DA</span>`:''}
+</div>
+</body></html>`;
+
+  await window.api.print.invoice(html);
 }
 
 async function printVente(id) {

@@ -373,6 +373,19 @@ class DB {
         FROM vente_items GROUP BY vente_id) vi_sum ON v.id=vi_sum.vente_id
       WHERE v.is_deleted=0 ORDER BY v.created_at DESC LIMIT 200`);
   }
+  deleteVente(id) {
+    // جلب السلع لإرجاع الكميات
+    const items = this.all(`SELECT * FROM vente_items WHERE vente_id=?`,[id]);
+    items.forEach(item => {
+      if (item.product_id) {
+        this.db.run(`UPDATE products SET stock=stock+? WHERE id=?`,[item.qty,item.product_id]);
+      }
+    });
+    this.db.run(`UPDATE ventes SET is_deleted=1 WHERE id=?`,[id]);
+    this.saveNow();
+    return { success:true };
+  }
+
   updateVenteNotes(id, notes) {
     this.db.run(`UPDATE ventes SET notes=? WHERE id=?`, [notes||'', id]);
     this.saveNow();
