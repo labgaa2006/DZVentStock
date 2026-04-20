@@ -4910,18 +4910,27 @@ async function renderCategories() {
     <button class="topbar-btn primary" onclick="showAddCategoryModal()">➕ فئة جديدة</button>
   `;
 
-  const products = await window.api.products.getAll();
+  const products  = await window.api.products.getAll();
+  // جلب الفئات المعرّفة مسبقاً (حتى الفارغة)
+  const savedCats = await window.api.categories.getAll().catch(()=>[]);
 
-  // بناء بيانات الفئات مع إجماليات
+  // بناء map من المنتجات
   const catsMap = {};
   products.forEach(p => {
     const c = p.category || 'بدون فئة';
     if (!catsMap[c]) catsMap[c] = { count:0, stock:0, buyVal:0, sellVal:0, products:[] };
     catsMap[c].count++;
-    catsMap[c].stock    += (p.stock||0);
-    catsMap[c].buyVal   += (p.stock||0)*(p.buy_price||0);
-    catsMap[c].sellVal  += (p.stock||0)*(p.sell_price||0);
+    catsMap[c].stock  += (p.stock||0);
+    catsMap[c].buyVal += (p.stock||0)*(p.buy_price||0);
+    catsMap[c].sellVal+= (p.stock||0)*(p.sell_price||0);
     catsMap[c].products.push(p.name);
+  });
+
+  // أضف الفئات المحفوظة التي ليس لها منتجات بعد
+  savedCats.forEach(sc => {
+    if (!catsMap[sc.name]) {
+      catsMap[sc.name] = { count:0, stock:0, buyVal:0, sellVal:0, products:[] };
+    }
   });
 
   const catEntries = Object.entries(catsMap);
