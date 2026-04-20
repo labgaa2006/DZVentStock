@@ -1104,28 +1104,40 @@ let allProducts = [];
 
 async function renderProducts() {
   document.getElementById('topbarActions').innerHTML = `
-    <button class="topbar-btn primary" onclick="showAddProductModal()" title="Ctrl+N">➕ منتج جديد (Ctrl+N)</button>
+    <button class="topbar-btn" onclick="importProductsExcel()">📥 استيراد</button>
+    <button class="topbar-btn" onclick="exportProductsExcel()">📊 Excel</button>
+    <button class="topbar-btn" onclick="printProductsPDF()">🖨️ PDF</button>
+    <button class="topbar-btn primary" onclick="showAddProductModal()" title="Ctrl+N">➕ منتج جديد</button>
   `;
   allProducts = await window.api.products.getAll();
+  const cats = [...new Set(allProducts.map(p=>p.category).filter(Boolean))].sort();
 
   document.getElementById('mainContent').innerHTML = `
     <div class="card">
       <div class="card-header">
-        <div class="card-title">📦 قائمة المنتجات <span id="prodCount" style="color:var(--muted);font-size:.75rem;font-weight:400">(${allProducts.length})</span></div>
-        <button class="btn btn-sm" style="background:var(--success);color:#fff" onclick="showAddProductModal()">➕ إضافة منتج</button>
+        <div class="card-title">📦 المنتجات
+          <span id="prodCount" style="color:var(--muted);font-size:.75rem;font-weight:400">(${allProducts.length})</span>
+        </div>
+        <button class="btn btn-sm" style="background:var(--success);color:#fff" onclick="showAddProductModal()">➕ إضافة</button>
       </div>
-      <div class="card-search-bar">
-        <input id="prodSearchInput" class="card-search-input"
-          placeholder="🔍 ابحث بالاسم / المرجع / الباركود..."
+      <div style="padding:8px 14px;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input id="prodSearchInput" class="card-search-input" style="flex:1;min-width:180px"
+          placeholder="🔍 ابحث بالاسم / المرجع / الباركود / الفئة..."
           oninput="filterProductsTable(this.value)"
           onkeydown="if(event.key==='Enter'&&this.value.match(/^\\d{6,}$/)){const p=allProducts.find(x=>x.barcode===this.value);if(p){showEditProductModal(p.id);this.value='';filterProductsTable('')}}"
           autofocus>
-        <select id="prodStockFilter" class="card-filter-select" onchange="filterProductsTable(document.getElementById('prodSearchInput').value)">
-          <option value="all">كل المنتجات</option>
-          <option value="ok">متوفر</option>
-          <option value="low">منخفض</option>
-          <option value="out">نفد</option>
-          <option value="fav">المفضلة ⭐</option>
+        <select id="prodStockFilter" class="card-filter-select"
+          onchange="filterProductsTable(document.getElementById('prodSearchInput').value)">
+          <option value="all">كل المخزون</option>
+          <option value="ok">✅ متوفر</option>
+          <option value="low">⚠️ منخفض</option>
+          <option value="out">❌ نفد</option>
+          <option value="fav">⭐ المفضلة</option>
+        </select>
+        <select id="prodCatFilter" class="card-filter-select"
+          onchange="filterProductsTable(document.getElementById('prodSearchInput').value)">
+          <option value="">كل الفئات</option>
+          ${cats.map(c=>`<option value="${c}">${c}</option>`).join('')}
         </select>
       </div>
       <div class="table-wrap">
@@ -1141,7 +1153,9 @@ async function renderProducts() {
           <tbody id="productsTableBody"></tbody>
         </table>
       </div>
+      <div id="prodTotals" style="padding:8px 16px;background:#f8fafc;border-top:2px solid var(--border);display:flex;gap:20px;flex-wrap:wrap;font-size:.78rem"></div>
     </div>
+    <input type="file" id="prodImportInput" accept=".csv" style="display:none" onchange="handleProductsImport(this)">
   `;
   filterProductsTable('');
 }
@@ -1151,6 +1165,7 @@ function filterProductsTable(q) {
   if (!body) return;
   const ql = (q||'').toLowerCase().trim();
   const stockFilter = document.getElementById('prodStockFilter')?.value || 'all';
+  const catFilter   = document.getElementById('prodCatFilter')?.value  || '';
 
   let filtered = allProducts;
   if (ql) filtered = filtered.filter(p =>
@@ -1161,13 +1176,26 @@ function filterProductsTable(q) {
     (p.barcode3||'').toLowerCase().includes(ql) ||
     (p.category||'').toLowerCase().includes(ql)
   );
-  if (stockFilter === 'ok')   filtered = filtered.filter(p => p.stock > p.stock_min);
-  if (stockFilter === 'low')  filtered = filtered.filter(p => p.stock > 0 && p.stock <= p.stock_min);
-  if (stockFilter === 'out')  filtered = filtered.filter(p => p.stock === 0);
-  if (stockFilter === 'fav')  filtered = filtered.filter(p => p.favorite);
+  if (stockFilter === 'ok')  filtered = filtered.filter(p => p.stock > p.stock_min);
+  if (stockFilter === 'low') filtered = filtered.filter(p => p.stock > 0 && p.stock <= p.stock_min);
+  if (stockFilter === 'out') filtered = filtered.filter(p => p.stock === 0);
+  if (stockFilter === 'fav') filtered = filtered.filter(p => p.favorite);
+  if (catFilter)             filtered = filtered.filter(p => p.category === catFilter);
 
   const countEl = document.getElementById('prodCount');
   if (countEl) countEl.textContent = '(' + filtered.length + ')';
+
+  // ═══ 7. إجماليات ═══
+  const totVal  = filtered.reduce((s,p)=>s+(p.stock||0)*(p.buy_price||0),0);
+  const totSell = filtered.reduce((s,p)=>s+(p.stock||0)*(p.sell_price||0),0);
+  const totEl = document.getElementById('prodTotals');
+  if (totEl) totEl.innerHTML = `
+    <span style="color:var(--muted)">إجمالي <strong style="color:#1e293b">${filtered.length}</strong> صنف</span>
+    <span>📦 إجمالي الوحدات: <strong style="color:var(--primary)">${filtered.reduce((s,p)=>s+(p.stock||0),0)}</strong></span>
+    <span>💰 قيمة الشراء: <strong style="color:#475569">${fmt(totVal)}</strong></span>
+    <span>💵 قيمة البيع: <strong style="color:var(--success)">${fmt(totSell)}</strong></span>
+    <span>📈 الربح المتوقع: <strong style="color:var(--primary)">${fmt(totSell-totVal)}</strong></span>
+  `;
 
   if (!filtered.length) {
     body.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted)">📦 لا توجد منتجات مطابقة</td></tr>';
@@ -1191,10 +1219,14 @@ function filterProductsTable(q) {
       </td>
       <td style="color:var(--muted);font-size:.82rem;white-space:nowrap">${fmt(p.buy_price)}</td>
       <td style="color:${(p.margin_pct||0)>0?'var(--success)':'var(--muted)'};font-size:.82rem;font-weight:700">${p.margin_pct||0}%</td>
-      <td style="color:var(--primary);font-weight:800;font-size:.88rem;white-space:nowrap">${fmt(p.sell_price)}</td>
+      <td ondblclick="quickEditField('${p.id}','sell_price',${p.sell_price},'سعر التجزئة')"
+        title="نقر مزدوج للتعديل" style="color:var(--primary);font-weight:800;font-size:.88rem;white-space:nowrap;cursor:pointer">
+        ${fmt(p.sell_price)}
+      </td>
       <td style="color:var(--muted);font-size:.78rem;white-space:nowrap">${(p.sell_price_semi||0)>0?fmt(p.sell_price_semi):'—'}</td>
       <td style="color:var(--muted);font-size:.78rem;white-space:nowrap">${(p.sell_price_gros||0)>0?fmt(p.sell_price_gros):'—'}</td>
-      <td style="white-space:nowrap">
+      <td ondblclick="quickEditField('${p.id}','stock',${p.stock},'المخزون')"
+        title="نقر مزدوج للتعديل" style="white-space:nowrap;cursor:pointer">
         <span class="badge badge-${p.stock===0?'danger':p.stock<=p.stock_min?'warning':'success'}">
           ${p.stock===0?'❌ نفد':p.stock<=p.stock_min?`⚠️ ${p.stock}`:`${p.stock}`} ${p.unit||''}
         </span>
@@ -1202,10 +1234,14 @@ function filterProductsTable(q) {
       </td>
       <td style="color:var(--muted);font-size:.76rem">${p.emplacement||'—'}</td>
       <td style="white-space:nowrap">
-        <div style="display:flex;gap:3px">
-          <button class="btn btn-sm" style="background:var(--warning);color:#fff;padding:4px 8px;font-size:.72rem"
+        <div style="display:flex;gap:3px;flex-wrap:nowrap">
+          <button class="btn btn-sm" style="background:var(--warning);color:#fff;padding:3px 7px;font-size:.7rem"
             onclick="showEditProductModal('${p.id}')" title="تعديل">✏️</button>
-          <button class="btn btn-sm btn-danger" style="padding:4px 8px;font-size:.72rem"
+          <button class="btn btn-sm" style="background:#0369a1;color:#fff;padding:3px 7px;font-size:.7rem"
+            onclick="duplicateProduct('${p.id}')" title="تكرار">📋</button>
+          <button class="btn btn-sm" style="background:#059669;color:#fff;padding:3px 7px;font-size:.7rem"
+            onclick="printBarcodeLabel('${p.id}')" title="ملصق باركود">🏷️</button>
+          <button class="btn btn-sm btn-danger" style="padding:3px 7px;font-size:.7rem"
             onclick="deleteProduct('${p.id}','${(p.name||'').replace(/'/g,"\\'")}')" title="حذف">🗑️</button>
         </div>
       </td>
@@ -1213,8 +1249,161 @@ function filterProductsTable(q) {
   `).join('');
 }
 
-// Keep old function name for compat
 function searchProducts(q) { filterProductsTable(q); }
+
+// ═══ 1. تصدير Excel ═══
+function exportProductsExcel() {
+  const q=document.getElementById('prodSearchInput')?.value||'';
+  const sF=document.getElementById('prodStockFilter')?.value||'all';
+  const cF=document.getElementById('prodCatFilter')?.value||'';
+  let d=[...allProducts];
+  if(q){const ql=q.toLowerCase();d=d.filter(p=>(p.name||'').toLowerCase().includes(ql)||(p.ref||'').toLowerCase().includes(ql));}
+  if(sF==='ok')d=d.filter(p=>p.stock>p.stock_min);
+  if(sF==='low')d=d.filter(p=>p.stock>0&&p.stock<=p.stock_min);
+  if(sF==='out')d=d.filter(p=>p.stock===0);
+  if(cF)d=d.filter(p=>p.category===cF);
+  const bom='\uFEFF';
+  const rows=[
+    ['المرجع','الاسم','الفئة','الوحدة','س.الشراء','هامش%','س.التجزئة','نصف جملة','الجملة','المخزون','حد التنبيه','الباركود','الموقع'],
+    ...d.map(p=>[p.ref||'',p.name,p.category||'',p.unit||'قطعة',p.buy_price||0,p.margin_pct||0,p.sell_price||0,p.sell_price_semi||0,p.sell_price_gros||0,p.stock||0,p.stock_min||5,p.barcode||'',p.emplacement||''])
+  ];
+  const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob([bom+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='المنتجات_'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(url);
+  toast('✅ تم تصدير '+d.length+' منتج','success',2000);
+}
+
+// ═══ 2. استيراد Excel ═══
+function importProductsExcel() {
+  document.getElementById('prodImportInput')?.click();
+}
+async function handleProductsImport(input) {
+  const file=input.files[0]; if(!file)return;
+  const text=await file.text();
+  const lines=text.split('\n').filter(l=>l.trim()).slice(1); // تخطي الترويسة
+  let added=0,errors=0;
+  for(const line of lines){
+    try{
+      const cols=line.split(',').map(c=>c.replace(/^"|"$/g,'').trim());
+      if(!cols[1])continue;
+      await window.api.products.add({
+        ref:cols[0]||'',name:cols[1],category:cols[2]||'',unit:cols[3]||'قطعة',
+        buy_price:parseFloat(cols[4])||0,margin_pct:parseFloat(cols[5])||0,
+        sell_price:parseFloat(cols[6])||0,sell_price_semi:parseFloat(cols[7])||0,
+        sell_price_gros:parseFloat(cols[8])||0,
+        stock:parseInt(cols[9])||0,stock_min:parseInt(cols[10])||5,
+        barcode:cols[11]||'',emplacement:cols[12]||'',favorite:0,notes:''
+      });
+      added++;
+    }catch(e){errors++;}
+  }
+  input.value='';
+  toast(`✅ استورد ${added} منتج${errors?' — '+errors+' خطأ':''}`,errors?'warning':'success',3000);
+  allProducts=await window.api.products.getAll();
+  filterProductsTable('');
+}
+
+// ═══ 3. طباعة PDF ═══
+async function printProductsPDF() {
+  const q=document.getElementById('prodSearchInput')?.value||'';
+  const sF=document.getElementById('prodStockFilter')?.value||'all';
+  const cF=document.getElementById('prodCatFilter')?.value||'';
+  let d=[...allProducts];
+  if(q){const ql=q.toLowerCase();d=d.filter(p=>(p.name||'').toLowerCase().includes(ql)||(p.ref||'').toLowerCase().includes(ql));}
+  if(sF==='ok')d=d.filter(p=>p.stock>p.stock_min);
+  if(sF==='low')d=d.filter(p=>p.stock>0&&p.stock<=p.stock_min);
+  if(sF==='out')d=d.filter(p=>p.stock===0);
+  if(cF)d=d.filter(p=>p.category===cF);
+  const totV=d.reduce((s,p)=>s+(p.stock||0)*(p.buy_price||0),0);
+  const totS=d.reduce((s,p)=>s+(p.stock||0)*(p.sell_price||0),0);
+  const company=App.settings.company_name||'المحل';
+  const html=`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8">
+<style>@page{size:A4;margin:10mm}body{font-family:Arial;direction:rtl;font-size:8.5pt}
+h1{text-align:center;color:#f97316;margin:0 0 4px}
+.sub{text-align:center;color:#64748b;font-size:8pt;margin-bottom:10px}
+table{width:100%;border-collapse:collapse}
+th{background:#1e293b;color:#fff;padding:5px 5px;text-align:right}
+td{padding:4px 5px;border-bottom:1px solid #e2e8f0}
+tr:nth-child(even)td{background:#f8fafc}
+.ok{color:green}.low{color:orange}.out{color:red;font-weight:700}
+.foot{margin-top:10px;padding-top:6px;border-top:2px solid #f97316;display:flex;gap:16px;font-weight:700;font-size:9pt}
+</style></head><body>
+<h1>📦 قائمة المنتجات</h1>
+<div class="sub">${company} — ${new Date().toLocaleDateString('ar-DZ',{year:'numeric',month:'long',day:'numeric'})}</div>
+<table><thead><tr><th>#</th><th>المرجع</th><th>الاسم</th><th>الفئة</th><th>س.الشراء</th><th>س.التجزئة</th><th>المخزون</th><th>الحالة</th></tr></thead>
+<tbody>${d.map((p,i)=>`<tr><td>${i+1}</td><td>${p.ref||'—'}</td><td><strong>${p.name}</strong></td><td>${p.category||'—'}</td><td>${fmtNum(p.buy_price)} DA</td><td>${fmtNum(p.sell_price)} DA</td><td>${p.stock} ${p.unit||''}</td><td class="${p.stock===0?'out':p.stock<=p.stock_min?'low':'ok'}">${p.stock===0?'❌ نفد':p.stock<=p.stock_min?'⚠️ منخفض':'✅'}</td></tr>`).join('')}</tbody>
+</table>
+<div class="foot">
+  <span>${d.length} صنف</span>
+  <span>قيمة الشراء: ${fmtNum(totV)} DA</span>
+  <span style="color:green">قيمة البيع: ${fmtNum(totS)} DA</span>
+  <span style="color:#f97316">الربح: ${fmtNum(totS-totV)} DA</span>
+</div></body></html>`;
+  await window.api.print.invoice(html);
+}
+
+// ═══ 4. طباعة ملصق الباركود ═══
+function printBarcodeLabel(id) {
+  const p=allProducts.find(x=>x.id===id); if(!p)return;
+  const bc=p.barcode||p.ref||'';
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>@page{size:40mm 20mm;margin:0}body{margin:0;padding:2mm;font-family:Arial;width:36mm}
+.name{font-size:6pt;font-weight:700;text-align:center;margin-bottom:1mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.price{font-size:9pt;font-weight:900;text-align:center;margin-bottom:1mm}
+.bc{font-family:'Libre Barcode 39',monospace;font-size:20pt;text-align:center;line-height:1}
+.bcnum{font-size:5pt;text-align:center;margin-top:-1mm}
+@import url('https://fonts.googleapis.com/css2?family=Libre+Barcode+39');
+</style></head><body>
+<div class="name">${p.name}</div>
+<div class="price">${fmtNum(p.sell_price)} DA</div>
+${bc?`<div class="bc">*${bc}*</div><div class="bcnum">${bc}</div>`:''}
+</body></html>`;
+  const w=window.open('','_blank','width=300,height=200');
+  w.document.write(html);w.document.close();
+  setTimeout(()=>{w.print();setTimeout(()=>w.close(),500);},800);
+}
+
+// ═══ 5. تعديل سريع بالنقر المزدوج ═══
+async function quickEditField(id, field, currentVal, label) {
+  const p=allProducts.find(x=>x.id===id); if(!p)return;
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:300px">
+        <div class="modal-header">
+          <div class="modal-title">✏️ ${label}: ${p.name}</div>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <input class="form-input" id="qe_val" type="number" value="${currentVal}" autofocus
+            onkeydown="if(event.key==='Enter')saveQuickEdit('${id}','${field}')">
+        </div>
+        <div class="modal-footer">
+          <button class="btn" style="background:#f1f5f9;color:#475569" onclick="closeModal()">إلغاء</button>
+          <button class="btn btn-primary" onclick="saveQuickEdit('${id}','${field}')">✅ حفظ</button>
+        </div>
+      </div>
+    </div>
+  `);
+  setTimeout(()=>{const inp=document.getElementById('qe_val');if(inp){inp.focus();inp.select();}},80);
+}
+async function saveQuickEdit(id, field) {
+  const val=parseFloat(document.getElementById('qe_val')?.value)||0;
+  const p=allProducts.find(x=>x.id===id); if(!p)return;
+  const updated={...p,[field]:val};
+  await window.api.products.update(id,updated);
+  p[field]=val;
+  closeModal();
+  toast('✅ تم التحديث','success',1500);
+  filterProductsTable(document.getElementById('prodSearchInput')?.value||'');
+}
+
+// ═══ 6. تكرار منتج ═══
+function duplicateProduct(id) {
+  const p=allProducts.find(x=>x.id===id); if(!p)return;
+  // افتح مودال الإضافة بنفس بيانات المنتج
+  showAddProductModal({...p, id:null, ref:(p.ref?p.ref+'_2':''), name:p.name+' (نسخة)', stock:0});
+}
 
 // ═══════════════════════════════════════════════
 // PRODUCT MODAL — كامل الخصائص
