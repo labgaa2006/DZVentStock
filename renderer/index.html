@@ -6439,20 +6439,21 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !(e.ctrlKey||e.metaKey)) {
       e.preventDefault();
       if (!App.pos.items.length) {
-        // سلة فارغة → ركز على البحث
         document.getElementById('posSearchInput')?.focus();
         return;
       }
-      // انتقل للسطر التالي في السلة
       const cur = (window._posSelectedRow >= 0 && window._posSelectedRow < App.pos.items.length)
         ? window._posSelectedRow : -1;
-      const next = cur < App.pos.items.length - 1 ? cur + 1 : 0;
-      window._posSelectedRow = next;
-      renderPOSItems();
-      setTimeout(() => {
-        const inp = document.getElementById('pos_qty_' + next);
-        if (inp) { inp.focus(); inp.select(); }
-      }, 30);
+      if (cur < App.pos.items.length - 1) {
+        // انتقل للسطر التالي
+        window._posSelectedRow = cur + 1;
+        renderPOSItems();
+      } else {
+        // آخر سطر → عد للبحث
+        window._posSelectedRow = -1;
+        renderPOSItems();
+        document.getElementById('posSearchInput')?.focus();
+      }
       return;
     }
 
