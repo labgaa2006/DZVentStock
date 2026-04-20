@@ -3323,23 +3323,23 @@ window.togglePOSFavs = () => {
   const btn = document.getElementById('pos_favs_toggle_btn');
 
   if (overlay && _posGridOpen) {
-    // بناء الشبكة من المفضلة مباشرة
     const grid = document.getElementById('pos_grid');
     const noFavMsg = document.getElementById('pos_no_fav_msg');
 
     if (grid) {
-      // جلب المنتجات المفضلة من _posProducts
+      // جمع المفضلة من المصدرين:
+      // 1. p.favorite من قاعدة البيانات (يُعيَّن من شاشة المنتجات)
+      // 2. _posFavorites من localStorage (يُعيَّن بكليك يمين في POS)
       const favProducts = _posProducts.filter(p =>
+        p.favorite ||
         _posFavorites.some(f => f.id === p.id)
       );
 
       if (favProducts.length === 0) {
-        // لا توجد مفضلة
         grid.innerHTML = '';
         if (noFavMsg) noFavMsg.style.display = 'block';
       } else {
         if (noFavMsg) noFavMsg.style.display = 'none';
-        // بناء كروت المفضلة فقط
         grid.innerHTML = favProducts.map(p => buildPOSCard(p)).join('');
       }
     }
