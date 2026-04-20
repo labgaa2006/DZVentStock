@@ -86,6 +86,9 @@ ipcMain.handle('units:add',     (_, name) => db.addUnit(name));
 ipcMain.handle('units:delete',  (_, id)   => db.deleteUnit(id));
 
 // Categories
+ipcMain.handle('categories:add',      safe((_, n, c, i) => db.addCategory(n, c, i)));
+ipcMain.handle('categories:getAll',   safe(()          => db.getAllCategories()));
+ipcMain.handle('categories:updateMeta', safe((_, n,c,i) => db.updateCategoryMeta(n,c,i)));
 ipcMain.handle('categories:rename',   (_, o, n) => db.renameCategory(o, n));
 ipcMain.handle('categories:delete',   (_, n)    => db.deleteCategory(n));
 

@@ -119,6 +119,13 @@ class DB {
         payment_type TEXT DEFAULT 'نقداً', notes TEXT DEFAULT '', seller_name TEXT DEFAULT '',
         date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0)`,
+      `CREATE TABLE IF NOT EXISTS categories (
+        id TEXT PRIMARY KEY,
+        name TEXT UNIQUE,
+        color TEXT DEFAULT '#6366f1',
+        icon TEXT DEFAULT '📂',
+        sort_order INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now')))`,
       `CREATE TABLE IF NOT EXISTS vente_items (
         id TEXT PRIMARY KEY, vente_id TEXT, product_id TEXT,
         product_name TEXT, ref TEXT, qty INTEGER DEFAULT 1,
@@ -359,6 +366,44 @@ class DB {
     this.run(`UPDATE fournisseurs SET is_deleted=1 WHERE id=?`, [id]);
     return { success: true };
   }
+  addCategory(name, color='#6366f1', icon='📂') {
+    try {
+      const id = this.uuid();
+      this.db.run(`INSERT OR IGNORE INTO categories(id,name,color,icon) VALUES(?,?,?,?)`,
+        [id, name.trim(), color, icon]);
+      this.save();
+      return { success: true };
+    } catch(e) { return { success: false, error: e.message }; }
+  }
+
+  getAllCategories() {
+    const cats = this.all(`SELECT * FROM categories ORDER BY sort_order,name`);
+    // ادمج مع الفئات الموجودة في المنتجات
+    const fromProducts = this.all(
+      `SELECT DISTINCT category as name FROM products WHERE is_deleted=0 AND category!='' AND category IS NOT NULL`
+    );
+    const defined = new Set(cats.map(c=>c.name));
+    fromProducts.forEach(r => {
+      if (!defined.has(r.name)) {
+        cats.push({ id: null, name: r.name, color: '#6366f1', icon: '📂' });
+      }
+    });
+    return cats;
+  }
+
+  updateCategoryMeta(name, color, icon) {
+    const existing = this.get(`SELECT id FROM categories WHERE name=?`, [name]);
+    if (existing) {
+      this.db.run(`UPDATE categories SET color=?,icon=? WHERE name=?`, [color, icon, name]);
+    } else {
+      const id = this.uuid();
+      this.db.run(`INSERT OR IGNORE INTO categories(id,name,color,icon) VALUES(?,?,?,?)`,
+        [id, name, color, icon]);
+    }
+    this.save();
+    return { success: true };
+  }
+
   renameCategory(oldName, newName) {
     this.run(`UPDATE products SET category=? WHERE category=?`, [newName, oldName]);
     return { success: true };

@@ -101,7 +101,10 @@ contextBridge.exposeInMainWorld('api', {
   },
   // ===== الفئات =====
   categories: {
-    rename: (oldName, newName) => ipcRenderer.invoke('categories:rename', oldName, newName),
+    add:        (name,color,icon)    => ipcRenderer.invoke('categories:add', name, color, icon),
+    getAll:     ()                   => ipcRenderer.invoke('categories:getAll'),
+    updateMeta: (name, color, icon)  => ipcRenderer.invoke('categories:updateMeta', name, color, icon),
+    rename:     (oldName, newName)   => ipcRenderer.invoke('categories:rename', oldName, newName),
     delete: (name)             => ipcRenderer.invoke('categories:delete', name),
   },
 
