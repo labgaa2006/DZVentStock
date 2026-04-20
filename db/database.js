@@ -205,6 +205,8 @@ class DB {
       `ALTER TABLE products ADD COLUMN barcode7 TEXT DEFAULT ''`,
       `ALTER TABLE products ADD COLUMN barcode8 TEXT DEFAULT ''`,
       `ALTER TABLE products ADD COLUMN image_data TEXT DEFAULT ''`,
+      `ALTER TABLE ventes ADD COLUMN seller_name TEXT DEFAULT ''`,
+      `ALTER TABLE ventes ADD COLUMN notes TEXT DEFAULT ''`,
     ];
     migrations.forEach(sql => {
       try { this.db.run(sql); } catch(e) {} // ignore "duplicate column" errors
