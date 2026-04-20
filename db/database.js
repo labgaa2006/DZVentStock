@@ -214,6 +214,7 @@ class DB {
       `ALTER TABLE products ADD COLUMN image_data TEXT DEFAULT ''`,
       `ALTER TABLE ventes ADD COLUMN seller_name TEXT DEFAULT ''`,
       `ALTER TABLE ventes ADD COLUMN notes TEXT DEFAULT ''`,
+      `CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, name TEXT UNIQUE, color TEXT DEFAULT '#6366f1', icon TEXT DEFAULT '📂', sort_order INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now')))`,
     ];
     migrations.forEach(sql => {
       try { this.db.run(sql); } catch(e) {} // ignore "duplicate column" errors
@@ -406,10 +407,18 @@ class DB {
 
   renameCategory(oldName, newName) {
     this.run(`UPDATE products SET category=? WHERE category=?`, [newName, oldName]);
+    // تحديث جدول categories أيضاً
+    try {
+      this.db.run(`UPDATE categories SET name=? WHERE name=?`, [newName, oldName]);
+    } catch(e) {}
+    this.save();
     return { success: true };
   }
   deleteCategory(name) {
     this.run(`UPDATE products SET category='' WHERE category=?`, [name]);
+    // حذف من جدول categories أيضاً
+    try { this.db.run(`DELETE FROM categories WHERE name=?`, [name]); } catch(e) {}
+    this.save();
     return { success: true };
   }
 
