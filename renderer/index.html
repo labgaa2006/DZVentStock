@@ -7264,379 +7264,325 @@ function showSmartExitDialog(title, msg, confirmLabel, onConfirm) {
 // يستخدم JsBarcode عبر CDN لتوليد باركود حقيقي
 // ═══════════════════════════════════════════════
 
+
 function showBarcodePrinter(preselectedId) {
   preselectedId = preselectedId || null;
   var saved = {};
   try { saved = JSON.parse(localStorage.getItem('barcode_settings2')||'{}'); } catch(e) {}
   var s = {
-    size:         saved.size         || '25x50',
-    symbology:    saved.symbology    || 'CODE128',
-    showName:     saved.showName     !== false,
-    showPrice:    saved.showPrice    !== false,
-    showRef:      saved.showRef      !== false,
-    showBarcode:  saved.showBarcode  !== false,
-    showShop:     saved.showShop     || false,
-    showDate:     saved.showDate     || false,
-    showUnit:     saved.showUnit     || false,
-    nameFontSize: saved.nameFontSize || 7,
-    priceFontSize:saved.priceFontSize|| 10,
-    priceType:    saved.priceType    || 'sell_price',
-    barcodeHeight:saved.barcodeHeight|| 35,
-    barcodeWidth: saved.barcodeWidth || 1.5,
+    size:      saved.size      || '40x20',
+    priceType: saved.priceType || 'sell_price',
+    showShop:  saved.showShop  !== false,
+    showDate:  saved.showDate  || false,
+    showRef:   saved.showRef   !== false,
   };
 
-  var sizes = [
-    {val:'20x40',  label:'20×40 mm — صغير جداً (إكسسوارات)',   w:'38mm', h:'18mm'},
-    {val:'25x50',  label:'25×50 mm — عام (الأكثر استخداماً)',  w:'48mm', h:'23mm'},
-    {val:'35x45',  label:'35×45 mm — متوسط (إلكترونيات)',      w:'43mm', h:'33mm'},
-    {val:'40x60',  label:'40×60 mm — احترافي (محلات كبيرة)',   w:'58mm', h:'38mm'},
-    {val:'65x102', label:'65×102 mm — كبير (مخازن/صناديق)',    w:'63mm', h:'100mm'},
-  ];
-  var syms = ['CODE128','EAN13','EAN8','CODE39','CODABAR'];
-  var priceTypes = [{v:'sell_price',l:'تجزئة'},{v:'sell_price_semi',l:'نصف جملة'},{v:'sell_price_gros',l:'جملة'}];
+  var shopName = (window.App && App.settings && App.settings.company_name) || 'المحل';
 
-  var sizeOpts  = sizes.map(function(x){ return '<option value="'+x.val+'"'+(s.size===x.val?' selected':'')+'>'+x.label+'</option>'; }).join('');
-  var symOpts   = syms.map(function(x){ return '<option value="'+x+'"'+(s.symbology===x?' selected':'')+'>'+x+'</option>'; }).join('');
-  var priceOpts = priceTypes.map(function(x){ return '<option value="'+x.v+'"'+(s.priceType===x.v?' selected':'')+'>'+x.l+'</option>'; }).join('');
-
-  function chk(id,val){ return '<input type="checkbox" id="'+id+'"'+(val?' checked':'')+' onchange="updateBarcodePreview()">'; }
-
+  // بناء الـ modal
   var html = '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">'
-    +'<div class="modal" style="width:960px;max-width:99vw;max-height:97vh">'
-    +'<div class="modal-header" style="background:#111827">'
-    +'<div style="display:flex;align-items:center;gap:10px">'
-    +'<span style="font-size:1.4rem">🏷️</span>'
-    +'<div><div class="modal-title" style="color:#fff;font-size:1rem">نظام طباعة الملصقات الاحترافي</div>'
-    +'<div style="font-size:.65rem;color:#6b7280;margin-top:1px">JsBarcode — Code128 / EAN / QR</div></div>'
-    +'</div><button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button>'
-    +'</div>'
-    // body grid: منتجات | إعدادات | معاينة
-    +'<div style="display:grid;grid-template-columns:1fr 280px 280px;height:calc(97vh - 64px);overflow:hidden">'
+  + '<div class="modal" style="width:960px;max-width:99vw;max-height:97vh">'
 
-    // ── عمود 1: المنتجات ──
-    +'<div style="display:flex;flex-direction:column;border-left:1px solid #e2e8f0;overflow:hidden">'
-    +'<div style="padding:8px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;flex-shrink:0">'
-    +'<input id="bc_search" class="card-search-input" placeholder="🔍 ابحث..." oninput="filterBarcodeProducts(this.value)" onkeydown="event.stopPropagation()">'
-    +'<div style="display:flex;gap:5px;margin-top:6px">'
-    +'<button onclick="selectAllBarcodeProducts()" style="flex:1;padding:3px;font-size:.7rem;border-radius:4px;border:1px solid #e2e8f0;background:#fff;cursor:pointer">✅ الكل</button>'
-    +'<button onclick="clearAllBarcodeProducts()" style="flex:1;padding:3px;font-size:.7rem;border-radius:4px;border:1px solid #e2e8f0;background:#fff;cursor:pointer">✕ إلغاء</button>'
-    +'<span id="bc_selected_count" style="align-self:center;font-size:.68rem;color:#64748b;margin-right:auto;white-space:nowrap">0 محدد</span>'
-    +'</div></div>'
-    +'<div id="bc_product_list" style="flex:1;overflow-y:auto;font-size:.78rem"></div>'
-    +'</div>'
+  + '<div class="modal-header" style="background:#1e293b">'
+  + '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:1.3rem">🏷️</span>'
+  + '<div class="modal-title" style="color:#fff">طابعة الملصقات</div></div>'
+  + '<button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button>'
+  + '</div>'
 
-    // ── عمود 2: الإعدادات ──
-    +'<div style="border-left:1px solid #e2e8f0;overflow-y:auto;padding:10px;background:#fafafa;display:flex;flex-direction:column;gap:8px">'
-    +'<div style="font-weight:800;font-size:.82rem;color:#1e293b;border-bottom:1px solid #e2e8f0;padding-bottom:6px">⚙️ إعدادات الملصق</div>'
+  + '<div style="display:grid;grid-template-columns:1fr 380px;height:calc(97vh - 60px);overflow:hidden">'
 
-    +'<div><label style="font-size:.7rem;color:#64748b;display:block;margin-bottom:2px">📐 الحجم</label>'
-    +'<select id="bc_size" onchange="updateBarcodePreview()" style="width:100%;padding:5px;border:1px solid #e2e8f0;border-radius:5px;font-size:.75rem">'+sizeOpts+'</select></div>'
+  // ── يسار: قائمة المنتجات ──
+  + '<div style="display:flex;flex-direction:column;border-left:1px solid #e2e8f0;overflow:hidden">'
+  + '<div style="padding:8px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;flex-shrink:0">'
+  + '<input id="bc_search" class="card-search-input" placeholder="🔍 ابحث..." oninput="filterBarcodeProducts(this.value)" onkeydown="event.stopPropagation()">'
+  + '</div>'
+  + '<div style="padding:5px 10px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;gap:5px;flex-shrink:0">'
+  + '<button onclick="selectAllBarcodeProducts()" style="padding:3px 10px;font-size:.72rem;border-radius:5px;border:1px solid #e2e8f0;background:#fff;cursor:pointer">✅ الكل</button>'
+  + '<button onclick="clearAllBarcodeProducts()" style="padding:3px 10px;font-size:.72rem;border-radius:5px;border:1px solid #e2e8f0;background:#fff;cursor:pointer">✕ إلغاء</button>'
+  + '<span id="bc_selected_count" style="font-size:.72rem;color:#64748b;align-self:center;margin-right:auto">0 محدد</span>'
+  + '</div>'
+  + '<div id="bc_product_list" style="flex:1;overflow-y:auto;padding:4px"></div>'
+  + '</div>'
 
-    +'<div><label style="font-size:.7rem;color:#64748b;display:block;margin-bottom:2px">🔢 نوع الباركود</label>'
-    +'<select id="bc_symbology" onchange="updateBarcodePreview()" style="width:100%;padding:5px;border:1px solid #e2e8f0;border-radius:5px;font-size:.75rem">'+symOpts+'</select></div>'
+  // ── يمين: إعدادات + معاينة ──
+  + '<div style="display:flex;flex-direction:column;overflow-y:auto;background:#f8fafc">'
 
-    +'<div><label style="font-size:.7rem;color:#64748b;display:block;margin-bottom:2px">💰 نوع السعر</label>'
-    +'<select id="bc_price_type" onchange="updateBarcodePreview()" style="width:100%;padding:5px;border:1px solid #e2e8f0;border-radius:5px;font-size:.75rem">'+priceOpts+'</select></div>'
+  // إعدادات
+  + '<div style="padding:12px 14px;border-bottom:1px solid #e2e8f0">'
+  + '<div style="font-weight:700;font-size:.8rem;color:#1e293b;margin-bottom:8px">📐 حجم الملصق</div>'
+  + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:10px">'
+  + ['20x40','50x25','45x35','60x40','102x65'].map(function(sz){
+      var labels = {'20x40':'20×40 mm\nصغير','50x25':'50×25 mm\nعام','45x35':'45×35 mm\nمتوسط','60x40':'60×40 mm\nاحترافي','102x65':'102×65 mm\nكبير'};
+      return '<button onclick="bcSetSize(\''+sz+'\')" id="bcbtn_'+sz+'"'
+        + ' style="padding:8px 4px;border-radius:6px;border:2px solid '+(s.size===sz?'var(--primary)':'#e2e8f0')+';'
+        + 'background:'+(s.size===sz?'rgba(249,115,22,.1)':'#fff')+';cursor:pointer;'
+        + 'font-family:\'Cairo\',sans-serif;font-size:.68rem;font-weight:600;'
+        + 'color:'+(s.size===sz?'var(--primary)':'#475569')+';white-space:pre-line;line-height:1.4">'
+        + labels[sz]+'</button>';
+    }).join('')
+  + '</div>'
 
-    // الحقول
-    +'<div style="background:#fff;border-radius:6px;padding:8px;border:1px solid #e2e8f0">'
-    +'<div style="font-size:.7rem;font-weight:700;color:#475569;margin-bottom:6px">📋 الحقول الظاهرة</div>'
-    +'<div style="display:flex;flex-direction:column;gap:5px">'
-    +'<label style="font-size:.75rem;cursor:pointer;display:flex;align-items:center;gap:6px">'+chk('bc_show_barcode',s.showBarcode)+' 🔢 الباركود</label>'
-    +'<label style="font-size:.75rem;cursor:pointer;display:flex;align-items:center;gap:6px">'+chk('bc_show_name',s.showName)+' 🏷️ اسم المنتج</label>'
-    +'<label style="font-size:.75rem;cursor:pointer;display:flex;align-items:center;gap:6px">'+chk('bc_show_price',s.showPrice)+' 💰 السعر</label>'
-    +'<label style="font-size:.75rem;cursor:pointer;display:flex;align-items:center;gap:6px">'+chk('bc_show_ref',s.showRef)+' 🆔 المرجع</label>'
-    +'<label style="font-size:.75rem;cursor:pointer;display:flex;align-items:center;gap:6px">'+chk('bc_show_shop',s.showShop)+' 🏪 اسم المحل</label>'
-    +'<label style="font-size:.75rem;cursor:pointer;display:flex;align-items:center;gap:6px">'+chk('bc_show_unit',s.showUnit)+' 📦 الوحدة</label>'
-    +'<label style="font-size:.75rem;cursor:pointer;display:flex;align-items:center;gap:6px">'+chk('bc_show_date',s.showDate)+' 📅 التاريخ</label>'
-    +'</div></div>'
+  + '<div style="font-weight:700;font-size:.8rem;color:#1e293b;margin-bottom:6px">⚙️ إعدادات</div>'
+  + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'
+  + '<div><label style="font-size:.7rem;color:#64748b;display:block;margin-bottom:2px">نوع السعر</label>'
+  + '<select id="bc_price_type" onchange="updateBarcodePreview()" style="width:100%;padding:4px 6px;border:1px solid #e2e8f0;border-radius:5px;font-size:.75rem">'
+  + '<option value="sell_price"'+(s.priceType==='sell_price'?' selected':'')+'>تجزئة</option>'
+  + '<option value="sell_price_semi"'+(s.priceType==='sell_price_semi'?' selected':'')+'>نصف جملة</option>'
+  + '<option value="sell_price_gros"'+(s.priceType==='sell_price_gros'?' selected':'')+'>جملة</option>'
+  + '</select></div>'
+  + '<div style="display:flex;flex-direction:column;gap:4px;padding-top:2px">'
+  + '<label style="font-size:.72rem;cursor:pointer;display:flex;align-items:center;gap:5px"><input type="checkbox" id="bc_show_shop"'+(s.showShop?' checked':'')+' onchange="updateBarcodePreview()"> اسم المحل</label>'
+  + '<label style="font-size:.72rem;cursor:pointer;display:flex;align-items:center;gap:5px"><input type="checkbox" id="bc_show_ref"'+(s.showRef?' checked':'')+' onchange="updateBarcodePreview()"> المرجع (SKU)</label>'
+  + '<label style="font-size:.72rem;cursor:pointer;display:flex;align-items:center;gap:5px"><input type="checkbox" id="bc_show_date"'+(s.showDate?' checked':'')+' onchange="updateBarcodePreview()"> التاريخ</label>'
+  + '</div></div></div>'
 
-    // أحجام الخط
-    +'<div style="background:#fff;border-radius:6px;padding:8px;border:1px solid #e2e8f0">'
-    +'<div style="font-size:.7rem;font-weight:700;color:#475569;margin-bottom:6px">✏️ أحجام الخطوط</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'
-    +'<div><label style="font-size:.68rem;color:#64748b">الاسم (pt)</label>'
-    +'<input id="bc_name_font" type="number" min="4" max="16" value="'+s.nameFontSize+'" oninput="updateBarcodePreview()" onkeydown="event.stopPropagation()" style="width:100%;padding:3px;border:1px solid #e2e8f0;border-radius:4px;font-size:.75rem"></div>'
-    +'<div><label style="font-size:.68rem;color:#64748b">السعر (pt)</label>'
-    +'<input id="bc_price_font" type="number" min="4" max="20" value="'+s.priceFontSize+'" oninput="updateBarcodePreview()" onkeydown="event.stopPropagation()" style="width:100%;padding:3px;border:1px solid #e2e8f0;border-radius:4px;font-size:.75rem"></div>'
-    +'</div></div>'
+  // معاينة
+  + '<div style="padding:10px 14px;border-bottom:1px solid #e2e8f0;flex:1">'
+  + '<div style="font-weight:700;font-size:.8rem;color:#1e293b;margin-bottom:8px">👁 معاينة</div>'
+  + '<div style="background:#e2e8f0;border-radius:8px;padding:16px;display:flex;justify-content:center;align-items:center;min-height:120px">'
+  + '<div id="bc_preview_wrap" style="background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15)"></div>'
+  + '</div></div>'
 
-    // إعدادات الباركود
-    +'<div style="background:#fff;border-radius:6px;padding:8px;border:1px solid #e2e8f0">'
-    +'<div style="font-size:.7rem;font-weight:700;color:#475569;margin-bottom:6px">📊 إعدادات الباركود</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'
-    +'<div><label style="font-size:.68rem;color:#64748b">الارتفاع (px)</label>'
-    +'<input id="bc_height" type="number" min="15" max="80" value="'+s.barcodeHeight+'" oninput="updateBarcodePreview()" onkeydown="event.stopPropagation()" style="width:100%;padding:3px;border:1px solid #e2e8f0;border-radius:4px;font-size:.75rem"></div>'
-    +'<div><label style="font-size:.68rem;color:#64748b">العرض (px)</label>'
-    +'<input id="bc_width" type="number" min="1" max="4" step="0.5" value="'+s.barcodeWidth+'" oninput="updateBarcodePreview()" onkeydown="event.stopPropagation()" style="width:100%;padding:3px;border:1px solid #e2e8f0;border-radius:4px;font-size:.75rem"></div>'
-    +'</div></div>'
-
-    // أزرار
-    +'<div style="margin-top:auto;display:flex;flex-direction:column;gap:6px">'
-    +'<button onclick="saveBarcodeSettings()" style="padding:7px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;font-family:\'Cairo\',sans-serif;font-size:.78rem;cursor:pointer;font-weight:600">💾 حفظ الإعدادات</button>'
-    +'<button onclick="executePrintBarcodes()" style="padding:10px;background:#166534;border:none;border-radius:6px;color:#fff;font-family:\'Cairo\',sans-serif;font-size:.85rem;cursor:pointer;font-weight:900">🖨️ طباعة الملصقات</button>'
-    +'</div></div>'
-
-    // ── عمود 3: المعاينة ──
-    +'<div style="border-left:1px solid #e2e8f0;overflow-y:auto;background:#e5e7eb;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px">'
-    +'<div style="font-weight:800;font-size:.82rem;color:#374151;width:100%;margin-bottom:4px">👁️ معاينة حية</div>'
-    +'<div id="bc_preview_wrap" style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%"></div>'
-    +'</div>'
-    +'</div></div></div>';
+  // أزرار
+  + '<div style="padding:12px 14px;display:flex;flex-direction:column;gap:6px">'
+  + '<button onclick="saveBarcodeSettings()" style="padding:8px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;font-family:\'Cairo\',sans-serif;font-size:.78rem;cursor:pointer">💾 حفظ الإعدادات</button>'
+  + '<button onclick="executePrintBarcodes()" style="padding:11px;background:#166534;border:none;border-radius:6px;color:#fff;font-family:\'Cairo\',sans-serif;font-size:.88rem;cursor:pointer;font-weight:800">🖨️ طباعة الملصقات</button>'
+  + '</div>'
+  + '</div></div></div></div>';
 
   showModal(html);
-  window._bcProducts = (allProducts||[]).filter(function(p){ return !p.is_deleted; });
+  window._bcProducts = [...allProducts];
   window._bcSelected = {};
-  if (preselectedId) { window._bcSelected[preselectedId] = 1; }
+  window._bcCurrentSize = s.size;
+  if (preselectedId) window._bcSelected[preselectedId] = 1;
   renderBarcodeProductList(window._bcProducts);
   setTimeout(updateBarcodePreview, 100);
+}
+
+function bcSetSize(sz) {
+  window._bcCurrentSize = sz;
+  // تحديث أزرار الحجم
+  ['20x40','50x25','45x35','60x40','102x65'].forEach(function(s2) {
+    var btn = document.getElementById('bcbtn_'+s2);
+    if (!btn) return;
+    if (s2 === sz) {
+      btn.style.borderColor='var(--primary)'; btn.style.background='rgba(249,115,22,.1)'; btn.style.color='var(--primary)';
+    } else {
+      btn.style.borderColor='#e2e8f0'; btn.style.background='#fff'; btn.style.color='#475569';
+    }
+  });
+  updateBarcodePreview();
 }
 
 function renderBarcodeProductList(products) {
   var list = document.getElementById('bc_product_list');
   if (!list) return;
-  if (!(products||[]).length) {
-    list.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8">لا توجد منتجات</div>';
-    return;
-  }
-  list.innerHTML = (products||[]).map(function(p) {
-    var sel = window._bcSelected && window._bcSelected[p.id] !== undefined;
-    return '<div style="display:flex;align-items:center;gap:7px;padding:6px 10px;border-bottom:1px solid #f1f5f9">'
-      +'<input type="checkbox" id="bc_chk_'+p.id+'" '+(sel?'checked':'')+' onchange="toggleBarcodeProduct(\''+p.id+'\',this.checked)" style="width:14px;height:14px;accent-color:var(--primary);flex-shrink:0">'
-      +'<div style="flex:1;min-width:0">'
-      +'<div style="font-weight:700;font-size:.78rem;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.name+'</div>'
-      +'<div style="font-size:.63rem;color:#94a3b8">'+(p.ref||'')+(p.barcode?' • '+p.barcode:'')+'</div>'
-      +'</div>'
-      +'<input type="number" id="bc_qty_'+p.id+'" min="1" max="999" value="'+(window._bcSelected[p.id]||1)+'"'
-      +' onkeydown="event.stopPropagation()" onchange="setBarcodeQty(\''+p.id+'\',+this.value)"'
-      +' style="width:46px;padding:2px 3px;border:1px solid #e2e8f0;border-radius:4px;font-size:.75rem;text-align:center;opacity:'+(sel?1:0.3)+'">'
-      +'</div>';
+  if (!products.length) { list.innerHTML='<div style="text-align:center;padding:30px;color:#94a3b8">لا توجد منتجات</div>'; return; }
+  list.innerHTML = products.map(function(p) {
+    var sel = window._bcSelected[p.id] !== undefined;
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid #f1f5f9">'
+      + '<input type="checkbox" id="bc_chk_'+p.id+'" '+(sel?'checked':'')+' onchange="toggleBarcodeProduct(\''+p.id+'\',this.checked)" style="accent-color:var(--primary);width:14px;height:14px;flex-shrink:0">'
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="font-weight:700;font-size:.78rem;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.name+'</div>'
+      + '<div style="font-size:.65rem;color:#94a3b8">'+(p.ref||'')+''+(p.barcode?' • '+p.barcode:'')+'</div>'
+      + '</div>'
+      + '<input type="number" id="bc_qty_'+p.id+'" min="1" max="999" value="'+(window._bcSelected[p.id]||1)+'"'
+      + ' onkeydown="event.stopPropagation()" onchange="setBarcodeQty(\''+p.id+'\',+this.value)"'
+      + ' style="width:48px;padding:2px 4px;border:1px solid #e2e8f0;border-radius:4px;font-size:.75rem;text-align:center;opacity:'+(sel?'1':'0.35')+'">'
+      + '</div>';
   }).join('');
-  var countEl = document.getElementById('bc_selected_count');
-  if (countEl) countEl.textContent = Object.keys(window._bcSelected||{}).length + ' محدد';
+  var c = document.getElementById('bc_selected_count');
+  if (c) c.textContent = Object.keys(window._bcSelected).length + ' محدد';
 }
 
 function filterBarcodeProducts(q) {
-  var ql = (q||'').toLowerCase();
-  var filtered = (window._bcProducts||[]).filter(function(p){
+  var ql=(q||'').toLowerCase();
+  renderBarcodeProductList((window._bcProducts||[]).filter(function(p){
     return (p.name||'').toLowerCase().includes(ql)||(p.barcode||'').toLowerCase().includes(ql)||(p.ref||'').toLowerCase().includes(ql);
-  });
-  renderBarcodeProductList(filtered);
+  }));
 }
 
 function toggleBarcodeProduct(id, checked) {
-  if (!window._bcSelected) window._bcSelected={};
-  if (checked) { window._bcSelected[id] = parseInt(document.getElementById('bc_qty_'+id)?.value)||1; }
+  if (checked) { window._bcSelected[id]=window._bcSelected[id]||1; }
   else { delete window._bcSelected[id]; }
-  var el = document.getElementById('bc_qty_'+id);
-  if (el) el.style.opacity = checked?'1':'0.3';
-  var c = document.getElementById('bc_selected_count');
-  if (c) c.textContent = Object.keys(window._bcSelected).length + ' محدد';
-  updateBarcodePreview();
+  var q=document.getElementById('bc_qty_'+id); if(q)q.style.opacity=checked?'1':'0.35';
+  var c=document.getElementById('bc_selected_count'); if(c)c.textContent=Object.keys(window._bcSelected).length+' محدد';
 }
 
-function setBarcodeQty(id, qty) { if (window._bcSelected && window._bcSelected[id]!==undefined && qty>=1) window._bcSelected[id]=qty; }
+function setBarcodeQty(id,qty){ if(qty>=1)window._bcSelected[id]=qty; }
 
-function selectAllBarcodeProducts() {
-  window._bcSelected={};
-  (window._bcProducts||[]).forEach(function(p){ window._bcSelected[p.id]=1; });
+function selectAllBarcodeProducts(){
+  (window._bcProducts||[]).forEach(function(p){window._bcSelected[p.id]=1;});
   renderBarcodeProductList(window._bcProducts);
-  updateBarcodePreview();
 }
-function clearAllBarcodeProducts() {
+function clearAllBarcodeProducts(){
   window._bcSelected={};
   renderBarcodeProductList(window._bcProducts);
-  updateBarcodePreview();
 }
 
-function getBarcodeSettings() {
+function getBarcodeSettings(){
   return {
-    size:         document.getElementById('bc_size')?.value||'25x50',
-    symbology:    document.getElementById('bc_symbology')?.value||'CODE128',
-    priceType:    document.getElementById('bc_price_type')?.value||'sell_price',
-    showName:     !!document.getElementById('bc_show_name')?.checked,
-    showPrice:    !!document.getElementById('bc_show_price')?.checked,
-    showRef:      !!document.getElementById('bc_show_ref')?.checked,
-    showBarcode:  !!document.getElementById('bc_show_barcode')?.checked,
-    showShop:     !!document.getElementById('bc_show_shop')?.checked,
-    showUnit:     !!document.getElementById('bc_show_unit')?.checked,
-    showDate:     !!document.getElementById('bc_show_date')?.checked,
-    nameFontSize: parseFloat(document.getElementById('bc_name_font')?.value)||7,
-    priceFontSize:parseFloat(document.getElementById('bc_price_font')?.value)||10,
-    barcodeHeight:parseInt(document.getElementById('bc_height')?.value)||35,
-    barcodeWidth: parseFloat(document.getElementById('bc_width')?.value)||1.5,
+    size:      window._bcCurrentSize || document.getElementById('bcbtn_20x40')?.style.color==='var(--primary)'?'20x40':'50x25',
+    priceType: document.getElementById('bc_price_type')?.value||'sell_price',
+    showShop:  document.getElementById('bc_show_shop')?.checked!==false,
+    showRef:   document.getElementById('bc_show_ref')?.checked!==false,
+    showDate:  document.getElementById('bc_show_date')?.checked||false,
   };
 }
 
-function saveBarcodeSettings() {
-  localStorage.setItem('barcode_settings2', JSON.stringify(getBarcodeSettings()));
+function saveBarcodeSettings(){
+  var s=getBarcodeSettings();
+  s.size=window._bcCurrentSize||s.size;
+  localStorage.setItem('barcode_settings2',JSON.stringify(s));
   toast('💾 تم حفظ الإعدادات','success',1500);
 }
 
-// ── بناء HTML واحد ملصق (بدون JsBarcode — للمعاينة الداخلية) ──
-function buildLabelPreviewHTML(p, s) {
-  var sizeMap = {
-    '20x40': {w:'38mm',h:'18mm',wPx:143,hPx:68},
-    '25x50': {w:'48mm',h:'23mm',wPx:181,hPx:87},
-    '35x45': {w:'43mm',h:'33mm',wPx:162,hPx:125},
-    '40x60': {w:'58mm',h:'38mm',wPx:219,hPx:144},
-    '65x102':{w:'63mm',h:'100mm',wPx:238,hPx:378},
-  };
-  var dim = sizeMap[s.size]||{w:'48mm',h:'23mm',wPx:181,hPx:87};
-  var price = p[s.priceType]||p.sell_price||0;
-  var bc = p.barcode||p.ref||p.id.slice(0,8);
-  var shop = (App&&App.settings&&App.settings.company_name)||'المحل';
+// ═══ بناء HTML الملصق — قالب مختلف لكل حجم ═══
+function buildLabelHTML(p, s) {
+  var price = p[s.priceType] || p.sell_price || 0;
+  var bc    = p.barcode || p.ref || (p.id||'').slice(0,8) || '00000000';
+  var shop  = (window.App && App.settings && App.settings.company_name) || 'المحل';
   var today = new Date().toLocaleDateString('fr-DZ');
 
-  return '<div class="bc-label-preview" data-pid="'+p.id+'" data-bc="'+bc+'" data-sym="'+(s.symbology||'CODE128')+'"'
-    +' style="width:'+dim.wPx+'px;min-height:'+dim.hPx+'px;border:1px solid #999;background:#fff;'
-    +'font-family:Arial,sans-serif;padding:3px;box-sizing:border-box;'
-    +'display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden">'
-    +(s.showShop?'<div style="font-size:5pt;text-align:center;color:#555;border-bottom:0.5px solid #ddd;width:100%;margin-bottom:2px;padding-bottom:1px">'+shop+'</div>':'' )
-    +(s.showName?'<div style="font-size:'+s.nameFontSize+'pt;font-weight:700;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;width:100%;line-height:1.2">'+p.name+'</div>':'' )
-    +(s.showRef&&p.ref?'<div style="font-size:4.5pt;text-align:center;color:#666">'+p.ref+'</div>':'' )
-    +(s.showUnit&&p.unit?'<div style="font-size:4.5pt;text-align:center;color:#777">'+p.unit+'</div>':'' )
-    +(s.showBarcode?'<svg class="bc-svg" style="margin:2px 0"></svg><div style="font-size:5pt;text-align:center;letter-spacing:1px;margin-top:-2px">'+bc+'</div>':'' )
-    +(s.showPrice?'<div style="font-size:'+s.priceFontSize+'pt;font-weight:900;text-align:center;margin-top:1px">Prix : '+fmtNum(price)+' DA</div>':'' )
-    +(s.showDate?'<div style="font-size:4pt;text-align:center;color:#888;margin-top:1px">'+today+'</div>':'' )
-    +'</div>';
+  // باركود باستخدام Libre Barcode 39 font
+  var bcSpan = '<div style="text-align:center;line-height:1;margin:1px 0">'
+    + '<span style="font-family:\'Libre Barcode 39\',monospace;display:block;line-height:1">*'+bc+'*</span>'
+    + '<div style="font-size:6px;color:#333;letter-spacing:.5px;margin-top:-1px">'+bc+'</div>'
+    + '</div>';
+
+  var sizeMap = {
+    '20x40':   {w:'38mm', h:'18mm', bcSize:'14pt'},
+    '50x25':   {w:'48mm', h:'23mm', bcSize:'16pt'},
+    '45x35':   {w:'43mm', h:'33mm', bcSize:'20pt'},
+    '60x40':   {w:'58mm', h:'38mm', bcSize:'22pt'},
+    '102x65':  {w:'100mm',h:'63mm', bcSize:'30pt'},
+  };
+  var dim = sizeMap[s.size] || sizeMap['50x25'];
+
+  var base = 'font-family:Arial,sans-serif;background:#fff;box-sizing:border-box;overflow:hidden;'
+    + 'width:'+dim.w+';height:'+dim.h+';';
+
+  // ── قوالب مختلفة لكل حجم ──
+  if (s.size === '20x40') {
+    // صغير جداً: السعر أكبر شيء
+    return '<div style="'+base+'padding:2px;display:flex;flex-direction:column;justify-content:center;align-items:center">'
+      + '<div style="font-size:6pt;font-weight:700;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;width:100%">'+p.name+'</div>'
+      + '<div style="font-size:10pt;font-weight:900;text-align:center;margin:1px 0">'+fmtNum(price)+' DA</div>'
+      + '<div style="font-family:\'Libre Barcode 39\',monospace;font-size:'+dim.bcSize+';line-height:1;text-align:center">*'+bc+'*</div>'
+      + '<div style="font-size:5pt;color:#333;text-align:center;letter-spacing:.5px">'+bc+'</div>'
+      + '</div>';
+  }
+
+  if (s.size === '50x25') {
+    // عام: الأكثر استخداماً
+    return '<div style="'+base+'padding:3px;display:flex;flex-direction:column;justify-content:center">'
+      + '<div style="font-size:7pt;font-weight:700;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin-bottom:1px">'+p.name+'</div>'
+      + (s.showRef && p.ref ? '<div style="font-size:5pt;color:#666;text-align:center">'+p.ref+'</div>' : '')
+      + '<div style="font-family:\'Libre Barcode 39\',monospace;font-size:'+dim.bcSize+';line-height:1;text-align:center">*'+bc+'*</div>'
+      + '<div style="font-size:5pt;color:#333;text-align:center;letter-spacing:.5px;margin-top:-1px">'+bc+'</div>'
+      + '<div style="font-size:9pt;font-weight:900;text-align:center;margin-top:2px">'+fmtNum(price)+' DA</div>'
+      + '</div>';
+  }
+
+  if (s.size === '45x35') {
+    // متوسط: اسم واضح + فئة + باركود + سعر
+    return '<div style="'+base+'padding:4px;display:flex;flex-direction:column;justify-content:space-between">'
+      + (s.showShop ? '<div style="font-size:5.5pt;color:#666;text-align:center;border-bottom:0.5px solid #ddd;padding-bottom:2px">'+shop+'</div>' : '')
+      + '<div style="font-size:8pt;font-weight:700;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.name+'</div>'
+      + (p.category ? '<div style="font-size:5.5pt;color:#555;text-align:center">'+p.category+'</div>' : '')
+      + '<div style="font-family:\'Libre Barcode 39\',monospace;font-size:'+dim.bcSize+';line-height:1;text-align:center">*'+bc+'*</div>'
+      + '<div style="font-size:5pt;color:#333;text-align:center;letter-spacing:.5px;margin-top:-2px">'+bc+'</div>'
+      + '<div style="font-size:11pt;font-weight:900;text-align:center;margin-top:2px">'+fmtNum(price)+' DA</div>'
+      + '</div>';
+  }
+
+  if (s.size === '60x40') {
+    // احترافي: كل العناصر
+    return '<div style="'+base+'padding:4px;display:flex;flex-direction:column;justify-content:space-between">'
+      + (s.showShop ? '<div style="font-size:6pt;font-weight:700;text-align:center;color:#1e293b;border-bottom:0.5px solid #ddd;padding-bottom:2px;margin-bottom:2px">🏪 '+shop+'</div>' : '')
+      + '<div style="font-size:8.5pt;font-weight:800;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.name+'</div>'
+      + (s.showRef && p.ref ? '<div style="font-size:5.5pt;color:#666;text-align:center">SKU: '+p.ref+'</div>' : '')
+      + '<div style="font-family:\'Libre Barcode 39\',monospace;font-size:'+dim.bcSize+';line-height:1;text-align:center;margin:2px 0">*'+bc+'*</div>'
+      + '<div style="font-size:5.5pt;color:#333;text-align:center;letter-spacing:.5px;margin-top:-2px">'+bc+'</div>'
+      + '<div style="font-size:13pt;font-weight:900;text-align:center;margin-top:2px;color:#000">'+fmtNum(price)+' DA</div>'
+      + (s.showDate ? '<div style="font-size:5pt;color:#888;text-align:center;margin-top:2px">'+today+'</div>' : '')
+      + '</div>';
+  }
+
+  if (s.size === '102x65') {
+    // كبير جداً: كل شيء + مخازن
+    return '<div style="'+base+'padding:6px;display:flex;flex-direction:column;justify-content:space-between">'
+      + (s.showShop ? '<div style="font-size:9pt;font-weight:900;text-align:center;color:#1e293b;border-bottom:1px solid #ddd;padding-bottom:4px;margin-bottom:4px;text-transform:uppercase">'+shop+'</div>' : '')
+      + '<div style="font-size:12pt;font-weight:800;text-align:center;margin:2px 0">'+p.name+'</div>'
+      + (p.category ? '<div style="font-size:7pt;color:#555;text-align:center;margin-bottom:2px">📂 '+p.category+(p.unit?' | وحدة: '+p.unit:'')+'</div>' : '')
+      + '<div style="font-family:\'Libre Barcode 39\',monospace;font-size:'+dim.bcSize+';line-height:1;text-align:center;margin:4px 0">*'+bc+'*</div>'
+      + '<div style="font-size:7pt;color:#333;text-align:center;letter-spacing:1px;margin-top:-3px">'+bc+'</div>'
+      + '<div style="font-size:18pt;font-weight:900;text-align:center;margin:4px 0;color:#000">'+fmtNum(price)+' DA</div>'
+      + '<div style="display:flex;justify-content:space-between;font-size:6pt;color:#888;border-top:0.5px solid #ddd;padding-top:3px;margin-top:2px">'
+      + (s.showRef && p.ref ? '<span>SKU: '+p.ref+'</span>' : '<span></span>')
+      + (s.showDate ? '<span>'+today+'</span>' : '<span></span>')
+      + '</div>'
+      + '</div>';
+  }
+
+  return '<div>?</div>';
 }
 
-// ── تحديث المعاينة بـ JsBarcode ──
 function updateBarcodePreview() {
   var s = getBarcodeSettings();
+  s.size = window._bcCurrentSize || s.size;
   var wrap = document.getElementById('bc_preview_wrap');
   if (!wrap) return;
-
-  var selIds = Object.keys(window._bcSelected||{});
-  var previewIds = selIds.length > 0 ? selIds.slice(0,3) : [(allProducts[0]||{}).id].filter(Boolean);
-  if (!previewIds.length) { wrap.innerHTML = '<div style="color:#94a3b8;font-size:.75rem">اختر منتجاً</div>'; return; }
-
-  wrap.innerHTML = '';
-  previewIds.forEach(function(id) {
-    var p = allProducts.find(function(x){return x.id===id;});
-    if (!p) return;
-    var labelHtml = buildLabelPreviewHTML(p, s);
-    var wrapper = document.createElement('div');
-    wrapper.style.cssText = 'margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,.15);border-radius:2px';
-    wrapper.innerHTML = labelHtml;
-    wrap.appendChild(wrapper);
-  });
-
-  // رسم الباركود في كل svg
-  if (typeof JsBarcode !== 'undefined') {
-    wrap.querySelectorAll('.bc-label-preview').forEach(function(lbl) {
-      var svgEl = lbl.querySelector('.bc-svg');
-      if (!svgEl) return;
-      var bc = lbl.dataset.bc||'00000000';
-      var sym = lbl.dataset.sym||'CODE128';
-      try {
-        JsBarcode(svgEl, bc, {
-          format: sym==='EAN13'?'EAN13':sym==='EAN8'?'EAN8':sym==='CODE39'?'CODE39':sym==='CODABAR'?'codabar':'CODE128',
-          width: parseFloat(document.getElementById('bc_width')?.value)||1.5,
-          height: parseInt(document.getElementById('bc_height')?.value)||35,
-          displayValue: false,
-          margin: 0,
-        });
-      } catch(e) {
-        try { JsBarcode(svgEl, bc, {format:'CODE128',width:1.5,height:35,displayValue:false,margin:0}); } catch(e2) {}
-      }
-    });
-  } else {
-    // تحميل JsBarcode ديناميكياً
-    var script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js';
-    script.onload = updateBarcodePreview;
-    document.head.appendChild(script);
-  }
+  var selectedId = Object.keys(window._bcSelected||{})[0];
+  var p = selectedId ? allProducts.find(function(x){return x.id===selectedId;}) : allProducts[0];
+  if (!p) { wrap.innerHTML='<div style="color:#94a3b8;font-size:.75rem;padding:20px">اختر منتجاً للمعاينة</div>'; return; }
+  wrap.innerHTML = buildLabelHTML(p, s);
 }
 
-// ── الطباعة الكاملة ──
 function executePrintBarcodes() {
   var s = getBarcodeSettings();
-  var selected = window._bcSelected||{};
+  s.size = window._bcCurrentSize || s.size;
+  var selected = window._bcSelected || {};
   var ids = Object.keys(selected);
   if (!ids.length) { toast('اختر منتجاً على الأقل','error'); return; }
 
-  var sizeMap = {
-    '20x40': {w:'40mm',h:'20mm'},
-    '25x50': {w:'50mm',h:'25mm'},
-    '35x45': {w:'45mm',h:'35mm'},
-    '40x60': {w:'60mm',h:'40mm'},
-    '65x102':{w:'102mm',h:'65mm'},
-  };
-  var dim = sizeMap[s.size]||{w:'50mm',h:'25mm'};
-  var shop  = (App&&App.settings&&App.settings.company_name)||'';
-  var today = new Date().toLocaleDateString('fr-DZ');
-
-  // بناء HTML الطباعة
-  var labelsHtml = '';
+  var labels = [];
   ids.forEach(function(id) {
     var p = allProducts.find(function(x){return x.id===id;});
-    var qty = parseInt(selected[id])||1;
+    var qty = parseInt(selected[id]) || 1;
     if (!p) return;
-    var bc = p.barcode||p.ref||p.id.slice(0,8)||'00000000';
-    var price = p[s.priceType]||p.sell_price||0;
-
-    var innerContent = '';
-    if (s.showShop && shop) innerContent += '<div class="shop">'+shop+'</div>';
-    if (s.showName)         innerContent += '<div class="name">'+p.name+'</div>';
-    if (s.showRef && p.ref) innerContent += '<div class="ref">Ref: '+p.ref+'</div>';
-    if (s.showUnit && p.unit) innerContent += '<div class="unit">'+p.unit+'</div>';
-    if (s.showBarcode)      innerContent += '<svg class="bc" data-val="'+bc+'" data-sym="'+(s.symbology||'CODE128')+'"></svg>'
-                                           +'<div class="bcnum">'+bc+'</div>';
-    if (s.showPrice)        innerContent += '<div class="price">Prix : '+fmtNum(price)+' DA</div>';
-    if (s.showDate)         innerContent += '<div class="date">'+today+'</div>';
-
-    for (var i=0; i<qty; i++) {
-      labelsHtml += '<div class="label">'+innerContent+'</div>';
-    }
+    for (var i=0; i<qty; i++) labels.push(buildLabelHTML(p,s));
   });
 
-  var printHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
-    +'<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>'
-    +'<style>'
-    +'@page{size:'+dim.w+' '+dim.h+';margin:0}'
-    +'*{box-sizing:border-box}'
-    +'body{margin:0;padding:0;background:#fff}'
-    +'.label{width:'+dim.w+';height:'+dim.h+';border:0.3px solid #ccc;background:#fff;'
-    +'  font-family:Arial,sans-serif;padding:2px;'
-    +'  display:flex;flex-direction:column;align-items:center;justify-content:center;'
-    +'  overflow:hidden;page-break-after:always}'
-    +'.label:last-child{page-break-after:avoid}'
-    +'.shop{font-size:5pt;color:#555;border-bottom:0.5px solid #ddd;width:100%;text-align:center;margin-bottom:1px}'
-    +'.name{font-size:'+s.nameFontSize+'pt;font-weight:700;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;width:100%;line-height:1.2}'
-    +'.ref{font-size:4.5pt;color:#666;text-align:center}'
-    +'.unit{font-size:4.5pt;color:#777;text-align:center}'
-    +'.bc{margin:1px 0}'
-    +'.bcnum{font-size:5pt;letter-spacing:1px;text-align:center;margin-top:-2px}'
-    +'.price{font-size:'+s.priceFontSize+'pt;font-weight:900;text-align:center}'
-    +'.date{font-size:4pt;color:#888;text-align:center}'
-    +'</style></head><body>'
-    +labelsHtml
-    +'<script>'
-    +'window.onload = function(){'
-    +'  document.querySelectorAll(".bc").forEach(function(svg){'
-    +'    var val = svg.dataset.val||"00000000";'
-    +'    var sym = svg.dataset.sym||"CODE128";'
-    +'    var fmt = sym==="EAN13"?"EAN13":sym==="EAN8"?"EAN8":sym==="CODE39"?"CODE39":sym==="CODABAR"?"codabar":"CODE128";'
-    +'    try{ JsBarcode(svg,val,{format:fmt,width:'+s.barcodeWidth+',height:'+s.barcodeHeight+',displayValue:false,margin:0}); }catch(e){'
-    +'      try{ JsBarcode(svg,val,{format:"CODE128",width:'+s.barcodeWidth+',height:'+s.barcodeHeight+',displayValue:false,margin:0}); }catch(e2){}'
-    +'    }'
-    +'  });'
-    +'  setTimeout(function(){ window.print(); setTimeout(function(){window.close();},1000); }, 800);'
-    +'};'
-    +'<\/script></body></html>';
+  var pageSizes = {
+    '20x40':  '20mm 40mm',
+    '50x25':  '25mm 50mm',
+    '45x35':  '35mm 45mm',
+    '60x40':  '40mm 60mm',
+    '102x65': '65mm 102mm',
+  };
+  var pageSize = pageSizes[s.size] || '25mm 50mm';
 
-  var win = window.open('','_blank','width=700,height=600');
-  if (!win) { toast('فتح نافذة الطباعة مرفوض — أجز النوافذ المنبثقة','error'); return; }
-  win.document.write(printHtml);
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    + '<link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39" rel="stylesheet">'
+    + '<style>'
+    + '@page{size:'+pageSize+';margin:0}'
+    + 'body{margin:0;padding:0;background:#fff}'
+    + '.lw{page-break-after:always;display:flex;justify-content:center;align-items:center}'
+    + '.lw:last-child{page-break-after:avoid}'
+    + '</style></head><body>'
+    + labels.map(function(l){ return '<div class="lw">'+l+'</div>'; }).join('')
+    + '</body></html>';
+
+  var win = window.open('','_blank','width=600,height=500');
+  win.document.write(html);
   win.document.close();
+  setTimeout(function(){ win.print(); setTimeout(function(){win.close();},800); }, 1200);
 
   saveBarcodeSettings();
-  var total = ids.reduce(function(s,id){ return s+(parseInt(selected[id])||1); },0);
-  toast('🖨️ جاري طباعة '+total+' ملصق بـ JsBarcode', 'success', 2000);
+  toast('✅ طباعة ' + labels.length + ' ملصق — حجم ' + s.size, 'success', 2000);
 }
+
 
 // ===== STARTUP =====
 async function startup() {
