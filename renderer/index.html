@@ -1546,7 +1546,11 @@ function calcSellPrice() {
 
 async function showAddProductModal(editId = null) {
   const units = await window.api.units.getAll();
-  const cats  = [...new Set((await window.api.products.getAll()).map(p=>p.category).filter(Boolean))];
+  // جلب الفئات من المصدرين: المنتجات + جدول categories
+  const allProds = await window.api.products.getAll();
+  const fromProducts  = allProds.map(p=>p.category).filter(Boolean);
+  const fromCatsTable = await window.api.categories.getAll().catch(()=>[]);
+  const cats = [...new Set([...fromProducts, ...fromCatsTable.map(c=>c.name)])].sort();
   const p = editId ? allProducts.find(x=>x.id===editId) : null;
 
   const unitOptions = units.map(u=>
