@@ -1712,18 +1712,19 @@ function buildBarcodeLabel(canvas, companyName, productName, barcode, price, siz
 }
 
 function renderBarcodePreview() {
-  const barcode = document.getElementById('p_barcode')?.value || '0000000';
-  const name = document.getElementById('p_name')?.value || 'المنتج';
-  const price = document.getElementById('p_sell')?.value || '0';
-  const company = App.settings?.company_name || 'DZ Vent & Stock';
+  const wrap = document.getElementById('bc_modal_preview');
+  if (!wrap) return;
+  const bc     = document.getElementById('p_bc1')?.value || document.getElementById('p_ref')?.value || '0000000';
+  const name   = document.getElementById('p_name')?.value || 'المنتج';
+  const price  = parseFloat(document.getElementById('p_sell')?.value)||0;
+  const shop   = App.settings?.company_name || 'DZ Vent & Stock';
 
-  // 40x20 preview (scale ×4 = 160×80)
-  const c1 = document.getElementById('bc_preview_20');
-  if (c1) buildBarcodeLabel(c1, company, name, barcode, price, '40x20');
-
-  // 40x30 preview (scale ×4 = 160×120)
-  const c2 = document.getElementById('bc_preview_30');
-  if (c2) buildBarcodeLabel(c2, company, name, barcode, price, '40x30');
+  // استخدام نفس buildLabelHTML من طابعة الباركود
+  var fakeProduct = { name: name, sell_price: price, barcode: bc, ref: document.getElementById('p_ref')?.value||'', id: bc };
+  var fakeSettings = { size: '50x25', priceType: 'sell_price', showShop: true };
+  if (typeof buildLabelHTML === 'function') {
+    wrap.innerHTML = buildLabelHTML(fakeProduct, fakeSettings);
+  }
 }
 
 function calcSellPrice() {
@@ -1883,7 +1884,7 @@ async function showAddProductModal(editId = null) {
           <div>
             <label class="form-label">🔖 الباركود الرئيسي</label>
             <div style="display:flex;gap:6px">
-              <input class="form-input" id="p_bc1" value="${p?.barcode||''}"
+              <input class="form-input" id="p_bc1" value="${p?.barcode||(p?'':Date.now().toString().slice(-10))}"
                 placeholder="امسح أو اكتب كود الباركود..."
                 style="flex:1;font-size:.88rem;font-weight:600;color:var(--info)"
                 oninput="renderBarcodePreview()">
@@ -1903,19 +1904,10 @@ async function showAddProductModal(editId = null) {
           </div>
         </div>
 
-        <!-- معاينة الكود بار -->
+        <!-- معاينة الكود بار — نفس شكل الطابعة -->
         <div style="font-size:.75rem;font-weight:700;color:var(--muted);margin-bottom:8px">معاينة الطباعة</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-          <div style="text-align:center">
-            <div style="font-size:.68rem;color:var(--muted);margin-bottom:4px;font-weight:600">40×20 mm</div>
-            <canvas id="bc_preview_20" width="160" height="80"
-              style="border:1px solid var(--border);border-radius:6px;background:#fff;width:100%"></canvas>
-          </div>
-          <div style="text-align:center">
-            <div style="font-size:.68rem;color:var(--muted);margin-bottom:4px;font-weight:600">40×30 mm</div>
-            <canvas id="bc_preview_30" width="160" height="120"
-              style="border:1px solid var(--border);border-radius:6px;background:#fff;width:100%"></canvas>
-          </div>
+        <div style="background:#e2e8f0;border-radius:8px;padding:12px;display:flex;justify-content:center;align-items:center;min-height:80px;margin-bottom:12px">
+          <div id="bc_modal_preview" style="background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15)"></div>
         </div>
 
         <!-- طباعة -->
@@ -1985,26 +1977,19 @@ function selectProductImage() {
 
 // ─── Quick add unit from modal ───
 async function quickAddUnit() {
-  const name = prompt('اسم الوحدة الجديدة:');
-  if (!name?.trim()) return;
-  const res = await window.api.units.add(name.trim());
-  if (res.success) {
+  const name = await miniPrompt('➕ وحدة جديدة', 'اسم الوحدة (مثال: كرتون، علبة...)');
+  if (!name) return;
+  const res = await window.api.units.add(name);
+  if (res && res.success !== false) {
     toast('✅ تم إضافة الوحدة: '+name, 'success');
     const sel = document.getElementById('p_unit');
     if (sel) {
       const opt = document.createElement('option');
-      opt.value = name.trim(); opt.textContent = name.trim(); opt.selected = true;
+      opt.value = name; opt.textContent = name; opt.selected = true;
       sel.appendChild(opt);
     }
-    const list = document.getElementById('units_list_modal');
-    if (list) {
-      const span = document.createElement('span');
-      span.innerHTML = `${name.trim()} <button onclick="deleteUnitFromModal('${res.id}','${name.trim()}')" style="background:transparent;border:none;color:var(--danger);cursor:pointer;font-size:.75rem">✕</button>`;
-      span.style.cssText = 'background:#1e293b;border:1px solid var(--border);border-radius:16px;padding:2px 10px;font-size:.7rem;color:#e2e8f0;display:flex;align-items:center;gap:5px';
-      list.appendChild(span);
-    }
   } else {
-    toast(res.error||'خطأ','error');
+    toast('خطأ في الإضافة','error');
   }
 }
 
@@ -2018,16 +2003,54 @@ async function deleteUnitFromModal(id, name) {
 }
 
 // ─── Quick add category ───
-function quickAddCategory() {
-  const name = prompt('اسم الفئة الجديدة:');
-  if (!name?.trim()) return;
+async function quickAddCategory() {
+  const name = await miniPrompt('➕ فئة جديدة', 'اسم الفئة (مثال: تلفزيونات، هواتف...)');
+  if (!name) return;
+  // أضف في جدول categories
+  await window.api.categories.add(name, '#6366f1', '📂').catch(()=>{});
   const sel = document.getElementById('p_cat');
   if (sel) {
     const opt = document.createElement('option');
-    opt.value = name.trim(); opt.textContent = name.trim(); opt.selected = true;
+    opt.value = name; opt.textContent = name; opt.selected = true;
     sel.appendChild(opt);
     toast('✅ تم إضافة الفئة: '+name, 'success');
   }
+}
+
+// مودال إدخال بسيط بدل prompt()
+function miniPrompt(title, placeholder) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+    overlay.innerHTML = '<div style="background:#fff;border-radius:10px;padding:20px;width:320px;box-shadow:0 8px 32px rgba(0,0,0,.2)">'
+      + '<div style="font-weight:700;font-size:.9rem;margin-bottom:12px;font-family:Cairo,sans-serif">'+title+'</div>'
+      + '<input id="mini_prompt_input" type="text" placeholder="'+placeholder+'"'
+      + ' style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-family:Cairo,sans-serif;font-size:.85rem;box-sizing:border-box;outline:none;margin-bottom:12px">'
+      + '<div style="display:flex;gap:8px;justify-content:flex-end">'
+      + '<button id="mini_prompt_cancel" style="padding:6px 16px;border-radius:6px;border:1px solid #e2e8f0;background:#f1f5f9;cursor:pointer;font-family:Cairo,sans-serif">إلغاء</button>'
+      + '<button id="mini_prompt_ok" style="padding:6px 16px;border-radius:6px;border:none;background:var(--primary);color:#fff;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700">✅ إضافة</button>'
+      + '</div></div>';
+    document.body.appendChild(overlay);
+    setTimeout(()=>{
+      const inp = document.getElementById('mini_prompt_input');
+      if (inp) {
+        inp.focus();
+        inp.addEventListener('keydown', function(e) {
+          if (e.key==='Enter') document.getElementById('mini_prompt_ok').click();
+          if (e.key==='Escape') document.getElementById('mini_prompt_cancel').click();
+        });
+      }
+    },50);
+    document.getElementById('mini_prompt_ok').onclick = () => {
+      const val = document.getElementById('mini_prompt_input')?.value?.trim();
+      document.body.removeChild(overlay);
+      resolve(val||null);
+    };
+    document.getElementById('mini_prompt_cancel').onclick = () => {
+      document.body.removeChild(overlay);
+      resolve(null);
+    };
+  });
 }
 
 // ─── Generate random barcode ───
