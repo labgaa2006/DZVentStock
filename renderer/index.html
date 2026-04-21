@@ -1766,110 +1766,125 @@ async function showAddProductModal(editId = null) {
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
 
+<style id="modal-compact">
+#prod-modal-inner .lbl{font-size:.6rem;font-weight:700;color:#374151;margin-bottom:1px;display:block}
+#prod-modal-inner input[type=text],#prod-modal-inner input[type=number],#prod-modal-inner input[type=date],#prod-modal-inner select{
+  width:100%;padding:3px 6px;border:1px solid #d1dbe8;border-radius:5px;
+  font-family:'Cairo',sans-serif;font-size:.72rem;background:#fff;color:#1e293b;
+  box-sizing:border-box;outline:none;height:26px}
+#prod-modal-inner input#p_name{height:28px;font-size:.8rem;font-weight:600}
+#prod-modal-inner .sec{background:#f8fafc;border-radius:6px;padding:6px 8px;border:1px solid #e8edf3}
+#prod-modal-inner .sec-title{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+</style>
     <div class="modal-body" style="padding:0;overflow:hidden;flex:1;min-height:0">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;height:100%">
+    <div id="prod-modal-inner" style="display:grid;grid-template-columns:1fr 1fr;gap:0;height:100%">
 
       <!-- ═══ RIGHT COLUMN ═══ -->
-      <div style="padding:10px 14px;border-left:1px solid var(--border);overflow-y:auto;height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:6px">
+      <div style="padding:8px 12px;border-left:1px solid var(--border);overflow:hidden;height:100%;
+                  box-sizing:border-box;display:flex;flex-direction:column;gap:5px">
 
-        <!-- صورة + كود + اسم -->
-        <div style="display:flex;gap:10px;align-items:center;flex-shrink:0">
+        <!-- صورة + اسم -->
+        <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
           <div id="product_img_wrap" onclick="selectProductImage()"
-            style="width:64px;height:64px;border:2px dashed var(--border);border-radius:8px;cursor:pointer;overflow:hidden;flex-shrink:0;background:#f0f4f8;display:flex;align-items:center;justify-content:center"
+            style="width:48px;height:48px;border:2px dashed var(--border);border-radius:6px;cursor:pointer;
+                   overflow:hidden;flex-shrink:0;background:#f0f4f8;display:flex;align-items:center;justify-content:center"
             onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
             ${p?.image_data
               ? `<img id="product_img" src="${p.image_data}" style="width:100%;height:100%;object-fit:cover">`
-              : `<div id="product_img" style="text-align:center;color:var(--muted)"><div style="font-size:1.4rem">📷</div></div>`}
+              : `<div id="product_img" style="text-align:center;color:var(--muted);font-size:1.2rem">📷</div>`}
           </div>
-          <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
-            <div><label class="form-label">الكود</label>
-              <input class="form-input" id="p_code" value="${p?.ref||'(تلقائي)'}" style="font-weight:700;color:var(--info)"></div>
-            <div><label class="form-label">الاسم *</label>
-              <input class="form-input" id="p_name" value="${p?.name||''}" placeholder="اسم المنتج..." oninput="renderBarcodePreview()" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('p_ref')?.focus();}"></div>
-            <div><label class="form-label">المرجع</label>
-              <input class="form-input" id="p_ref2" value="${p?.notes||''}" placeholder="دفعة..."></div>
+          <div style="flex:1">
+            <span class="lbl">الاسم *</span>
+            <input type="text" id="p_name" value="${p?.name||''}" placeholder="اسم المنتج كاملاً..."
+              style="width:100%;padding:4px 8px;border:1.5px solid var(--primary);border-radius:5px;
+                     font-family:'Cairo',sans-serif;font-size:.82rem;font-weight:600;box-sizing:border-box;
+                     outline:none;height:30px"
+              oninput="renderBarcodePreview()"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('p_code')?.focus();}">
+          </div>
+        </div>
+
+        <!-- الكود + المرجع -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;flex-shrink:0">
+          <div>
+            <span class="lbl">🆔 الكود / Ref
+              <button type="button" onclick="document.getElementById('p_code').value=generateRef();document.getElementById('p_ref')?.value && (document.getElementById('p_ref').value=document.getElementById('p_code').value)"
+                style="font-size:.55rem;padding:1px 4px;border-radius:3px;border:1px solid #6366f1;
+                       background:rgba(99,102,241,.1);color:#6366f1;cursor:pointer;margin-right:3px">🔀</button>
+            </span>
+            <input type="text" id="p_code" value="${p?.ref||(p?'':generateRef())}" style="font-weight:700;color:#0369a1">
+          </div>
+          <div>
+            <span class="lbl">ملاحظات / دفعة</span>
+            <input type="text" id="p_notes" value="${p?.notes||''}" placeholder="اختياري...">
           </div>
         </div>
 
         <!-- الوحدة + الفئة -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;flex-shrink:0">
           <div>
-            <label class="form-label">الوحدة</label>
-            <div style="display:flex;gap:4px">
-              <select class="form-select" id="p_unit" style="flex:1">${unitOptions}</select>
-              <button onclick="quickAddUnit()" style="padding:4px 8px;background:var(--success);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:.8rem">+</button>
+            <span class="lbl">الوحدة</span>
+            <div style="display:flex;gap:3px">
+              <select id="p_unit" style="flex:1;padding:3px 4px;border:1px solid #d1dbe8;border-radius:5px;font-family:'Cairo',sans-serif;font-size:.7rem;height:26px">${unitOptions}</select>
+              <button onclick="quickAddUnit()" style="padding:2px 7px;background:var(--success);border:none;border-radius:4px;color:#fff;cursor:pointer;font-size:.75rem;height:26px">+</button>
             </div>
           </div>
           <div>
-            <label class="form-label">الفئة</label>
-            <div style="display:flex;gap:4px">
-              <select class="form-select" id="p_cat" style="flex:1">
-                <option value="">— بدون فئة —</option>
-                ${catOptions}
+            <span class="lbl">الفئة</span>
+            <div style="display:flex;gap:3px">
+              <select id="p_cat" style="flex:1;padding:3px 4px;border:1px solid #d1dbe8;border-radius:5px;font-family:'Cairo',sans-serif;font-size:.7rem;height:26px">
+                <option value="">— بدون فئة —</option>${catOptions}
               </select>
-              <button onclick="quickAddCategory()" style="padding:4px 8px;background:var(--info);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:.8rem">+</button>
+              <button onclick="quickAddCategory()" style="padding:2px 7px;background:var(--info);border:none;border-radius:4px;color:#fff;cursor:pointer;font-size:.75rem;height:26px">+</button>
             </div>
           </div>
         </div>
 
         <!-- الأسعار -->
-        <div style="background:#f0f4f8;border-radius:8px;padding:10px;flex-shrink:0">
-          <div style="font-size:.7rem;font-weight:700;color:var(--primary);margin-bottom:6px">💰 الأسعار</div>
-          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
-            <div><label class="form-label">سعر الشراء</label>
-              <input class="form-input" id="p_buy" type="number" value="${p?.buy_price||0}" oninput="calcSellPrice()"></div>
-            <div><label class="form-label">الهامش %</label>
-              <input class="form-input" id="p_margin" type="number" value="${p?.margin_pct||0}" oninput="calcSellPrice()"></div>
-            <div><label class="form-label">TVA %</label>
-              <input class="form-input" id="p_tva_pct" type="number" value="${p?.tva_pct||0}" oninput="calcSellPrice()"></div>
-            <div><label class="form-label">سعر التجزئة *</label>
-              <input class="form-input" id="p_sell" type="number" value="${p?.sell_price||0}" style="color:var(--primary);font-weight:700" oninput="renderBarcodePreview()"></div>
-            <div><label class="form-label">المفضلة</label>
-              <select class="form-select" id="p_fav">
+        <div class="sec" style="flex-shrink:0">
+          <div class="sec-title" style="color:var(--primary)">💰 الأسعار</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:4px">
+            <div><span class="lbl">سعر الشراء</span><input type="number" id="p_buy" value="${p?.buy_price||0}" oninput="calcSellPrice()"></div>
+            <div><span class="lbl">الهامش %</span><input type="number" id="p_margin" value="${p?.margin_pct||0}" oninput="calcSellPrice()"></div>
+            <div><span class="lbl">TVA %</span><input type="number" id="p_tva_pct" value="${p?.tva_pct||0}" oninput="calcSellPrice()"></div>
+            <div><span class="lbl" style="color:var(--primary);font-weight:800">سعر التجزئة *</span>
+              <input type="number" id="p_sell" value="${p?.sell_price||0}"
+                style="color:var(--primary);font-weight:700;border-color:var(--primary)"
+                oninput="renderBarcodePreview()"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
+            <div><span class="lbl">نصف الجملة</span><input type="number" id="p_semi" value="${p?.sell_price_semi||0}"></div>
+            <div><span class="lbl">الجملة</span><input type="number" id="p_gros" value="${p?.sell_price_gros||0}"></div>
+            <div><span class="lbl">مفضلة</span>
+              <select id="p_fav" style="width:100%;padding:3px 4px;border:1px solid #d1dbe8;border-radius:5px;font-family:'Cairo',sans-serif;font-size:.7rem;height:26px">
                 <option value="0" ${!p?.favorite?'selected':''}>لا</option>
                 <option value="1" ${p?.favorite?'selected':''}>نعم ⭐</option>
-              </select>
-            </div>
-            <div><label class="form-label">نصف الجملة</label>
-              <input class="form-input" id="p_semi" type="number" value="${p?.sell_price_semi||0}"></div>
-            <div><label class="form-label">الجملة</label>
-              <input class="form-input" id="p_gros" type="number" value="${p?.sell_price_gros||0}"></div>
+              </select></div>
           </div>
         </div>
 
         <!-- المخزون -->
-        <div style="background:#f0f4f8;border-radius:8px;padding:10px;flex-shrink:0">
-          <div style="font-size:.7rem;font-weight:700;color:var(--info);margin-bottom:6px">📦 المخزون</div>
-          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
-            <div><label class="form-label">الكمية</label>
-              <input class="form-input" id="p_stock" type="number" value="${p?.stock||0}"></div>
-            <div><label class="form-label">حد التنبيه</label>
-              <input class="form-input" id="p_min" type="number" value="${p?.stock_min||5}"></div>
-            <div><label class="form-label">الموقع</label>
-              <input class="form-input" id="p_empl" value="${p?.emplacement||''}" placeholder="رف A2..."></div>
-            <div><label class="form-label">تنبيه (أيام)</label>
-              <input class="form-input" id="p_alert" type="number" value="${p?.expiry_alert||0}"></div>
-            <div style="display:flex;align-items:flex-end;padding-bottom:4px">
-              <label style="font-size:.72rem;cursor:pointer;display:flex;align-items:center;gap:4px">
-                <input type="checkbox" id="p_has_expiry" ${p?.expiry_date?'checked':''} onchange="document.getElementById('p_expiry_row').style.display=this.checked?'block':'none'">
-                صلاحية
-              </label>
-            </div>
+        <div class="sec" style="flex-shrink:0">
+          <div class="sec-title" style="color:var(--info)">📦 المخزون</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
+            <div><span class="lbl">الكمية</span><input type="number" id="p_stock" value="${p?.stock||0}"></div>
+            <div><span class="lbl">حد التنبيه</span><input type="number" id="p_min" value="${p?.stock_min||5}"></div>
+            <div><span class="lbl">الموقع</span><input type="text" id="p_empl" value="${p?.emplacement||''}" placeholder="رف A2"></div>
+            <div><span class="lbl">تنبيه صلاحية (يوم)</span><input type="number" id="p_alert" value="${p?.expiry_alert||0}"></div>
           </div>
-          <div id="p_expiry_row" style="display:${p?.expiry_date?'block':'none'};margin-top:6px">
-            <input class="form-input" id="p_expiry" type="date" value="${p?.expiry_date||''}" style="max-width:200px">
+          <div style="margin-top:4px;display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="p_has_expiry" ${p?.expiry_date?'checked':''} onchange="document.getElementById('p_expiry_row').style.display=this.checked?'flex':'none'" style="width:14px;height:14px">
+            <label style="font-size:.65rem;cursor:pointer" for="p_has_expiry">تاريخ الصلاحية</label>
+            <input type="date" id="p_expiry" value="${p?.expiry_date||''}"
+              style="display:${p?.expiry_date?'flex':'none'};padding:2px 6px;border:1px solid #d1dbe8;border-radius:4px;font-size:.7rem;height:24px">
+            <span id="p_expiry_row" style="display:none"></span>
           </div>
         </div>
 
-        <!-- ملاحظات -->
-        <div style="flex-shrink:0">
-          <label class="form-label">ملاحظات</label>
-          <input class="form-input" id="p_notes" value="${p?.notes||''}" placeholder="ملاحظات إضافية...">
-        </div>
       </div>
 
       <!-- ═══ LEFT COLUMN — BARCODE ═══ -->
-      <div style="padding:10px 14px;display:flex;flex-direction:column;height:100%;box-sizing:border-box;gap:6px;overflow-y:auto">
+      <div style="padding:8px 12px;display:flex;flex-direction:column;height:100%;box-sizing:border-box;gap:5px;overflow:hidden">
 
         <!-- الباركودات -->
         <div style="flex-shrink:0">
