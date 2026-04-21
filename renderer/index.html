@@ -1770,7 +1770,7 @@ async function showAddProductModal(editId = null) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;height:100%">
 
       <!-- ═══ RIGHT COLUMN ═══ -->
-      <div style="padding:10px 14px;border-left:1px solid var(--border);overflow:hidden;height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:8px">
+      <div style="padding:10px 14px;border-left:1px solid var(--border);overflow-y:auto;height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:6px">
 
         <!-- صورة + كود + اسم -->
         <div style="display:flex;gap:10px;align-items:center;flex-shrink:0">
@@ -1869,7 +1869,7 @@ async function showAddProductModal(editId = null) {
       </div>
 
       <!-- ═══ LEFT COLUMN — BARCODE ═══ -->
-      <div style="padding:10px 14px;display:flex;flex-direction:column;height:100%;box-sizing:border-box;gap:6px;overflow:hidden">
+      <div style="padding:10px 14px;display:flex;flex-direction:column;height:100%;box-sizing:border-box;gap:6px;overflow-y:auto">
 
         <!-- الباركودات -->
         <div style="flex-shrink:0">
@@ -1890,9 +1890,9 @@ async function showAddProductModal(editId = null) {
         </div>
 
         <!-- معاينة تأخذ المساحة المتبقية -->
-        <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:4px">
+        <div style="flex-shrink:0;display:flex;flex-direction:column;gap:4px">
           <div style="font-size:.68rem;font-weight:700;color:var(--muted)">👁 معاينة</div>
-          <div style="flex:1;min-height:0;background:#e2e8f0;border-radius:8px;display:flex;justify-content:center;align-items:center">
+          <div style="height:80px;background:#e2e8f0;border-radius:8px;display:flex;justify-content:center;align-items:center">
             <div id="bc_modal_preview" style="background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15)"></div>
           </div>
         </div>
