@@ -5494,10 +5494,8 @@ async function doDeleteCategory(name) {
 // =====================================================
 async function renderMouvements() {
   {const _mc=document.getElementById("mainContent");if(_mc){_mc.style.overflowY="auto";_mc.style.overflowX="hidden";}}
-  const mc=document.getElementById("mainContent");if(mc){mc.style.overflowY="auto";mc.style.overflowX="hidden";}
   const products = await window.api.products.getAll();
-  const mc = document.getElementById('mainContent');
-  mc.style.overflowY = 'auto';
+  document.getElementById('mainContent').style.overflowY = 'auto';
   document.getElementById('mainContent').innerHTML = `
     <div class="card">
       <div class="card-header"><div class="card-title">🔄 حركة المخزون</div></div>
