@@ -1770,177 +1770,153 @@ async function showAddProductModal(editId = null) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;height:100%">
 
       <!-- ═══ RIGHT COLUMN ═══ -->
-      <div style="padding:12px 16px;border-left:1px solid var(--border);overflow-y:auto;height:100%;box-sizing:border-box">
+      <div style="padding:10px 14px;border-left:1px solid var(--border);overflow:hidden;height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:8px">
 
-        <!-- صورة المنتج + الكود الأساسي -->
-        <div style="display:flex;gap:12px;margin-bottom:14px;align-items:flex-start">
+        <!-- صورة + كود + اسم -->
+        <div style="display:flex;gap:10px;align-items:center;flex-shrink:0">
           <div id="product_img_wrap" onclick="selectProductImage()"
-            style="width:80px;height:80px;border:2px dashed var(--border);border-radius:10px;cursor:pointer;overflow:hidden;flex-shrink:0;background:#f0f4f8;display:flex;align-items:center;justify-content:center;transition:.2s"
+            style="width:64px;height:64px;border:2px dashed var(--border);border-radius:8px;cursor:pointer;overflow:hidden;flex-shrink:0;background:#f0f4f8;display:flex;align-items:center;justify-content:center"
             onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
             ${p?.image_data
               ? `<img id="product_img" src="${p.image_data}" style="width:100%;height:100%;object-fit:cover">`
-              : `<div id="product_img" style="text-align:center;color:var(--muted)"><div style="font-size:1.8rem">📷</div><div style="font-size:.6rem;margin-top:2px">صورة المنتج</div></div>`}
+              : `<div id="product_img" style="text-align:center;color:var(--muted)"><div style="font-size:1.4rem">📷</div></div>`}
           </div>
-          <div style="flex:1;display:grid;gap:8px">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <div><label class="form-label">الكود</label>
-                <input class="form-input" id="p_code" value="${p?.ref||'(تلقائي)'}" placeholder="تلقائي" style="font-weight:700;color:var(--info)"></div>
-              <div><label class="form-label">المرجع / الدفعة</label>
-                <input class="form-input" id="p_ref2" value="${p?.notes||''}" placeholder="رقم الدفعة..."></div>
-            </div>
+          <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            <div><label class="form-label">الكود</label>
+              <input class="form-input" id="p_code" value="${p?.ref||'(تلقائي)'}" style="font-weight:700;color:var(--info)"></div>
             <div><label class="form-label">الاسم *</label>
-              <input class="form-input" id="p_name" value="${p?.name||''}" placeholder="اسم المنتج كاملاً..." oninput="renderBarcodePreview()" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('p_ref')?.focus();}"></div>
+              <input class="form-input" id="p_name" value="${p?.name||''}" placeholder="اسم المنتج..." oninput="renderBarcodePreview()" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('p_ref')?.focus();}"></div>
+            <div><label class="form-label">المرجع</label>
+              <input class="form-input" id="p_ref2" value="${p?.notes||''}" placeholder="دفعة..."></div>
           </div>
         </div>
 
         <!-- الوحدة + الفئة -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0">
           <div>
             <label class="form-label">الوحدة</label>
-            <div style="display:flex;gap:6px">
+            <div style="display:flex;gap:4px">
               <select class="form-select" id="p_unit" style="flex:1">${unitOptions}</select>
-              <button onclick="quickAddUnit()" title="إضافة وحدة"
-                style="padding:6px 10px;background:var(--success);border:none;border-radius:7px;color:#fff;cursor:pointer;font-size:.85rem">+</button>
+              <button onclick="quickAddUnit()" style="padding:4px 8px;background:var(--success);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:.8rem">+</button>
             </div>
           </div>
           <div>
             <label class="form-label">الفئة</label>
-            <div style="display:flex;gap:6px">
+            <div style="display:flex;gap:4px">
               <select class="form-select" id="p_cat" style="flex:1">
                 <option value="">— بدون فئة —</option>
                 ${catOptions}
               </select>
-              <button onclick="quickAddCategory()" title="إضافة فئة"
-                style="padding:6px 10px;background:var(--info);border:none;border-radius:7px;color:#fff;cursor:pointer;font-size:.85rem">+</button>
+              <button onclick="quickAddCategory()" style="padding:4px 8px;background:var(--info);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:.8rem">+</button>
             </div>
           </div>
         </div>
 
         <!-- الأسعار -->
-        <div style="background:#f0f4f8;border-radius:10px;padding:12px;margin-bottom:12px">
-          <div style="font-size:.75rem;font-weight:700;color:var(--primary);margin-bottom:8px">💰 الأسعار</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
-            <div><label class="form-label">سعر الشراء (DA)</label>
+        <div style="background:#f0f4f8;border-radius:8px;padding:10px;flex-shrink:0">
+          <div style="font-size:.7rem;font-weight:700;color:var(--primary);margin-bottom:6px">💰 الأسعار</div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+            <div><label class="form-label">سعر الشراء</label>
               <input class="form-input" id="p_buy" type="number" value="${p?.buy_price||0}" oninput="calcSellPrice()"></div>
             <div><label class="form-label">الهامش %</label>
-              <input class="form-input" id="p_margin" type="number" value="${p?.margin_pct||0}" placeholder="0" oninput="calcSellPrice()"></div>
+              <input class="form-input" id="p_margin" type="number" value="${p?.margin_pct||0}" oninput="calcSellPrice()"></div>
             <div><label class="form-label">TVA %</label>
-              <input class="form-input" id="p_tva_pct" type="number" value="${p?.tva_pct||0}" placeholder="0" oninput="calcSellPrice()"></div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div><label class="form-label">سعر التجزئة (DA) *</label>
+              <input class="form-input" id="p_tva_pct" type="number" value="${p?.tva_pct||0}" oninput="calcSellPrice()"></div>
+            <div><label class="form-label">سعر التجزئة *</label>
               <input class="form-input" id="p_sell" type="number" value="${p?.sell_price||0}" style="color:var(--primary);font-weight:700" oninput="renderBarcodePreview()"></div>
-            <div>
-              <label class="form-label">المفضلة</label>
+            <div><label class="form-label">المفضلة</label>
               <select class="form-select" id="p_fav">
                 <option value="0" ${!p?.favorite?'selected':''}>لا</option>
                 <option value="1" ${p?.favorite?'selected':''}>نعم ⭐</option>
               </select>
             </div>
-            <div><label class="form-label">سعر نصف الجملة (DA)</label>
+            <div><label class="form-label">نصف الجملة</label>
               <input class="form-input" id="p_semi" type="number" value="${p?.sell_price_semi||0}"></div>
-            <div><label class="form-label">سعر الجملة (DA)</label>
+            <div><label class="form-label">الجملة</label>
               <input class="form-input" id="p_gros" type="number" value="${p?.sell_price_gros||0}"></div>
-
           </div>
         </div>
 
-        <!-- المخزون + الموقع -->
-        <div style="background:#f0f4f8;border-radius:10px;padding:12px">
-          <div style="font-size:.75rem;font-weight:700;color:var(--info);margin-bottom:8px">📦 المخزون</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
-            <div><label class="form-label">الكمية الحالية</label>
+        <!-- المخزون -->
+        <div style="background:#f0f4f8;border-radius:8px;padding:10px;flex-shrink:0">
+          <div style="font-size:.7rem;font-weight:700;color:var(--info);margin-bottom:6px">📦 المخزون</div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+            <div><label class="form-label">الكمية</label>
               <input class="form-input" id="p_stock" type="number" value="${p?.stock||0}"></div>
             <div><label class="form-label">حد التنبيه</label>
               <input class="form-input" id="p_min" type="number" value="${p?.stock_min||5}"></div>
             <div><label class="form-label">الموقع</label>
               <input class="form-input" id="p_empl" value="${p?.emplacement||''}" placeholder="رف A2..."></div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center">
-            <div>
-              <label class="form-label" style="display:flex;align-items:center;gap:6px;cursor:pointer">
-                <input type="checkbox" id="p_has_expiry" ${p?.expiry_date?'checked':''} onchange="document.getElementById('p_expiry_row').style.display=this.checked?'grid':'none'">
-                تاريخ الصلاحية
+            <div><label class="form-label">تنبيه (أيام)</label>
+              <input class="form-input" id="p_alert" type="number" value="${p?.expiry_alert||0}"></div>
+            <div style="display:flex;align-items:flex-end;padding-bottom:4px">
+              <label style="font-size:.72rem;cursor:pointer;display:flex;align-items:center;gap:4px">
+                <input type="checkbox" id="p_has_expiry" ${p?.expiry_date?'checked':''} onchange="document.getElementById('p_expiry_row').style.display=this.checked?'block':'none'">
+                صلاحية
               </label>
             </div>
-            <div><label class="form-label">تنبيه المخزون</label>
-              <input class="form-input" id="p_alert" type="number" value="${p?.expiry_alert||0}" placeholder="0 أيام قبل"></div>
           </div>
-          <div id="p_expiry_row" style="display:${p?.expiry_date?'grid':'none'};grid-template-columns:1fr;gap:8px;margin-top:8px">
-            <div><label class="form-label">تاريخ الصلاحية</label>
-              <input class="form-input" id="p_expiry" type="date" value="${p?.expiry_date||''}"></div>
+          <div id="p_expiry_row" style="display:${p?.expiry_date?'block':'none'};margin-top:6px">
+            <input class="form-input" id="p_expiry" type="date" value="${p?.expiry_date||''}" style="max-width:200px">
           </div>
-          <div style="margin-top:8px"><label class="form-label">ملاحظات</label>
-            <input class="form-input" id="p_notes" value="${p?.notes||''}" placeholder="ملاحظات إضافية..."></div>
+        </div>
+
+        <!-- ملاحظات -->
+        <div style="flex-shrink:0">
+          <label class="form-label">ملاحظات</label>
+          <input class="form-input" id="p_notes" value="${p?.notes||''}" placeholder="ملاحظات إضافية...">
         </div>
       </div>
 
       <!-- ═══ LEFT COLUMN — BARCODE ═══ -->
-      <div style="padding:16px">
-        <div style="font-size:.75rem;font-weight:700;color:var(--warning);margin-bottom:10px">🔖 رموز الباركود</div>
+      <div style="padding:10px 14px;display:flex;flex-direction:column;height:100%;box-sizing:border-box;gap:6px;overflow:hidden">
 
-        <!-- Barcodes: 1 رئيسي + 2 إضافيين -->
-        <div style="display:grid;gap:8px;margin-bottom:14px">
-          <div>
-            <label class="form-label">🔖 الباركود الرئيسي</label>
-            <div style="display:flex;gap:6px">
-              <input class="form-input" id="p_bc1" value="${p?.barcode||(p?'':Date.now().toString().slice(-10))}"
-                placeholder="امسح أو اكتب كود الباركود..."
-                style="flex:1;font-size:.88rem;font-weight:600;color:var(--info)"
-                oninput="renderBarcodePreview()">
-              <button onclick="generateBarcode()" title="توليد تلقائي"
-                style="padding:6px 10px;background:#374151;border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:.85rem">🎲</button>
-            </div>
-          </div>
-          <div>
-            <label class="form-label">باركود إضافي 1</label>
-            <input class="form-input" id="p_bc2" value="${p?.barcode2||''}"
-              placeholder="كود بديل أو دفعة مختلفة..." style="font-size:.82rem">
-          </div>
-          <div>
-            <label class="form-label">باركود إضافي 2</label>
-            <input class="form-input" id="p_bc3" value="${p?.barcode3||''}"
-              placeholder="كود بديل أو دفعة مختلفة..." style="font-size:.82rem">
+        <!-- الباركودات -->
+        <div style="flex-shrink:0">
+          <label class="form-label">🔖 الباركود الرئيسي
+            <button type="button" onclick="generateBarcode()" style="margin-right:6px;font-size:.6rem;padding:1px 6px;border-radius:4px;border:1px solid #374151;background:#374151;color:#fff;cursor:pointer">🎲</button>
+          </label>
+          <input class="form-input" id="p_bc1" value="${p?.barcode||(p?'':Date.now().toString().slice(-10))}"
+            placeholder="امسح أو اكتب..." style="font-size:.85rem;font-weight:600;color:var(--info)"
+            oninput="renderBarcodePreview()">
+        </div>
+        <div style="flex-shrink:0">
+          <label class="form-label">باركود إضافي 1</label>
+          <input class="form-input" id="p_bc2" value="${p?.barcode2||''}" placeholder="كود بديل...">
+        </div>
+        <div style="flex-shrink:0">
+          <label class="form-label">باركود إضافي 2</label>
+          <input class="form-input" id="p_bc3" value="${p?.barcode3||''}" placeholder="كود بديل...">
+        </div>
+
+        <!-- معاينة تأخذ المساحة المتبقية -->
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:.68rem;font-weight:700;color:var(--muted)">👁 معاينة</div>
+          <div style="flex:1;min-height:0;background:#e2e8f0;border-radius:8px;display:flex;justify-content:center;align-items:center">
+            <div id="bc_modal_preview" style="background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15)"></div>
           </div>
         </div>
 
-        <!-- معاينة الكود بار — نفس شكل الطابعة -->
-        <div style="font-size:.75rem;font-weight:700;color:var(--muted);margin-bottom:8px">معاينة الطباعة</div>
-        <div style="background:#e2e8f0;border-radius:8px;padding:12px;display:flex;justify-content:center;align-items:center;min-height:80px;margin-bottom:12px">
-          <div id="bc_modal_preview" style="background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15)"></div>
-        </div>
-
-        <!-- طباعة -->
-        <div style="background:#f0f4f8;border-radius:10px;padding:12px">
-          <div style="font-size:.75rem;font-weight:700;color:var(--primary);margin-bottom:8px">🖨️ طباعة الباركود</div>
-          <div style="margin-bottom:8px">
-            <label class="form-label">📐 حجم الملصق</label>
-            <select id="modal_bc_size" style="width:100%;padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-family:'Cairo',sans-serif;font-size:.78rem;background:#fff;color:#1e293b">
-              <option value="50x25">50×25 mm — عام (الأكثر استخداماً)</option>
-              <option value="20x40">20×40 mm — صغير (إكسسوارات)</option>
-              <option value="45x35">45×35 mm — متوسط (إلكترونيات)</option>
-              <option value="60x40">60×40 mm — احترافي (محلات كبيرة)</option>
-              <option value="102x65">102×65 mm — كبير (مخازن)</option>
-            </select>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <!-- طباعة — ثابت في الأسفل -->
+        <div style="flex-shrink:0;background:#f0f4f8;border-radius:8px;padding:8px">
+          <div style="font-size:.7rem;font-weight:700;color:var(--primary);margin-bottom:6px">🖨️ طباعة الباركود</div>
+          <div style="display:grid;grid-template-columns:1fr 70px;gap:6px;margin-bottom:6px">
             <div>
-              <label class="form-label">الحجم (قديم)</label>
-              <div style="display:flex;gap:8px">
-                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem">
-                  <input type="radio" name="bc_size" value="40x20" checked> 40×20
-                </label>
-                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem">
-                  <input type="radio" name="bc_size" value="40x30"> 40×30
-                </label>
-              </div>
+              <label class="form-label">الحجم</label>
+              <select id="modal_bc_size" style="width:100%;padding:5px 6px;border:1px solid #e2e8f0;border-radius:5px;font-family:'Cairo',sans-serif;font-size:.73rem;background:#fff;color:#1e293b">
+                <option value="50x25">50×25 — عام</option>
+                <option value="20x40">20×40 — صغير</option>
+                <option value="45x35">45×35 — متوسط</option>
+                <option value="60x40">60×40 — احترافي</option>
+                <option value="102x65">102×65 — كبير</option>
+              </select>
             </div>
             <div>
-              <label class="form-label">عدد النسخ</label>
+              <label class="form-label">النسخ</label>
               <input class="form-input" id="bc_copies" type="number" value="1" min="1" max="100">
             </div>
           </div>
-          <button onclick="printBarcode()" style="width:100%;padding:9px;background:var(--primary);border:none;border-radius:8px;color:var(--text);font-family:'Cairo',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer">
+          <button onclick="printBarcode()" style="width:100%;padding:7px;background:var(--primary);border:none;border-radius:6px;color:var(--text);font-family:'Cairo',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer">
             🖨️ طباعة الباركود
           </button>
         </div>
