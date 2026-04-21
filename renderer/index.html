@@ -1789,7 +1789,7 @@ async function showAddProductModal(editId = null) {
                 <input class="form-input" id="p_ref2" value="${p?.notes||''}" placeholder="رقم الدفعة..."></div>
             </div>
             <div><label class="form-label">الاسم *</label>
-              <input class="form-input" id="p_name" value="${p?.name||''}" placeholder="اسم المنتج كاملاً..." oninput="renderBarcodePreview()"></div>
+              <input class="form-input" id="p_name" value="${p?.name||''}" placeholder="اسم المنتج كاملاً..." oninput="renderBarcodePreview()" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('p_ref')?.focus();}"></div>
           </div>
         </div>
 
@@ -2109,22 +2109,44 @@ async function printBarcode() {
 
 // ─── Save product ───
 async function saveProduct(editId) {
+  // ─── Validation ───
   const name = document.getElementById('p_name')?.value?.trim();
-  if (!name) { toast('اسم المنتج مطلوب', 'error'); return; }
+  if (!name) {
+    toast('⚠️ اسم المنتج مطلوب', 'error');
+    document.getElementById('p_name')?.focus();
+    return;
+  }
+
+  const sellPrice = parseFloat(document.getElementById('p_sell')?.value)||0;
+  if (sellPrice === 0) {
+    // تحذير لكن لا نمنع الحفظ
+    toast('⚠️ سعر البيع = 0 — تأكد أنه صحيح', 'warning', 3000);
+  }
+
+  // تحقق من باركود مكرر
+  const bc1 = document.getElementById('p_bc1')?.value?.trim();
+  if (bc1) {
+    const dup = allProducts.find(p => p.barcode === bc1 && p.id !== editId);
+    if (dup) {
+      toast('⚠️ الباركود مكرر — موجود في: '+dup.name, 'error', 4000);
+      document.getElementById('p_bc1')?.focus();
+      return;
+    }
+  }
 
   // Get image data
   const imgEl = document.getElementById('product_img');
   const imageData = imgEl?.tagName === 'IMG' ? imgEl.src : '';
 
   const data = {
-    ref:   document.getElementById('p_code')?.value?.includes('تلقائي') ? '' : (document.getElementById('p_code')?.value||''),
+    ref:   document.getElementById('p_code')?.value?.includes('تلقائي') ? '' : (document.getElementById('p_code')?.value || document.getElementById('p_ref')?.value || ''),
     name,
     category:         document.getElementById('p_cat')?.value || '',
     unit:             document.getElementById('p_unit')?.value || 'قطعة',
     buy_price:        parseFloat(document.getElementById('p_buy')?.value)||0,
     margin_pct:       parseFloat(document.getElementById('p_margin')?.value)||0,
     tva_pct:          parseFloat(document.getElementById('p_tva_pct')?.value)||0,
-    sell_price:       parseFloat(document.getElementById('p_sell')?.value)||0,
+    sell_price:       sellPrice,
     sell_price_semi:  parseFloat(document.getElementById('p_semi')?.value)||0,
     sell_price_gros:  parseFloat(document.getElementById('p_gros')?.value)||0,
     stock:     parseInt(document.getElementById('p_stock')?.value)||0,
@@ -2133,7 +2155,7 @@ async function saveProduct(editId) {
     expiry_date:  document.getElementById('p_has_expiry')?.checked ? (document.getElementById('p_expiry')?.value||'') : '',
     expiry_alert: parseInt(document.getElementById('p_alert')?.value)||0,
     favorite:     parseInt(document.getElementById('p_fav')?.value)||0,
-    barcode:  document.getElementById('p_bc1')?.value||'',
+    barcode:  bc1||'',
     barcode2: document.getElementById('p_bc2')?.value||'',
     barcode3: document.getElementById('p_bc3')?.value||'',
     barcode4: '', barcode5: '', barcode6: '', barcode7: '', barcode8: '',
@@ -2143,13 +2165,18 @@ async function saveProduct(editId) {
 
   if (editId) {
     await window.api.products.update(editId, data);
-    toast('✅ تم حفظ التعديل', 'success');
+    toast('✅ تم حفظ التعديل: '+name, 'success');
+    // تحديث مباشر بدون إعادة تحميل كاملة
+    const idx = allProducts.findIndex(p=>p.id===editId);
+    if (idx>=0) allProducts[idx] = {...allProducts[idx], ...data, id:editId};
   } else {
-    await window.api.products.add(data);
-    toast('✅ تم إضافة المنتج', 'success');
+    const res = await window.api.products.add(data);
+    toast('✅ تم إضافة المنتج: '+name+(data.stock===0?' — سيظهر كـ «غير متوفر»':''), 'success', 3000);
+    // أضف للقائمة المحلية مباشرة
+    allProducts = await window.api.products.getAll();
   }
   closeModal();
-  await renderProducts();
+  filterProductsTable(document.getElementById('prodSearchInput')?.value||'');
 }
 
 async function deleteProduct(id, name) {
