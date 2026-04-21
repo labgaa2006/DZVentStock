@@ -1913,9 +1913,19 @@ async function showAddProductModal(editId = null) {
         <!-- طباعة -->
         <div style="background:#f0f4f8;border-radius:10px;padding:12px">
           <div style="font-size:.75rem;font-weight:700;color:var(--primary);margin-bottom:8px">🖨️ طباعة الباركود</div>
+          <div style="margin-bottom:8px">
+            <label class="form-label">📐 حجم الملصق</label>
+            <select id="modal_bc_size" style="width:100%;padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-family:'Cairo',sans-serif;font-size:.78rem;background:#fff;color:#1e293b">
+              <option value="50x25">50×25 mm — عام (الأكثر استخداماً)</option>
+              <option value="20x40">20×40 mm — صغير (إكسسوارات)</option>
+              <option value="45x35">45×35 mm — متوسط (إلكترونيات)</option>
+              <option value="60x40">60×40 mm — احترافي (محلات كبيرة)</option>
+              <option value="102x65">102×65 mm — كبير (مخازن)</option>
+            </select>
+          </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
             <div>
-              <label class="form-label">الحجم</label>
+              <label class="form-label">الحجم (قديم)</label>
               <div style="display:flex;gap:8px">
                 <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem">
                   <input type="radio" name="bc_size" value="40x20" checked> 40×20
@@ -2158,6 +2168,8 @@ let _ventesDateTo = '';
 let _allVentes = [];
 
 async function renderVentes() {
+  {const _mc=document.getElementById("mainContent");if(_mc){_mc.style.overflowY="auto";_mc.style.overflowX="hidden";}}
+  const mc=document.getElementById("mainContent");if(mc){mc.style.overflowY="auto";mc.style.overflowX="hidden";}
   document.getElementById('topbarActions').innerHTML = `
     <button class="topbar-btn" onclick="exportVentesExcel()" title="تصدير Excel">📊 Excel</button>
     <button class="topbar-btn" onclick="printVentesList()" title="طباعة القائمة">🖨️ طباعة</button>
@@ -5045,6 +5057,8 @@ async function deleteFournisseur(id, name) {
 // CATEGORIES
 // =====================================================
 async function renderUnits() {
+  {const _mc=document.getElementById("mainContent");if(_mc){_mc.style.overflowY="auto";_mc.style.overflowX="hidden";}}
+  const mc=document.getElementById("mainContent");if(mc){mc.style.overflowY="auto";mc.style.overflowX="hidden";}
   document.getElementById('topbarActions').innerHTML = `
     <button class="topbar-btn primary" onclick="addUnitFromScreen()">➕ وحدة جديدة</button>
   `;
@@ -5101,6 +5115,7 @@ async function deleteUnitFromScreen(id, name) {
 }
 
 async function renderCategories() {
+  {const _mc=document.getElementById("mainContent");if(_mc){_mc.style.overflowY="auto";_mc.style.overflowX="hidden";}}
   document.getElementById('topbarActions').innerHTML = `
     <button class="topbar-btn" onclick="importCategoriesExcel()">📥 استيراد</button>
     <button class="topbar-btn" onclick="exportCategoriesExcel()">📊 Excel</button>
@@ -5478,6 +5493,8 @@ async function doDeleteCategory(name) {
 // MOUVEMENTS (حركة المخزون)
 // =====================================================
 async function renderMouvements() {
+  {const _mc=document.getElementById("mainContent");if(_mc){_mc.style.overflowY="auto";_mc.style.overflowX="hidden";}}
+  const mc=document.getElementById("mainContent");if(mc){mc.style.overflowY="auto";mc.style.overflowX="hidden";}
   const products = await window.api.products.getAll();
   const mc = document.getElementById('mainContent');
   mc.style.overflowY = 'auto';
