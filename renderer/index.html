@@ -7442,91 +7442,50 @@ function buildLabelHTML(p, s) {
   var price = p[s.priceType] || p.sell_price || 0;
   var bc    = p.barcode || p.ref || (p.id||'').slice(0,8) || '00000000';
   var shop  = (window.App && App.settings && App.settings.company_name) || 'المحل';
-  var today = new Date().toLocaleDateString('fr-DZ');
 
-  // باركود باستخدام Libre Barcode 39 font
-  var bcSpan = '<div style="text-align:center;line-height:1;margin:1px 0">'
-    + '<span style="font-family:\'Libre Barcode 39\',monospace;display:block;line-height:1">*'+bc+'*</span>'
-    + '<div style="font-size:6px;color:#333;letter-spacing:.5px;margin-top:-1px">'+bc+'</div>'
-    + '</div>';
-
-  var sizeMap = {
-    '20x40':   {w:'38mm', h:'18mm', bcSize:'14pt'},
-    '50x25':   {w:'48mm', h:'23mm', bcSize:'16pt'},
-    '45x35':   {w:'43mm', h:'33mm', bcSize:'20pt'},
-    '60x40':   {w:'58mm', h:'38mm', bcSize:'22pt'},
-    '102x65':  {w:'100mm',h:'63mm', bcSize:'30pt'},
+  // أحجام الخطوط لكل مقاس
+  var cfg = {
+    '20x40':  {w:'38mm', h:'18mm', shopPt:5,   namePt:5.5, pricePt:8.5, bcPt:'11pt', numPt:4.5, pad:'2px'},
+    '50x25':  {w:'48mm', h:'23mm', shopPt:5.5, namePt:6.5, pricePt:10,  bcPt:'15pt', numPt:5,   pad:'3px'},
+    '45x35':  {w:'43mm', h:'33mm', shopPt:6,   namePt:7.5, pricePt:12,  bcPt:'20pt', numPt:5.5, pad:'3px'},
+    '60x40':  {w:'58mm', h:'38mm', shopPt:7,   namePt:9,   pricePt:14,  bcPt:'24pt', numPt:6,   pad:'4px'},
+    '102x65': {w:'100mm',h:'63mm', shopPt:10,  namePt:13,  pricePt:20,  bcPt:'36pt', numPt:8,   pad:'6px'},
   };
-  var dim = sizeMap[s.size] || sizeMap['50x25'];
+  var c = cfg[s.size] || cfg['50x25'];
 
-  var base = 'font-family:Arial,sans-serif;background:#fff;box-sizing:border-box;overflow:hidden;'
-    + 'width:'+dim.w+';height:'+dim.h+';';
+  return '<div style="font-family:Arial,sans-serif;background:#fff;box-sizing:border-box;overflow:hidden;'
+    + 'width:'+c.w+';height:'+c.h+';padding:'+c.pad+';'
+    + 'display:flex;flex-direction:column;justify-content:center;align-items:center;gap:0px">'
 
-  // ── قوالب مختلفة لكل حجم ──
-  if (s.size === '20x40') {
-    // صغير جداً: السعر أكبر شيء
-    return '<div style="'+base+'padding:2px;display:flex;flex-direction:column;justify-content:center;align-items:center">'
-      + '<div style="font-size:6pt;font-weight:700;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;width:100%">'+p.name+'</div>'
-      + '<div style="font-size:10pt;font-weight:900;text-align:center;margin:1px 0">'+fmtNum(price)+' DA</div>'
-      + '<div style="font-family:\'Libre Barcode 39\',monospace;font-size:'+dim.bcSize+';line-height:1;text-align:center">*'+bc+'*</div>'
-      + '<div style="font-size:5pt;color:#333;text-align:center;letter-spacing:.5px">'+bc+'</div>'
-      + '</div>';
-  }
+    // 1. اسم المحل (في الأعلى)
+    + '<div style="font-size:'+c.shopPt+'pt;font-weight:700;text-align:center;color:#1e293b;'
+    + 'width:100%;border-bottom:0.5px solid #bbb;padding-bottom:1px;margin-bottom:1px;'
+    + 'overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'
+    + shop + '</div>'
 
-  if (s.size === '50x25') {
-    // عام: الأكثر استخداماً
-    return '<div style="'+base+'padding:3px;display:flex;flex-direction:column;justify-content:center">'
-      + '<div style="font-size:7pt;font-weight:700;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin-bottom:1px">'+p.name+'</div>'
-      + (s.showRef && p.ref ? '<div style="font-size:5pt;color:#666;text-align:center">'+p.ref+'</div>' : '')
-      + '<div style="font-family:\'Libre Barcode 39\',monospace;font-size:'+dim.bcSize+';line-height:1;text-align:center">*'+bc+'*</div>'
-      + '<div style="font-size:5pt;color:#333;text-align:center;letter-spacing:.5px;margin-top:-1px">'+bc+'</div>'
-      + '<div style="font-size:9pt;font-weight:900;text-align:center;margin-top:2px">'+fmtNum(price)+' DA</div>'
-      + '</div>';
-  }
+    // 2. اسم المنتج
+    + '<div style="font-size:'+c.namePt+'pt;font-weight:700;text-align:center;width:100%;'
+    + 'overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin:1px 0">'
+    + p.name + '</div>'
 
-  if (s.size === '45x35') {
-    // متوسط: اسم واضح + فئة + باركود + سعر
-    return '<div style="'+base+'padding:4px;display:flex;flex-direction:column;justify-content:space-between">'
-      + (s.showShop ? '<div style="font-size:5.5pt;color:#666;text-align:center;border-bottom:0.5px solid #ddd;padding-bottom:2px">'+shop+'</div>' : '')
-      + '<div style="font-size:8pt;font-weight:700;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.name+'</div>'
-      + (p.category ? '<div style="font-size:5.5pt;color:#555;text-align:center">'+p.category+'</div>' : '')
-      + '<div style="font-family:\'Libre Barcode 39\',monospace;font-size:'+dim.bcSize+';line-height:1;text-align:center">*'+bc+'*</div>'
-      + '<div style="font-size:5pt;color:#333;text-align:center;letter-spacing:.5px;margin-top:-2px">'+bc+'</div>'
-      + '<div style="font-size:11pt;font-weight:900;text-align:center;margin-top:2px">'+fmtNum(price)+' DA</div>'
-      + '</div>';
-  }
+    // 3. السعر — الأكبر والأبرز
+    + '<div style="font-size:'+c.pricePt+'pt;font-weight:900;text-align:center;color:#000;'
+    + 'margin:1px 0;line-height:1">'
+    + fmtNum(price) + ' DA</div>'
 
-  if (s.size === '60x40') {
-    // احترافي: كل العناصر
-    return '<div style="'+base+'padding:4px;display:flex;flex-direction:column;justify-content:space-between">'
-      + (s.showShop ? '<div style="font-size:6pt;font-weight:700;text-align:center;color:#1e293b;border-bottom:0.5px solid #ddd;padding-bottom:2px;margin-bottom:2px">🏪 '+shop+'</div>' : '')
-      + '<div style="font-size:8.5pt;font-weight:800;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.name+'</div>'
-      + (s.showRef && p.ref ? '<div style="font-size:5.5pt;color:#666;text-align:center">SKU: '+p.ref+'</div>' : '')
-      + '<div style="font-family:\'Libre Barcode 39\',monospace;font-size:'+dim.bcSize+';line-height:1;text-align:center;margin:2px 0">*'+bc+'*</div>'
-      + '<div style="font-size:5.5pt;color:#333;text-align:center;letter-spacing:.5px;margin-top:-2px">'+bc+'</div>'
-      + '<div style="font-size:13pt;font-weight:900;text-align:center;margin-top:2px;color:#000">'+fmtNum(price)+' DA</div>'
-      + (s.showDate ? '<div style="font-size:5pt;color:#888;text-align:center;margin-top:2px">'+today+'</div>' : '')
-      + '</div>';
-  }
+    // 4. الباركود (الخطوط)
+    + '<div style="font-family:\'Libre Barcode 39\',monospace;font-size:'+c.bcPt+';'
+    + 'line-height:1;text-align:center;width:100%;overflow:hidden;margin:1px 0">'
+    + '*'+bc+'*</div>'
 
-  if (s.size === '102x65') {
-    // كبير جداً: كل شيء + مخازن
-    return '<div style="'+base+'padding:6px;display:flex;flex-direction:column;justify-content:space-between">'
-      + (s.showShop ? '<div style="font-size:9pt;font-weight:900;text-align:center;color:#1e293b;border-bottom:1px solid #ddd;padding-bottom:4px;margin-bottom:4px;text-transform:uppercase">'+shop+'</div>' : '')
-      + '<div style="font-size:12pt;font-weight:800;text-align:center;margin:2px 0">'+p.name+'</div>'
-      + (p.category ? '<div style="font-size:7pt;color:#555;text-align:center;margin-bottom:2px">📂 '+p.category+(p.unit?' | وحدة: '+p.unit:'')+'</div>' : '')
-      + '<div style="font-family:\'Libre Barcode 39\',monospace;font-size:'+dim.bcSize+';line-height:1;text-align:center;margin:4px 0">*'+bc+'*</div>'
-      + '<div style="font-size:7pt;color:#333;text-align:center;letter-spacing:1px;margin-top:-3px">'+bc+'</div>'
-      + '<div style="font-size:18pt;font-weight:900;text-align:center;margin:4px 0;color:#000">'+fmtNum(price)+' DA</div>'
-      + '<div style="display:flex;justify-content:space-between;font-size:6pt;color:#888;border-top:0.5px solid #ddd;padding-top:3px;margin-top:2px">'
-      + (s.showRef && p.ref ? '<span>SKU: '+p.ref+'</span>' : '<span></span>')
-      + (s.showDate ? '<span>'+today+'</span>' : '<span></span>')
-      + '</div>'
-      + '</div>';
-  }
+    // 5. رقم الباركود
+    + '<div style="font-size:'+c.numPt+'pt;color:#333;text-align:center;'
+    + 'letter-spacing:0.5px;margin-top:-1px">'
+    + bc + '</div>'
 
-  return '<div>?</div>';
+    + '</div>';
 }
+
 
 function updateBarcodePreview() {
   var s = getBarcodeSettings();
