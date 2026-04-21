@@ -7443,49 +7443,44 @@ function buildLabelHTML(p, s) {
   var bc    = p.barcode || p.ref || (p.id||'').slice(0,8) || '00000000';
   var shop  = (window.App && App.settings && App.settings.company_name) || 'المحل';
 
-  // أحجام الخطوط لكل مقاس
   var cfg = {
-    '20x40':  {w:'38mm', h:'18mm', shopPt:5,   namePt:5.5, pricePt:8.5, bcPt:'11pt', numPt:4.5, pad:'2px'},
-    '50x25':  {w:'48mm', h:'23mm', shopPt:5.5, namePt:6.5, pricePt:10,  bcPt:'15pt', numPt:5,   pad:'3px'},
-    '45x35':  {w:'43mm', h:'33mm', shopPt:6,   namePt:7.5, pricePt:12,  bcPt:'20pt', numPt:5.5, pad:'3px'},
-    '60x40':  {w:'58mm', h:'38mm', shopPt:7,   namePt:9,   pricePt:14,  bcPt:'24pt', numPt:6,   pad:'4px'},
-    '102x65': {w:'100mm',h:'63mm', shopPt:10,  namePt:13,  pricePt:20,  bcPt:'36pt', numPt:8,   pad:'6px'},
+    '20x40':  {w:'38mm', h:'18mm', shopPt:6,   namePt:5.5, pricePt:9,  bcPt:'13pt', pad:'2px 3px'},
+    '50x25':  {w:'48mm', h:'23mm', shopPt:7,   namePt:6.5, pricePt:11, bcPt:'17pt', pad:'3px 4px'},
+    '45x35':  {w:'43mm', h:'33mm', shopPt:8,   namePt:7.5, pricePt:13, bcPt:'22pt', pad:'3px 4px'},
+    '60x40':  {w:'58mm', h:'38mm', shopPt:9,   namePt:8.5, pricePt:16, bcPt:'26pt', pad:'4px 5px'},
+    '102x65': {w:'100mm',h:'63mm', shopPt:13,  namePt:12,  pricePt:26, bcPt:'42pt', pad:'6px 8px'},
   };
   var c = cfg[s.size] || cfg['50x25'];
 
   return '<div style="font-family:Arial,sans-serif;background:#fff;box-sizing:border-box;overflow:hidden;'
     + 'width:'+c.w+';height:'+c.h+';padding:'+c.pad+';'
-    + 'display:flex;flex-direction:column;justify-content:center;align-items:center;gap:0px">'
+    + 'display:flex;flex-direction:column;justify-content:space-between;align-items:center">'
 
-    // 1. اسم المحل (في الأعلى)
-    + '<div style="font-size:'+c.shopPt+'pt;font-weight:700;text-align:center;color:#1e293b;'
-    + 'width:100%;border-bottom:0.5px solid #bbb;padding-bottom:1px;margin-bottom:1px;'
-    + 'overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'
+    // 1. اسم المحل — أعلى المنتصف عريض
+    + '<div style="font-size:'+c.shopPt+'pt;font-weight:900;text-align:center;width:100%;'
+    + 'overflow:hidden;white-space:nowrap;text-overflow:ellipsis;letter-spacing:.5px">'
     + shop + '</div>'
 
-    // 2. اسم المنتج
-    + '<div style="font-size:'+c.namePt+'pt;font-weight:700;text-align:center;width:100%;'
-    + 'overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin:1px 0">'
+    // 2. خط أفقي طويل
+    + '<div style="width:100%;height:0.8px;background:#000;flex-shrink:0"></div>'
+
+    // 3. اسم المنتج
+    + '<div style="font-size:'+c.namePt+'pt;font-weight:600;text-align:center;width:100%;'
+    + 'overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'
     + p.name + '</div>'
 
-    // 3. السعر — الأكبر والأبرز
-    + '<div style="font-size:'+c.pricePt+'pt;font-weight:900;text-align:center;color:#000;'
-    + 'margin:1px 0;line-height:1">'
-    + fmtNum(price) + ' DA</div>'
-
-    // 4. الباركود (الخطوط)
+    // 4. خطوط الباركود — تمتد على كامل العرض
     + '<div style="font-family:\'Libre Barcode 39\',monospace;font-size:'+c.bcPt+';'
-    + 'line-height:1;text-align:center;width:100%;overflow:hidden;margin:1px 0">'
+    + 'line-height:1;text-align:center;width:100%;overflow:hidden;flex-shrink:0">'
     + '*'+bc+'*</div>'
 
-    // 5. رقم الباركود
-    + '<div style="font-size:'+c.numPt+'pt;color:#333;text-align:center;'
-    + 'letter-spacing:0.5px;margin-top:-1px">'
-    + bc + '</div>'
+    // 5. السعر — كبير وعريض في الأسفل
+    + '<div style="font-size:'+c.pricePt+'pt;font-weight:900;text-align:center;color:#000;'
+    + 'letter-spacing:.5px;line-height:1">'
+    + fmtNum(price) + ' DA</div>'
 
     + '</div>';
 }
-
 
 function updateBarcodePreview() {
   var s = getBarcodeSettings();
