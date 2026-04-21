@@ -1886,52 +1886,73 @@ async function showAddProductModal(editId = null) {
       <!-- ═══ LEFT COLUMN — BARCODE ═══ -->
       <div style="padding:8px 12px;display:flex;flex-direction:column;height:100%;box-sizing:border-box;gap:5px;overflow:hidden">
 
-        <!-- الباركودات -->
+        <!-- باركود رئيسي + باركود إضافي جنباً لجنب -->
         <div style="flex-shrink:0">
-          <label class="form-label">🔖 الباركود الرئيسي
-            <button type="button" onclick="generateBarcode()" style="margin-right:6px;font-size:.6rem;padding:1px 6px;border-radius:4px;border:1px solid #374151;background:#374151;color:#fff;cursor:pointer">🎲</button>
-          </label>
-          <input class="form-input" id="p_bc1" value="${p?.barcode||(p?'':Date.now().toString().slice(-10))}"
-            placeholder="امسح أو اكتب..." style="font-size:.85rem;font-weight:600;color:var(--info)"
-            oninput="renderBarcodePreview()">
-        </div>
-        <div style="flex-shrink:0">
-          <label class="form-label">باركود إضافي 1</label>
-          <input class="form-input" id="p_bc2" value="${p?.barcode2||''}" placeholder="كود بديل...">
-        </div>
-        <div style="flex-shrink:0">
-          <label class="form-label">باركود إضافي 2</label>
-          <input class="form-input" id="p_bc3" value="${p?.barcode3||''}" placeholder="كود بديل...">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div>
+              <span class="lbl">🔖 الباركود الرئيسي
+                <button type="button" onclick="generateBarcode()"
+                  style="font-size:.55rem;padding:1px 5px;border-radius:3px;border:1px solid #374151;
+                         background:#374151;color:#fff;cursor:pointer;margin-right:3px">🎲</button>
+              </span>
+              <input type="text" id="p_bc1" value="${p?.barcode||(p?'':Date.now().toString().slice(-10))}"
+                placeholder="امسح أو اكتب..." onkeydown="event.stopPropagation()"
+                style="width:100%;padding:3px 6px;border:1.5px solid #0369a1;border-radius:5px;
+                       font-family:'Cairo',sans-serif;font-size:.78rem;font-weight:700;color:#0369a1;
+                       box-sizing:border-box;height:26px;outline:none"
+                oninput="renderBarcodePreview()">
+            </div>
+            <div>
+              <span class="lbl">🔖 باركود إضافي
+                <button type="button" onclick="(function(){var bc='BC'+Date.now().toString().slice(-8);document.getElementById('p_bc2').value=bc;})()"
+                  style="font-size:.55rem;padding:1px 5px;border-radius:3px;border:1px solid #374151;
+                         background:#374151;color:#fff;cursor:pointer;margin-right:3px">🎲</button>
+              </span>
+              <input type="text" id="p_bc2" value="${p?.barcode2||''}"
+                placeholder="كود بديل..." onkeydown="event.stopPropagation()"
+                style="width:100%;padding:3px 6px;border:1px solid #d1dbe8;border-radius:5px;
+                       font-family:'Cairo',sans-serif;font-size:.72rem;
+                       box-sizing:border-box;height:26px;outline:none">
+              <input type="hidden" id="p_bc3" value="${p?.barcode3||''}">
+            </div>
+          </div>
         </div>
 
-        <!-- معاينة تأخذ المساحة المتبقية -->
-        <div style="flex-shrink:0;display:flex;flex-direction:column;gap:4px">
-          <div style="font-size:.68rem;font-weight:700;color:var(--muted)">👁 معاينة</div>
-          <div style="height:80px;background:#e2e8f0;border-radius:8px;display:flex;justify-content:center;align-items:center">
+        <!-- معاينة — تأخذ كل المساحة المتبقية -->
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:3px">
+          <span class="lbl">👁 معاينة الملصق</span>
+          <div style="flex:1;min-height:0;background:#e2e8f0;border-radius:7px;
+                      display:flex;justify-content:center;align-items:center;overflow:hidden">
             <div id="bc_modal_preview" style="background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15)"></div>
           </div>
         </div>
 
         <!-- طباعة — ثابت في الأسفل -->
-        <div style="flex-shrink:0;background:#f0f4f8;border-radius:8px;padding:8px">
-          <div style="font-size:.7rem;font-weight:700;color:var(--primary);margin-bottom:6px">🖨️ طباعة الباركود</div>
-          <div style="display:grid;grid-template-columns:1fr 70px;gap:6px;margin-bottom:6px">
+        <div style="flex-shrink:0;background:#f8fafc;border-radius:7px;padding:7px;border:1px solid #e2e8f0">
+          <div style="display:grid;grid-template-columns:1fr 60px;gap:5px;margin-bottom:5px">
             <div>
-              <label class="form-label">الحجم</label>
-              <select id="modal_bc_size" style="width:100%;padding:5px 6px;border:1px solid #e2e8f0;border-radius:5px;font-family:'Cairo',sans-serif;font-size:.73rem;background:#fff;color:#1e293b">
-                <option value="50x25">50×25 — عام</option>
-                <option value="20x40">20×40 — صغير</option>
-                <option value="45x35">45×35 — متوسط</option>
-                <option value="60x40">60×40 — احترافي</option>
-                <option value="102x65">102×65 — كبير</option>
+              <span class="lbl">📐 حجم الملصق</span>
+              <select id="modal_bc_size"
+                style="width:100%;padding:3px 5px;border:1px solid #d1dbe8;border-radius:5px;
+                       font-family:'Cairo',sans-serif;font-size:.68rem;background:#fff;color:#1e293b;height:26px">
+                <option value="50x25">50×25 mm — عام</option>
+                <option value="20x40">20×40 mm — صغير</option>
+                <option value="45x35">45×35 mm — متوسط</option>
+                <option value="60x40">60×40 mm — احترافي</option>
+                <option value="102x65">102×65 mm — كبير</option>
               </select>
             </div>
             <div>
-              <label class="form-label">النسخ</label>
-              <input class="form-input" id="bc_copies" type="number" value="1" min="1" max="100">
+              <span class="lbl">النسخ</span>
+              <input type="number" id="bc_copies" value="1" min="1" max="100"
+                onkeydown="event.stopPropagation()"
+                style="width:100%;padding:3px 5px;border:1px solid #d1dbe8;border-radius:5px;
+                       font-family:'Cairo',sans-serif;font-size:.72rem;height:26px;box-sizing:border-box">
             </div>
           </div>
-          <button onclick="printBarcode()" style="width:100%;padding:7px;background:var(--primary);border:none;border-radius:6px;color:var(--text);font-family:'Cairo',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer">
+          <button onclick="printBarcode()"
+            style="width:100%;padding:5px;background:var(--primary);border:none;border-radius:5px;
+                   color:#fff;font-family:'Cairo',sans-serif;font-size:.75rem;font-weight:700;cursor:pointer">
             🖨️ طباعة الباركود
           </button>
         </div>
@@ -1940,9 +1961,9 @@ async function showAddProductModal(editId = null) {
     </div><!-- grid -->
     </div><!-- modal-body -->
 
-    <div class="modal-footer" style="background:#111827">
-      <button class="btn" style="background:var(--border);color:#fff" onclick="closeModal()">❌ إلغاء</button>
-      <button class="btn btn-primary" style="padding:8px 24px;font-size:.88rem" onclick="saveProduct('${editId||''}')">✅ حفظ المنتج</button>
+    <div class="modal-footer" style="background:#111827;padding:6px 16px;min-height:unset">
+      <button class="btn" style="background:#374151;color:#fff;padding:5px 14px;font-size:.78rem" onclick="closeModal()">إلغاء</button>
+      <button class="btn btn-primary" style="padding:5px 20px;font-size:.78rem;font-weight:700" onclick="saveProduct('${editId||''}')">✅ حفظ المنتج</button>
     </div>
   </div>
   </div>
