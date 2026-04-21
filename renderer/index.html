@@ -4181,8 +4181,13 @@ function renderPOSItems() {
             </td>
             <td style="padding:7px 8px;text-align:center;font-weight:900;color:#c2410c;font-size:.85rem;white-space:nowrap">${fmtNum(item.qty*item.price)}</td>
             <td style="padding:7px 4px;text-align:center">
-              <button onclick="event.stopPropagation();removePOSItem(${i})"
-                style="width:20px;height:20px;background:transparent;border:1px solid rgba(239,68,68,.4);color:var(--danger);cursor:pointer;font-size:.8rem;border-radius:3px;display:flex;align-items:center;justify-content:center">✕</button>
+              <div style="display:flex;gap:3px;justify-content:center">
+                <button onclick="event.stopPropagation();showPOSItemInfo('${item.product_id}')"
+                  style="width:20px;height:20px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.4);color:#3b82f6;cursor:pointer;font-size:.7rem;border-radius:3px;display:flex;align-items:center;justify-content:center"
+                  title="معلومات المنتج">ℹ</button>
+                <button onclick="event.stopPropagation();removePOSItem(${i})"
+                  style="width:20px;height:20px;background:transparent;border:1px solid rgba(239,68,68,.4);color:var(--danger);cursor:pointer;font-size:.8rem;border-radius:3px;display:flex;align-items:center;justify-content:center">✕</button>
+              </div>
             </td>
           </tr>`).join('')}
       </tbody>
@@ -4190,7 +4195,6 @@ function renderPOSItems() {
 }
 
 window.selectPOSRow = (i) => {
-  window._posSelectedRow = i;
   renderPOSItems();
   // أعد التركيز لخانة البحث — لا نريد التركيز على input الكمية
   setTimeout(() => {
