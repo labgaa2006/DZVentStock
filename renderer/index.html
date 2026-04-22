@@ -5026,6 +5026,8 @@ async function saveSettings() {
   };
   await window.api.settings.save(data);
   App.settings = { ...App.settings, ...data };
+  // حفظ اسم الشركة في localStorage لاستخدامه في الباركود
+  if (data.company_name) localStorage.setItem('company_name', data.company_name);
   document.getElementById('titlebarTitle').textContent = (data.company_name||'') + ' — نظام المبيعات';
   toast('✅ تم حفظ الإعدادات', 'success');
 }
@@ -7363,6 +7365,13 @@ function showSmartExitDialog(title, msg, confirmLabel, onConfirm) {
 // ═══ طابعة الباركود الكاملة ═══
 // ═══════════════════════════════════════════════
 // BARCODE PRINTER — نظام طباعة الباركود الاحترافي
+// ═══ اسم المحل من الإعدادات العامة ═══
+function getShopName() {
+  return (window.App && App.settings && App.settings.company_name)
+      || localStorage.getItem('company_name')
+      || 'المحل';
+}
+
 // يستخدم JsBarcode عبر CDN لتوليد باركود حقيقي
 // ═══════════════════════════════════════════════
 
@@ -7535,7 +7544,7 @@ function saveBarcodeSettings(){
 function buildLabelHTML(p, s) {
   var price = p[s.priceType] || p.sell_price || 0;
   var bc    = p.barcode || p.ref || (p.id||'').slice(0,8) || '00000000';
-  var shop  = (window.App && App.settings && App.settings.company_name) || 'المحل';
+  var shop  = getShopName();
 
   // تأكد من تحميل الخط مرة واحدة
   if (!document.getElementById('libre-barcode-font')) {
