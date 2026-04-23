@@ -1032,7 +1032,7 @@ async function renderDashboard() {
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>رقم</th><th>العميل</th><th>المبلغ</th><th>الدفع</th><th>التاريخ</th></tr></thead>
+            <thead><tr><th onclick="sortTable('ventes','num',_ventesData,renderVentesTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('ventes','num')}رقم</th><th onclick="sortTable('ventes','client_name',_ventesData,renderVentesTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('ventes','client_name')}العميل</th><th onclick="sortTable('ventes','net',_ventesData,renderVentesTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('ventes','net')}المبلغ</th><th>الدفع</th><th onclick="sortTable('ventes','date',_ventesData,renderVentesTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('ventes','date')}التاريخ</th></tr></thead>
             <tbody>
               ${s.recent_ventes.length===0
                 ? `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">لا توجد مبيعات بعد</td></tr>`
@@ -1272,6 +1272,55 @@ function filterProductsTable(q) {
 }
 
 function searchProducts(q) { filterProductsTable(q); }
+
+// ═══ متغيرات بيانات كل شاشة (لدعم الترتيب) ═══
+var _ventesData=[], _achatsData=[], _clientsData=[], _fournsData=[];
+var _retoursData=[], _quotesData=[], _dettesClientData=[], _dettesFoundData=[];
+var _loyaltyData=[], _mouvementsData=[], _unitsData=[];
+
+// دوال render بسيطة تُستدعى من الـ sortTable
+function renderVentesTable()     { if(typeof buildVentesTable==='function')     buildVentesTable(_ventesData); }
+function renderAchatsTable()     { if(typeof buildAchatsTable==='function')     buildAchatsTable(_achatsData); }
+function renderClientsTable()    { if(typeof buildClientsTable==='function')    buildClientsTable(_clientsData); }
+function renderFournisseursTable(){ if(typeof buildFournisseursTable==='function') buildFournisseursTable(_fournsData); }
+function renderRetoursTable()    { if(typeof buildRetoursTable==='function')    buildRetoursTable(_retoursData); }
+function renderQuotesTable()     { if(typeof buildQuotesTable==='function')     buildQuotesTable(_quotesData); }
+function renderDettesClientTable(){ if(typeof buildDettesClientTable==='function') buildDettesClientTable(_dettesClientData); }
+function renderDettesFoundTable(){ if(typeof buildDettesFoundTable==='function') buildDettesFoundTable(_dettesFoundData); }
+function renderLoyaltyTable()    { if(typeof buildLoyaltyTable==='function')    buildLoyaltyTable(_loyaltyData); }
+function renderMouvementsTable() { if(typeof buildMouvementsTable==='function') buildMouvementsTable(_mouvementsData); }
+function renderUnitsTable()      { if(typeof buildUnitsTable==='function')      buildUnitsTable(_unitsData); }
+
+// ═══ أداة ترتيب مشتركة لكل الشاشات ═══
+var _sortStates = {}; // {screenName: {field, dir}}
+
+function sortTable(screenName, field, data, renderFn) {
+  if (!_sortStates[screenName]) _sortStates[screenName] = {field:null, dir:1};
+  var st = _sortStates[screenName];
+  if (st.field === field) { st.dir *= -1; }
+  else { st.field = field; st.dir = 1; }
+  data.sort(function(a,b) {
+    var av = a[field] ?? '', bv = b[field] ?? '';
+    if (typeof av === 'number' || !isNaN(parseFloat(av))) return (parseFloat(av||0) - parseFloat(bv||0)) * st.dir;
+    return String(av).localeCompare(String(bv), 'ar') * st.dir;
+  });
+  renderFn();
+}
+
+function sortArrow(screenName, field) {
+  var st = _sortStates[screenName];
+  if (!st || st.field !== field) return ' <span style="color:#cbd5e1;font-size:.6rem">⇅</span>';
+  return st.dir === 1
+    ? ' <span style="color:var(--primary);font-size:.65rem">▲</span>'
+    : ' <span style="color:var(--primary);font-size:.65rem">▼</span>';
+}
+
+function sortTh(screenName, field, label) {
+  return '<th onclick="sortTable(\''+screenName+'\',\''+field+'\',_'+screenName+'Data,render'+screenName.charAt(0).toUpperCase()+screenName.slice(1)+'Table)"'
+    + ' style="cursor:pointer;user-select:none" title="اضغط للترتيب">'
+    + label + sortArrow(screenName, field) + '</th>';
+}
+
 
 // ═══ ترتيب المنتجات ═══
 let _sortField = null;
@@ -2747,7 +2796,7 @@ async function renderAchats() {
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>رقم</th><th>المورد</th><th>المجموع</th><th>المدفوع</th><th>الباقي</th><th>الحالة</th><th>التاريخ</th></tr>
+            <tr><th onclick="sortTable('achats','num',_achatsData,renderAchatsTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('achats','num')}رقم</th><th onclick="sortTable('achats','fournisseur_name',_achatsData,renderAchatsTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('achats','fournisseur_name')}المورد</th><th onclick="sortTable('achats','total',_achatsData,renderAchatsTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('achats','total')}المجموع</th><th onclick="sortTable('achats','paid',_achatsData,renderAchatsTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('achats','paid')}المدفوع</th><th onclick="sortTable('achats','reste',_achatsData,renderAchatsTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('achats','reste')}الباقي</th><th>الحالة</th><th onclick="sortTable('achats','date',_achatsData,renderAchatsTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('achats','date')}التاريخ</th></tr>
           </thead>
           <tbody id="achatsTableBody"></tbody>
         </table>
@@ -3153,7 +3202,7 @@ async function renderClients() {
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>#</th><th>الاسم</th><th>الهاتف</th><th>العنوان</th><th>ملاحظات</th><th>إجراءات</th></tr></thead>
+          <thead><tr><th>#</th><th onclick="sortTable('fournisseurs','name',_fournsData,renderFournisseursTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('fournisseurs','name')}الاسم</th><th>الهاتف</th><th>العنوان</th><th>ملاحظات</th><th>إجراءات</th></tr></thead>
           <tbody id="clientsTableBody"></tbody>
         </table>
       </div>
@@ -5742,7 +5791,7 @@ async function renderQuotes() {
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>الرقم</th><th>العميل</th><th>المبلغ</th><th>الصلاحية</th><th>الحالة</th><th>التاريخ</th><th>إجراءات</th></tr></thead>
+          <thead><tr><th onclick="sortTable('retours','num',_retoursData,renderRetoursTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('retours','num')}الرقم</th><th onclick="sortTable('retours','client_name',_retoursData,renderRetoursTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('retours','client_name')}العميل</th><th onclick="sortTable('retours','total',_retoursData,renderRetoursTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('retours','total')}المبلغ</th><th>الصلاحية</th><th>الحالة</th><th onclick="sortTable('retours','date',_retoursData,renderRetoursTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('retours','date')}التاريخ</th><th>إجراءات</th></tr></thead>
           <tbody id="quotesTableBody"></tbody>
         </table>
       </div>
@@ -5898,7 +5947,7 @@ async function renderRetours() {
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>الرقم</th><th>العميل</th><th>المبلغ</th><th>ملاحظات</th><th>التاريخ</th></tr></thead>
+          <thead><tr><th onclick="sortTable('quotes','num',_quotesData,renderQuotesTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('quotes','num')}الرقم</th><th onclick="sortTable('quotes','client_name',_quotesData,renderQuotesTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('quotes','client_name')}العميل</th><th onclick="sortTable('quotes','total',_quotesData,renderQuotesTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('quotes','total')}المبلغ</th><th>ملاحظات</th><th onclick="sortTable('quotes','date',_quotesData,renderQuotesTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('quotes','date')}التاريخ</th></tr></thead>
           <tbody id="retoursTableBody"></tbody>
         </table>
       </div>
@@ -6042,7 +6091,7 @@ async function renderDettes() {
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>التاريخ</th><th>تسديد</th></tr></thead>
+          <thead><tr><th onclick="sortTable('dettes_c','num',_dettesClientData,renderDettesClientTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_c','num')}الفاتورة</th><th onclick="sortTable('dettes_c','client_name',_dettesClientData,renderDettesClientTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_c','client_name')}العميل</th><th onclick="sortTable('dettes_c','net',_dettesClientData,renderDettesClientTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_c','net')}الإجمالي</th><th onclick="sortTable('dettes_c','paid',_dettesClientData,renderDettesClientTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_c','paid')}المدفوع</th><th onclick="sortTable('dettes_c','reste',_dettesClientData,renderDettesClientTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_c','reste')}المتبقي</th><th onclick="sortTable('dettes_c','date',_dettesClientData,renderDettesClientTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_c','date')}التاريخ</th><th>تسديد</th></tr></thead>
           <tbody id="dettesTableBody"></tbody>
         </table>
       </div>
@@ -6057,7 +6106,7 @@ async function renderDettes() {
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>الفاتورة</th><th>المورد</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>التاريخ</th><th>تسديد</th></tr></thead>
+          <thead><tr><th onclick="sortTable('dettes_f','num',_dettesFoundData,renderDettesFoundTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_f','num')}الفاتورة</th><th onclick="sortTable('dettes_f','fournisseur_name',_dettesFoundData,renderDettesFoundTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_f','fournisseur_name')}المورد</th><th onclick="sortTable('dettes_f','net',_dettesFoundData,renderDettesFoundTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_f','net')}الإجمالي</th><th onclick="sortTable('dettes_f','paid',_dettesFoundData,renderDettesFoundTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_f','paid')}المدفوع</th><th onclick="sortTable('dettes_f','reste',_dettesFoundData,renderDettesFoundTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_f','reste')}المتبقي</th><th onclick="sortTable('dettes_f','date',_dettesFoundData,renderDettesFoundTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_f','date')}التاريخ</th><th>تسديد</th></tr></thead>
           <tbody>
             ${achDettes.length===0
               ? '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--success)">✅ لا توجد ديون للموردين</td></tr>'
@@ -6203,7 +6252,7 @@ async function renderLoyalty() {
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>العميل</th><th>النقاط</th><th>إجمالي المشتريات</th><th>المستوى</th></tr></thead>
+          <thead><tr><th onclick="sortTable('loyalty','client_name',_loyaltyData,renderLoyaltyTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('loyalty','client_name')}العميل</th><th onclick="sortTable('loyalty','points',_loyaltyData,renderLoyaltyTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('loyalty','points')}النقاط</th><th onclick="sortTable('loyalty','total_purchases',_loyaltyData,renderLoyaltyTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('loyalty','total_purchases')}إجمالي المشتريات</th><th>المستوى</th></tr></thead>
           <tbody>
             ${list.length===0
               ? `<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">لا توجد بيانات — النقاط تُضاف تلقائياً عند البيع للعملاء المسجلين</td></tr>`
