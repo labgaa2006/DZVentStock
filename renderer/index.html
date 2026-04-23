@@ -1272,6 +1272,29 @@ function filterProductsTable(q) {
 }
 
 function searchProducts(q) { filterProductsTable(q); }
+// ═══ Sorting v2 — يعمل مع filterXxxTable الموجودة ═══
+var _sortField = {}, _sortDir = {};
+
+function sortAndFilter(field, dataArr, filterFn) {
+  var key = filterFn.name || field;
+  if (_sortField[key] === field) { _sortDir[key] = (_sortDir[key]||1) * -1; }
+  else { _sortField[key] = field; _sortDir[key] = 1; }
+  var dir = _sortDir[key];
+  dataArr.sort(function(a,b){
+    var av=a[field]??'', bv=b[field]??'';
+    if(!isNaN(parseFloat(av))&&!isNaN(parseFloat(bv))) return (parseFloat(av)-parseFloat(bv))*dir;
+    return String(av).localeCompare(String(bv),'ar')*dir;
+  });
+  filterFn(document.querySelector('.card-search-input')?.value||'');
+}
+
+function sortArrow2(field, key) {
+  if (_sortField[key] !== field) return ' <span style="color:#cbd5e1;font-size:.55rem">⇅</span>';
+  return _sortDir[key]===1
+    ? ' <span style="color:var(--primary);font-size:.6rem">▲</span>'
+    : ' <span style="color:var(--primary);font-size:.6rem">▼</span>';
+}
+
 
 // ═══ متغيرات بيانات كل شاشة (لدعم الترتيب) ═══
 var _ventesData=[], _achatsData=[], _clientsData=[], _fournsData=[];
@@ -1323,8 +1346,7 @@ function sortTh(screenName, field, label) {
 
 
 // ═══ ترتيب المنتجات ═══
-let _sortField = null;
-let _sortDir   = 1;
+// _sortField and _sortDir defined globally above
 function sortProducts(field) {
   if (_sortField === field) { _sortDir *= -1; }
   else { _sortField = field; _sortDir = 1; }
@@ -2302,10 +2324,16 @@ async function renderVentes() {
         <table>
           <thead>
             <tr>
-              <th>رقم الفاتورة</th><th>العميل</th><th>البائع</th>
-              <th>HT</th><th>TTC</th><th>مدفوع</th><th>باقي</th>
+              <th onclick="sortAndFilter('num',_allVentes,filterVentesTable)" style="cursor:pointer">رقم الفاتورة ${sortArrow2('num','_allVentes')}</th>
+              <th onclick="sortAndFilter('client_name',_allVentes,filterVentesTable)" style="cursor:pointer">العميل ${sortArrow2('client_name','_allVentes')}</th>
+              <th>البائع</th>
+              <th onclick="sortAndFilter('total',_allVentes,filterVentesTable)" style="cursor:pointer">HT ${sortArrow2('total','_allVentes')}</th>
+              <th onclick="sortAndFilter('net',_allVentes,filterVentesTable)" style="cursor:pointer">TTC ${sortArrow2('net','_allVentes')}</th>
+              <th onclick="sortAndFilter('paid',_allVentes,filterVentesTable)" style="cursor:pointer">مدفوع ${sortArrow2('paid','_allVentes')}</th>
+              <th onclick="sortAndFilter('reste',_allVentes,filterVentesTable)" style="cursor:pointer">باقي ${sortArrow2('reste','_allVentes')}</th>
               <th>وسيلة الدفع</th><th>الحالة</th><th>📝</th>
-              <th>التاريخ</th><th>إجراءات</th>
+              <th onclick="sortAndFilter('date',_allVentes,filterVentesTable)" style="cursor:pointer">التاريخ ${sortArrow2('date','_allVentes')}</th>
+              <th>إجراءات</th>
             </tr>
           </thead>
           <tbody id="ventesTableBody"></tbody>
