@@ -1302,6 +1302,11 @@ var _retoursData=[], _quotesData=[], _dettesClientData=[], _dettesFoundData=[];
 var _loyaltyData=[], _mouvementsData=[], _unitsData=[];
 
 // دوال render بسيطة تُستدعى من الـ sortTable
+
+// ═══ stub render functions for sort callbacks ═══
+function renderUnitsBody() { renderUnits(); }
+function renderMouvementsBody() { renderMouvements(); }
+function renderCaisseBody() { renderCaisse(); }
 function renderVentesTable()     { if(typeof buildVentesTable==='function')     buildVentesTable(_ventesData); }
 function renderAchatsTable()     { if(typeof buildAchatsTable==='function')     buildAchatsTable(_achatsData); }
 function renderClientsTable()    { if(typeof buildClientsTable==='function')    buildClientsTable(_clientsData); }
@@ -5235,7 +5240,7 @@ async function renderUnits() {
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>#</th><th>اسم الوحدة</th><th>تاريخ الإضافة</th><th>إجراءات</th></tr></thead>
+          <thead><tr><th>#</th><th onclick="sortAndFilter('name',allUnits,renderUnitsBody)" style="cursor:pointer">اسم الوحدة ⇅</th><th onclick="sortAndFilter('created_at',allUnits,renderUnitsBody)" style="cursor:pointer">تاريخ الإضافة ⇅</th><th>إجراءات</th></tr></thead>
           <tbody>
             ${units.length===0
               ? '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">لا توجد وحدات — أضف أول وحدة</td></tr>'
@@ -5350,13 +5355,7 @@ async function renderCategories() {
 
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th>اللون</th><th>الفئة</th><th>المنتجات</th>
-              <th>المخزون</th><th>قيمة الشراء</th><th>قيمة البيع</th><th>الربح</th>
-              <th>إجراءات</th>
-            </tr>
-          </thead>
+          <thead><tr><th onclick="sortAndFilter('name',window._catsData.map(e=>({name:e[0],...e[1]})),(()=>filterCatsTable(document.getElementById('catSearchInput')?.value||'')))" style="cursor:pointer">الفئة ⇅</th><th onclick="sortAndFilter('count',window._catsData.map(e=>({name:e[0],...e[1]})),(()=>filterCatsTable('')))" style="cursor:pointer">المنتجات ⇅</th><th onclick="sortAndFilter('stock',window._catsData.map(e=>({name:e[0],...e[1]})),(()=>filterCatsTable('')))" style="cursor:pointer">المخزون ⇅</th><th onclick="sortAndFilter('buyVal',window._catsData.map(e=>({name:e[0],...e[1]})),(()=>filterCatsTable('')))" style="cursor:pointer">قيمة الشراء ⇅</th><th onclick="sortAndFilter('sellVal',window._catsData.map(e=>({name:e[0],...e[1]})),(()=>filterCatsTable('')))" style="cursor:pointer">قيمة البيع ⇅</th><th onclick="sortAndFilter('sellVal',window._catsData.map(e=>({name:e[0],...e[1]})),(()=>filterCatsTable('')))" style="cursor:pointer">الربح ⇅</th><th>إجراءات</th></tr></thead>
           <tbody id="catsTableBody"></tbody>
         </table>
       </div>
@@ -5665,7 +5664,7 @@ async function renderMouvements() {
       <div class="card-header"><div class="card-title">🔄 حركة المخزون</div></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>المنتج</th><th>المرجع</th><th>الفئة</th><th>المخزون الحالي</th><th>الحد الأدنى</th><th>الحالة</th></tr></thead>
+          <thead><tr><th onclick="sortAndFilter('name',allProducts,renderMouvementsBody)" style="cursor:pointer">المنتج ⇅</th><th onclick="sortAndFilter('ref',allProducts,renderMouvementsBody)" style="cursor:pointer">المرجع ⇅</th><th onclick="sortAndFilter('category',allProducts,renderMouvementsBody)" style="cursor:pointer">الفئة ⇅</th><th onclick="sortAndFilter('stock',allProducts,renderMouvementsBody)" style="cursor:pointer">المخزون الحالي ⇅</th><th onclick="sortAndFilter('stock_min',allProducts,renderMouvementsBody)" style="cursor:pointer">الحد الأدنى ⇅</th><th>الحالة</th></tr></thead>
           <tbody>
             ${products.length === 0
               ? `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">لا توجد منتجات</td></tr>`
@@ -5908,7 +5907,7 @@ async function renderCaisse() {
       <div class="card-header"><div class="card-title">💵 سجل المعاملات</div></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>النوع</th><th>المبلغ</th><th>الوصف</th><th>التاريخ</th></tr></thead>
+          <thead><tr><th onclick="sortAndFilter('type',_caisseData,renderCaisseBody)" style="cursor:pointer">النوع ⇅</th><th onclick="sortAndFilter('amount',_caisseData,renderCaisseBody)" style="cursor:pointer">المبلغ ⇅</th><th>الوصف</th><th onclick="sortAndFilter('date',_caisseData,renderCaisseBody)" style="cursor:pointer">التاريخ ⇅</th></tr></thead>
           <tbody>
             ${!data.transactions?.length
               ? `<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">لا توجد معاملات بعد</td></tr>`
@@ -6307,14 +6306,15 @@ async function renderExpiry() {
   document.getElementById('topbarActions').innerHTML = `
     <button class="topbar-btn primary" onclick="showAddExpiryModal()">➕ إضافة دفعة</button>
   `;
-  const list = await window.api.expiry.getAll();
+  window._expiryList = await window.api.expiry.getAll();
+  const list = window._expiryList;
   const todayDate = today();
   document.getElementById('mainContent').innerHTML = `
     <div class="card">
       <div class="card-header"><div class="card-title">📅 تواريخ الصلاحية <span style="color:var(--muted);font-size:.75rem;font-weight:400">(${list.length})</span></div></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>المنتج</th><th>رقم الدفعة</th><th>الكمية</th><th>تاريخ الصلاحية</th><th>الحالة</th><th>حذف</th></tr></thead>
+          <thead><tr><th onclick="sortAndFilter('product_name',window._expiryList,()=>renderExpiry())" style="cursor:pointer">المنتج ⇅</th><th>رقم الدفعة</th><th onclick="sortAndFilter('qty',window._expiryList,()=>renderExpiry())" style="cursor:pointer">الكمية ⇅</th><th onclick="sortAndFilter('expiry_date',window._expiryList,()=>renderExpiry())" style="cursor:pointer">تاريخ الصلاحية ⇅</th><th>الحالة</th><th>حذف</th></tr></thead>
           <tbody>
             ${list.length===0
               ? `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">لا توجد دفعات مسجلة</td></tr>`
