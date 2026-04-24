@@ -2493,7 +2493,7 @@ function filterVentesTable(q) {
       <td style="color:var(--muted);font-size:.75rem;white-space:nowrap">${formatDate(v.date)}</td>
       <td onclick="event.stopPropagation()">
         <div style="display:flex;gap:3px;flex-wrap:nowrap">
-          <button class="btn btn-sm btn-info" style="padding:3px 7px" onclick="printVente('${v.id}')" title="طباعة">🖨️</button>
+          <button class="btn btn-sm btn-info" style="padding:3px 7px" onclick="showPrintDocModal('${v.id}')" title="طباعة">🖨️</button>
           ${v.reste>0?`<button class="btn btn-sm btn-success" style="padding:3px 7px" onclick="navigate('dettes',null)" title="تسديد">💵</button>`:''}
           <button class="btn btn-sm btn-danger" style="padding:3px 7px" onclick="confirmDeleteVente('${v.id}','${v.num}')" title="إلغاء الفاتورة">🗑️</button>
         </div>
@@ -2800,6 +2800,164 @@ async function printVente(id) {
     ${phone?phone+' • ':''}${address}
   </div>
 </body></html>`;
+  await window.api.print.invoice(html);
+}
+
+// ─── اختيار نوع وثيقة الطباعة ───
+function showPrintDocModal(id) {
+  showModal(`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:360px">
+        <div class="modal-header">
+          <div class="modal-title">🖨️ اختر نوع الوثيقة</div>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            ${[
+              ['facture',   '🧾', 'فاتورة',        'Facture',         '#f97316'],
+              ['proforma',  '📋', 'فاتورة أولية',  'Facture Proforma','#6366f1'],
+              ['devis',     '📝', 'عرض السعر',     'Devis',           '#0369a1'],
+              ['bl',        '📦', 'وصل التسليم',   'Bon de Livraison','#059669'],
+            ].map(([type, icon, labelAr, labelFr, color])=>`
+              <button onclick="closeModal();printVenteAs('${id}','${type}')"
+                style="padding:14px 8px;border-radius:8px;border:2px solid ${color};
+                       background:rgba(${color==='#f97316'?'249,115,22':color==='#6366f1'?'99,102,241':color==='#0369a1'?'3,105,161':'5,150,105'},.08);
+                       cursor:pointer;font-family:'Cairo',sans-serif;text-align:center">
+                <div style="font-size:1.3rem">${icon}</div>
+                <div style="font-weight:700;font-size:.82rem;color:${color}">${labelAr}</div>
+                <div style="font-size:.65rem;color:#64748b">${labelFr}</div>
+              </button>`).join('')}
+          </div>
+          <div style="margin-top:12px">
+            <label class="form-label">اللغة</label>
+            <select id="print_lang" style="width:100%;padding:6px;border:1px solid #e2e8f0;border-radius:6px;font-family:'Cairo',sans-serif">
+              <option value="ar">🇩🇿 العربية</option>
+              <option value="fr">🇫🇷 Français</option>
+              <option value="en">🇬🇧 English</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+async function printVenteAs(id, docType, lang) {
+  lang = lang || 'ar';
+  const v = await window.api.ventes.getById(id);
+  if (!v) return;
+
+  var translations = {
+    ar: { title:'فاتورة', proforma:'فاتورة أولية', devis:'عرض السعر', bl:'وصل التسليم',
+          num:'رقم', date:'التاريخ', client:'العميل', product:'المنتج',
+          uprice:'سعر الوحدة', qty:'الكمية', total:'المجموع', sub:'مجموع HT',
+          disc:'الخصم', tva:'TVA', net:'الصافي TTC', paid:'المدفوع', rest:'الباقي',
+          thanks:'شكراً لتعاملكم معنا', payment:'طريقة الدفع', seller:'البائع',
+          sig:'الإمضاء والختم', not_commercial:'هذه الوثيقة ليست فاتورة تجارية',
+          valid:'صالحة 30 يوماً' },
+    fr: { title:'FACTURE', proforma:'FACTURE PROFORMA', devis:'DEVIS', bl:'BON DE LIVRAISON',
+          num:'N°', date:'Date', client:'Client', product:'Désignation',
+          uprice:'P.U.', qty:'Qté', total:'Total', sub:'Total HT',
+          disc:'Remise', tva:'TVA', net:'Total TTC', paid:'Versé', rest:'Reste',
+          thanks:'Merci pour votre confiance', payment:'Paiement', seller:'Vendeur',
+          sig:'Signature & Cachet', not_commercial:"Document non commercial",
+          valid:'Valable 30 jours' },
+    en: { title:'INVOICE', proforma:'PROFORMA INVOICE', devis:'QUOTE', bl:'DELIVERY NOTE',
+          num:'No.', date:'Date', client:'Client', product:'Description',
+          uprice:'Unit Price', qty:'Qty', total:'Total', sub:'Subtotal',
+          disc:'Discount', tva:'VAT', net:'Total', paid:'Paid', rest:'Balance',
+          thanks:'Thank you for your business', payment:'Payment', seller:'Sales Rep',
+          sig:'Signature & Stamp', not_commercial:'Not a commercial invoice',
+          valid:'Valid 30 days' },
+  };
+  var tr = translations[lang] || translations['ar'];
+  var dir = lang === 'ar' ? 'rtl' : 'ltr';
+
+  var docLabel = {facture:tr.title, proforma:tr.proforma, devis:tr.devis, bl:tr.bl}[docType] || tr.title;
+  var accentColor = {facture:'#f97316', proforma:'#6366f1', devis:'#0369a1', bl:'#059669'}[docType] || '#f97316';
+  var showPrices = docType !== 'bl';
+  var company = App.settings.company_name || 'المحل';
+  var phone   = App.settings.company_phone || '';
+  var address = App.settings.company_address || '';
+
+  var itemsHtml = (v.items||[]).map(function(i, idx) {
+    return '<tr>'
+      + '<td style="text-align:center">'+(idx+1)+'</td>'
+      + '<td>'+i.product_name+'</td>'
+      + (showPrices ? '<td style="text-align:center">'+fmtNum(i.price)+' DA</td>' : '')
+      + '<td style="text-align:center">'+i.qty+'</td>'
+      + (showPrices ? '<td style="text-align:center;font-weight:700">'+fmtNum(i.total)+' DA</td>' : '')
+      + '</tr>';
+  }).join('');
+
+  var totalsHtml = !showPrices ? '' :
+    '<div class="totals">'
+    + '<div class="t-row"><span>'+tr.sub+':</span><b>'+fmt(v.total)+'</b></div>'
+    + (v.discount>0?'<div class="t-row"><span>'+tr.disc+':</span><b style="color:#059669">-'+fmt(v.discount)+'</b></div>':'')
+    + (v.tva>0?'<div class="t-row"><span>'+tr.tva+':</span><b>'+fmt(v.tva)+'</b></div>':'')
+    + '<div class="t-row t-net"><span>'+tr.net+':</span><span>'+fmt(v.net)+'</span></div>'
+    + (docType==='facture'?'<div class="t-row" style="margin-top:6px"><span>'+tr.paid+':</span><b style="color:#059669">'+fmt(v.paid)+'</b></div>':'')
+    + (docType==='facture'&&v.reste>0?'<div class="t-row"><span>'+tr.rest+':</span><b style="color:#dc2626">'+fmt(v.reste)+'</b></div>':'')
+    + '</div>';
+
+  var noticeHtml = docType==='proforma'||docType==='devis'
+    ? '<div class="notice">'+(docType==='proforma'?tr.not_commercial+' — ':'')+tr.valid+'</div>'
+    : '';
+
+  var html = '<!DOCTYPE html><html lang="'+lang+'" dir="'+dir+'"><head><meta charset="UTF-8">'
+    + '<style>'
+    + '@page{size:A4;margin:15mm}*{box-sizing:border-box}'
+    + 'body{font-family:Arial,Tahoma,sans-serif;margin:0;font-size:11pt;direction:'+dir+';color:#000}'
+    + '.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid '+accentColor+';padding-bottom:14px;margin-bottom:16px}'
+    + '.doc-type{font-size:20pt;font-weight:900;color:'+accentColor+';letter-spacing:1px}'
+    + '.badge{display:inline-block;background:'+accentColor+';color:#fff;padding:3px 12px;border-radius:4px;font-size:8pt;margin-top:4px}'
+    + '.meta{background:#f8fafc;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;gap:20px;flex-wrap:wrap;font-size:10pt}'
+    + '.meta b{color:'+accentColor+'}'
+    + '.client-box{background:#fff;border:2px solid '+accentColor+';border-radius:8px;padding:10px 14px;margin-bottom:14px}'
+    + 'table{width:100%;border-collapse:collapse;margin:12px 0}'
+    + 'thead th{background:'+accentColor+';color:#fff;padding:8px;font-size:10pt}'
+    + 'tbody td{border:1px solid #e2e8f0;padding:7px 9px;font-size:10pt}'
+    + 'tbody tr:nth-child(even) td{background:#f8fafc}'
+    + '.totals{max-width:320px;margin-'+(dir==='rtl'?'right':'left')+':auto;margin-top:16px;border:2px solid '+accentColor+';border-radius:8px;padding:12px}'
+    + '.t-row{display:flex;justify-content:space-between;padding:3px 0;font-size:11pt}'
+    + '.t-net{font-size:15pt;font-weight:900;color:'+accentColor+';border-top:2px solid '+accentColor+';padding-top:8px;margin-top:6px}'
+    + '.notice{margin-top:10px;padding:8px;background:rgba(0,0,0,.04);border-radius:6px;font-size:8.5pt;color:#64748b;text-align:center}'
+    + '.signature{display:flex;justify-content:space-between;margin-top:40px;font-size:9pt;color:#475569}'
+    + '.sig-box{border-top:1px solid #cbd5e1;padding-top:6px;width:160px;text-align:center}'
+    + '.footer{margin-top:20px;text-align:center;font-size:8.5pt;color:#64748b;border-top:1px dashed #cbd5e1;padding-top:10px}'
+    + '</style></head><body>'
+    + '<div class="header">'
+    + '<div><div style="font-size:18pt;font-weight:900">'+company+'</div>'
+    + (address?'<div style="font-size:9pt;color:#64748b">'+address+'</div>':'')
+    + (phone?'<div style="font-size:9pt;color:#64748b">📞 '+phone+'</div>':'')
+    + '</div>'
+    + '<div style="text-align:'+(dir==='rtl'?'left':'right')+'">'
+    + '<div class="doc-type">'+docLabel+'</div>'
+    + '<div class="badge">'+tr.num+' '+v.num+'</div>'
+    + '</div></div>'
+    + '<div class="meta">'
+    + '<div><b>'+tr.num+':</b> '+v.num+'</div>'
+    + '<div><b>'+tr.date+':</b> '+formatDate(v.date)+'</div>'
+    + (showPrices?'<div><b>'+tr.payment+':</b> '+(v.payment_type||'نقداً')+'</div>':'')
+    + (v.seller_name?'<div><b>'+tr.seller+':</b> '+v.seller_name+'</div>':'')
+    + '</div>'
+    + '<div class="client-box"><b>'+tr.client+':</b> '+(v.client_name||'—')+'</div>'
+    + '<table><thead><tr>'
+    + '<th style="width:36px">#</th><th>'+tr.product+'</th>'
+    + (showPrices?'<th style="width:110px">'+tr.uprice+'</th>':'')
+    + '<th style="width:70px">'+tr.qty+'</th>'
+    + (showPrices?'<th style="width:120px">'+tr.total+'</th>':'')
+    + '</tr></thead><tbody>'+itemsHtml+'</tbody></table>'
+    + totalsHtml
+    + noticeHtml
+    + '<div class="signature">'
+    + '<div class="sig-box">'+tr.client+'</div>'
+    + '<div class="sig-box">'+tr.sig+'</div>'
+    + '</div>'
+    + '<div class="footer">'+tr.thanks+' — '+company+(phone?' • 📞 '+phone:'')+(address?' • '+address:'')+'</div>'
+    + '</body></html>';
+
   await window.api.print.invoice(html);
 }
 
@@ -6084,6 +6242,16 @@ async function renderDettes() {
   const allAchats = await window.api.achats.getAll();
   const achDettes = allAchats.filter(a => (a.reste||0) > 0);
   const totalClient = allDettes.reduce((s,d)=>s+(d.reste||0),0);
+  // حساب أعمار الديون
+  const now = new Date();
+  allDettes.forEach(d => {
+    const ms = now - new Date(d.date);
+    d.days_old = Math.floor(ms/(1000*60*60*24));
+  });
+  const age7   = allDettes.filter(d=>d.days_old<=7).length;
+  const age30  = allDettes.filter(d=>d.days_old>7&&d.days_old<=30).length;
+  const age90  = allDettes.filter(d=>d.days_old>30&&d.days_old<=90).length;
+  const age90p = allDettes.filter(d=>d.days_old>90).length;
   const totalFourn  = achDettes.reduce((s,a)=>s+(a.reste||0),0);
   const totalAll    = totalClient + totalFourn;
 
@@ -6114,10 +6282,38 @@ async function renderDettes() {
       <div class="card-search-bar">
         <input class="card-search-input" placeholder="🔍 ابحث برقم الفاتورة أو العميل..."
           oninput="filterDettesTable(this.value)" autofocus>
+          <!-- بطاقات أعمار الديون -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <div onclick="filterDettesTable(document.getElementById('dettesSearch')?.value||'')"
+              style="flex:1;min-width:100px;background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.3);
+                     border-radius:8px;padding:8px 12px;cursor:pointer" title="≤ 7 أيام">
+              <div style="font-size:.62rem;color:#16a34a;font-weight:700">🟢 حديثة</div>
+              <div style="font-size:1.1rem;font-weight:900;color:#16a34a">${age7}</div>
+              <div style="font-size:.6rem;color:#64748b">≤ 7 أيام</div>
+            </div>
+            <div style="flex:1;min-width:100px;background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);
+                        border-radius:8px;padding:8px 12px">
+              <div style="font-size:.62rem;color:#ca8a04;font-weight:700">🟡 متوسطة</div>
+              <div style="font-size:1.1rem;font-weight:900;color:#ca8a04">${age30}</div>
+              <div style="font-size:.6rem;color:#64748b">8 - 30 يوم</div>
+            </div>
+            <div style="flex:1;min-width:100px;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3);
+                        border-radius:8px;padding:8px 12px">
+              <div style="font-size:.62rem;color:#ea580c;font-weight:700">🟠 قديمة</div>
+              <div style="font-size:1.1rem;font-weight:900;color:#ea580c">${age90}</div>
+              <div style="font-size:.6rem;color:#64748b">31 - 90 يوم</div>
+            </div>
+            <div style="flex:1;min-width:100px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);
+                        border-radius:8px;padding:8px 12px">
+              <div style="font-size:.62rem;color:#dc2626;font-weight:700">🔴 خطيرة</div>
+              <div style="font-size:1.1rem;font-weight:900;color:#dc2626">${age90p}</div>
+              <div style="font-size:.6rem;color:#64748b">> 90 يوم</div>
+            </div>
+          </div>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th onclick="sortAndFilter('client_name',allDettes,filterDettesTable)" style="cursor:pointer">الزبون/المورد ⇅</th><th onclick="sortAndFilter('num',allDettes,filterDettesTable)" style="cursor:pointer">الفاتورة ⇅</th><th onclick="sortAndFilter('net',allDettes,filterDettesTable)" style="cursor:pointer">الإجمالي ⇅</th><th onclick="sortAndFilter('paid',allDettes,filterDettesTable)" style="cursor:pointer">المدفوع ⇅</th><th onclick="sortAndFilter('reste',allDettes,filterDettesTable)" style="cursor:pointer">المتبقي ⇅</th><th onclick="sortAndFilter('date',allDettes,filterDettesTable)" style="cursor:pointer">التاريخ ⇅</th><th>تسديد</th></tr></thead>
+          <thead><tr><th onclick="sortAndFilter('client_name',allDettes,filterDettesTable)" style="cursor:pointer">الزبون/المورد ⇅</th><th onclick="sortAndFilter('num',allDettes,filterDettesTable)" style="cursor:pointer">الفاتورة ⇅</th><th onclick="sortAndFilter('net',allDettes,filterDettesTable)" style="cursor:pointer">الإجمالي ⇅</th><th onclick="sortAndFilter('paid',allDettes,filterDettesTable)" style="cursor:pointer">المدفوع ⇅</th><th onclick="sortAndFilter('reste',allDettes,filterDettesTable)" style="cursor:pointer">المتبقي ⇅</th><th onclick="sortAndFilter('date',allDettes,filterDettesTable)" style="cursor:pointer">التاريخ ⇅</th><th onclick="sortAndFilter('days_old',allDettes,filterDettesTable)" style="cursor:pointer">عمر الدين ⇅</th><th>تسديد</th></tr></thead>
           <tbody id="dettesTableBody"></tbody>
         </table>
       </div>
