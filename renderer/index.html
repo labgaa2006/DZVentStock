@@ -1460,8 +1460,10 @@ async function executeStockUpdate(productId) {
 
 // ═══ عرض تفاصيل المنتج + التاريخ ═══
 async function showProductDetails(productId) {
-  const p    = allProducts.find(x=>x.id===productId);
-  if (!p) return;
+  const pBase = allProducts.find(x=>x.id===productId);
+  if (!pBase) return;
+  const img  = await window.api.products.getImage(productId).catch(()=>'');
+  const p    = img ? {...pBase, image_data: img} : pBase;
   const logs = await window.api.products.stockLog(productId);
   showModal(`
     <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
@@ -1824,12 +1826,16 @@ function calcSellPrice() {
 
 async function showAddProductModal(editId = null) {
   const units = await window.api.units.getAll();
-  // جلب الفئات من المصدرين: المنتجات + جدول categories
   const allProds = await window.api.products.getAll();
   const fromProducts  = allProds.map(p=>p.category).filter(Boolean);
   const fromCatsTable = await window.api.categories.getAll().catch(()=>[]);
   const cats = [...new Set([...fromProducts, ...fromCatsTable.map(c=>c.name)])].sort();
-  const p = editId ? allProducts.find(x=>x.id===editId) : null;
+  let p = editId ? allProducts.find(x=>x.id===editId) : null;
+  // جلب الصورة منفصلاً (لأن getAllProducts لا يجلبها)
+  if (editId && p) {
+    const img = await window.api.products.getImage(editId).catch(()=>'');
+    if (img) p = {...p, image_data: img};
+  }
 
   const unitOptions = units.map(u=>
     `<option value="${u.name}" ${p?.unit===u.name?'selected':''}>${u.name}</option>`
@@ -2070,15 +2076,40 @@ function selectProductImage() {
   input.onchange = e => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const data = ev.target.result;
+    compressImage(file, 200, 200, 0.6).then(compressed => {
       const wrap = document.getElementById('product_img_wrap');
-      if (wrap) wrap.innerHTML = `<img id="product_img" src="${data}" style="width:100%;height:100%;object-fit:cover">`;
-    };
-    reader.readAsDataURL(file);
+      if (wrap) wrap.innerHTML = `<img id="product_img" src="${compressed}" style="width:100%;height:100%;object-fit:cover">`;
+      // إظهار حجم الصورة للمستخدم
+      const kb = Math.round(compressed.length * 0.75 / 1024);
+      toast('📷 تم ضغط الصورة — '+kb+' KB', 'info', 2000);
+    });
   };
   input.click();
+}
+
+// ضغط الصورة بـ Canvas — يحوّل أي صورة لـ JPEG صغير
+function compressImage(file, maxW, maxH, quality) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        // احسب الأبعاد مع الحفاظ على النسبة
+        let w = img.width, h = img.height;
+        if (w > maxW || h > maxH) {
+          const ratio = Math.min(maxW/w, maxH/h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 // ─── Quick add unit from modal ───
@@ -4483,9 +4514,14 @@ function renderPOSItems() {
     </table>`;
 }
 
-window.showPOSItemInfo = function(productId) {
+window.showPOSItemInfo = async function(productId) {
   var p = (_posProducts||[]).find(function(x){return x.id===productId;});
   if (!p) { toast('لم يتم العثور على المنتج','error'); return; }
+  // جلب الصورة عند الطلب فقط
+  if (!p.image_data) {
+    var img = await window.api.products.getImage(productId).catch(()=>'');
+    if (img) p = Object.assign({}, p, {image_data: img});
+  }
   var stockColor = p.stock===0?'#dc2626':p.stock<=p.stock_min?'#f97316':'#16a34a';
   var stockLabel = p.stock===0?'نفد':p.stock+' '+(p.unit||'قطعة');
   var progressW  = p.stock_min>0?Math.min(100,Math.round(p.stock/Math.max(p.stock,p.stock_min*2)*100)):p.stock>0?100:0;

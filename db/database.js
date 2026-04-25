@@ -344,7 +344,11 @@ class DB {
 
   // ===== PRODUCTS =====
   getAllProducts() {
-    return this.all(`SELECT * FROM products WHERE is_deleted=0 ORDER BY name`);
+    // لا نجلب image_data هنا — تجلب عند الطلب فقط
+    return this.all(`SELECT id,ref,name,category,unit,buy_price,margin_pct,tva_pct,
+      sell_price,sell_price_semi,sell_price_gros,stock,stock_min,emplacement,
+      expiry_date,expiry_alert,favorite,barcode,barcode2,barcode3,
+      notes,updated_at FROM products WHERE is_deleted=0 ORDER BY name`);
   }
   // Units CRUD
   getAllUnits() { return this.all(`SELECT * FROM units ORDER BY name`); }
@@ -409,6 +413,15 @@ class DB {
     this.run(`UPDATE products SET is_deleted=1 WHERE id=?`, [id]);
     return { success:true };
   }
+  getProductImage(id) {
+    const row = this.get(`SELECT image_data FROM products WHERE id=?`,[id]);
+    return row?.image_data || '';
+  }
+
+  getProductById(id) {
+    return this.get(`SELECT * FROM products WHERE id=? AND is_deleted=0`,[id]);
+  }
+
   searchProducts(q) {
     const like = `%${q}%`;
     return this.all(`SELECT * FROM products WHERE is_deleted=0
