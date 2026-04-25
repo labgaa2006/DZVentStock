@@ -289,6 +289,8 @@ class DB {
       `ALTER TABLE products ADD COLUMN barcode8 TEXT DEFAULT ''`,
       `ALTER TABLE products ADD COLUMN image_data TEXT DEFAULT ''`,
       `ALTER TABLE clients ADD COLUMN credit_limit REAL DEFAULT 0`,
+      `CREATE TABLE IF NOT EXISTS variant_types (id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, sort_order INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now')))`,
+      `CREATE TABLE IF NOT EXISTS variant_values (id TEXT PRIMARY KEY, type_id TEXT NOT NULL, value TEXT NOT NULL, sort_order INTEGER DEFAULT 0)`,
       `CREATE TABLE IF NOT EXISTS product_variants (id TEXT PRIMARY KEY, product_id TEXT NOT NULL, attr1_name TEXT DEFAULT '', attr1_val TEXT DEFAULT '', attr2_name TEXT DEFAULT '', attr2_val TEXT DEFAULT '', barcode TEXT DEFAULT '', stock INTEGER DEFAULT 0, stock_min INTEGER DEFAULT 0, price_override REAL DEFAULT 0, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')))`,
       `CREATE TABLE IF NOT EXISTS direct_debts (id TEXT PRIMARY KEY, num TEXT UNIQUE, person_name TEXT NOT NULL, person_phone TEXT DEFAULT '', amount REAL DEFAULT 0, paid REAL DEFAULT 0, reste REAL DEFAULT 0, type TEXT DEFAULT 'علي', notes TEXT DEFAULT '', date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0)`,
       `CREATE TABLE IF NOT EXISTS direct_debt_payments (id TEXT PRIMARY KEY, debt_id TEXT NOT NULL, amount REAL DEFAULT 0, notes TEXT DEFAULT '', date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')))`,
@@ -911,6 +913,46 @@ class DB {
   }
 
   // ===== PRODUCT VARIANTS =====
+  // ─── أنواع المتغيرات (مثل الوحدات) ───
+  getAllVariantTypes() {
+    const types = this.all(`SELECT * FROM variant_types ORDER BY sort_order, name`);
+    return types.map(t => ({
+      ...t,
+      values: this.all(`SELECT * FROM variant_values WHERE type_id=? ORDER BY sort_order, value`, [t.id])
+    }));
+  }
+
+  addVariantType(name) {
+    if (!name?.trim()) return { success:false, error:'الاسم مطلوب' };
+    const existing = this.get(`SELECT id FROM variant_types WHERE name=?`,[name.trim()]);
+    if (existing) return { success:false, error:'هذا النوع موجود مسبقاً' };
+    const id = this.uuid();
+    this.db.run(`INSERT INTO variant_types(id,name) VALUES(?,?)`,[id, name.trim()]);
+    this.save();
+    return { success:true, id };
+  }
+
+  deleteVariantType(id) {
+    this.db.run(`DELETE FROM variant_values WHERE type_id=?`,[id]);
+    this.db.run(`DELETE FROM variant_types WHERE id=?`,[id]);
+    this.save();
+    return { success:true };
+  }
+
+  addVariantValue(typeId, value) {
+    if (!value?.trim()) return { success:false, error:'القيمة مطلوبة' };
+    const id = this.uuid();
+    this.db.run(`INSERT INTO variant_values(id,type_id,value) VALUES(?,?,?)`,[id, typeId, value.trim()]);
+    this.save();
+    return { success:true, id };
+  }
+
+  deleteVariantValue(id) {
+    this.db.run(`DELETE FROM variant_values WHERE id=?`,[id]);
+    this.save();
+    return { success:true };
+  }
+
   getVariants(productId) {
     return this.all(
       `SELECT * FROM product_variants WHERE product_id=? ORDER BY attr1_val, attr2_val`,

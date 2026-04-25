@@ -62,6 +62,15 @@ contextBridge.exposeInMainWorld('api', {
     getSession:   (sid)             => ipcRenderer.invoke('sellers:getSession', sid),
     getSessions:  (date)            => ipcRenderer.invoke('sellers:getSessions', date),
   },
+  variantTypes: {
+    getAll:  ()          => ipcRenderer.invoke('variantTypes:getAll'),
+    add:     (name)      => ipcRenderer.invoke('variantTypes:add', name),
+    delete:  (id)        => ipcRenderer.invoke('variantTypes:delete', id),
+  },
+  variantValues: {
+    add:     (tid, val)  => ipcRenderer.invoke('variantValues:add', tid, val),
+    delete:  (id)        => ipcRenderer.invoke('variantValues:delete', id),
+  },
   variants: {
     getAll:      ()              => ipcRenderer.invoke('variants:getAll'),
     get:         (pid)          => ipcRenderer.invoke('variants:get', pid),
