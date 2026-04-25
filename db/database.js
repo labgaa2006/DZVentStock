@@ -121,6 +121,7 @@ class DB {
       `CREATE TABLE IF NOT EXISTS clients (
         id TEXT PRIMARY KEY, name TEXT NOT NULL, phone TEXT DEFAULT '',
         address TEXT DEFAULT '', notes TEXT DEFAULT '', balance REAL DEFAULT 0,
+        credit_limit REAL DEFAULT 0,
         created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')),
         is_deleted INTEGER DEFAULT 0)`,
       `CREATE TABLE IF NOT EXISTS fournisseurs (
@@ -255,6 +256,7 @@ class DB {
       `ALTER TABLE products ADD COLUMN barcode7 TEXT DEFAULT ''`,
       `ALTER TABLE products ADD COLUMN barcode8 TEXT DEFAULT ''`,
       `ALTER TABLE products ADD COLUMN image_data TEXT DEFAULT ''`,
+      `ALTER TABLE clients ADD COLUMN credit_limit REAL DEFAULT 0`,
       `ALTER TABLE ventes ADD COLUMN seller_name TEXT DEFAULT ''`,
       `ALTER TABLE ventes ADD COLUMN notes TEXT DEFAULT ''`,
     ];
@@ -266,6 +268,7 @@ class DB {
     const defaults = [
       ['company_name','محل الأغواط للإلكترونيات'],['company_phone','0550 000 000'],
       ['company_address','الأغواط، الجزائر'],['tva','19'],['currency','DA'],
+      ['company_nif',''],['company_nis',''],['company_rc',''],['company_ai',''],
       ['paper_size','A4'],['stock_alert','1'],['vente_num_prefix','F'],
       ['vente_num_counter','1'],['achat_num_prefix','A'],['achat_num_counter','1'],
       ['tva_enabled','0'],['quote_num_prefix','D'],['quote_num_counter','1'],
@@ -385,8 +388,8 @@ class DB {
     return { success:true, id };
   }
   updateClient(id, data) {
-    this.run(`UPDATE clients SET name=?,phone=?,address=?,notes=? WHERE id=?`,
-      [data.name,data.phone||'',data.address||'',data.notes||'',id]);
+    this.run(`UPDATE clients SET name=?,phone=?,address=?,notes=?,credit_limit=? WHERE id=?`,
+      [data.name,data.phone||'',data.address||'',data.notes||'',data.credit_limit||0,id]);
     return { success:true };
   }
   deleteClient(id) {
@@ -432,7 +435,7 @@ class DB {
         [productId]
       );
     }
-    return this.all(`SELECT * FROM stock_log ORDER BY created_at DESC LIMIT 200`);
+    return this.all(`SELECT * FROM stock_log ORDER BY created_at DESC LIMIT 500`);
   }
 
   updateProductStock(id, qtyChange, reason, note, userName) {
@@ -507,7 +510,7 @@ class DB {
     return this.all(`SELECT v.*, vi_sum.items FROM ventes v
       LEFT JOIN (SELECT vente_id, group_concat(product_name||' x'||qty,', ') as items
         FROM vente_items GROUP BY vente_id) vi_sum ON v.id=vi_sum.vente_id
-      WHERE v.is_deleted=0 ORDER BY v.created_at DESC LIMIT 200`);
+      WHERE v.is_deleted=0 ORDER BY v.created_at DESC LIMIT 500`);
   }
   deleteVente(id) {
     // جلب السلع لإرجاع الكميات
@@ -538,6 +541,16 @@ class DB {
     // Validation
     if (!data.items || data.items.length === 0) return { success:false, error:'لا توجد سلع في الفاتورة' };
     if (data.net < 0) return { success:false, error:'المبلغ لا يمكن أن يكون سالباً' };
+    // تحقق من سقف الكريدي
+    if (data.client_id && data.reste > 0) {
+      const client = this.get(`SELECT balance, credit_limit FROM clients WHERE id=?`,[data.client_id]);
+      if (client && client.credit_limit > 0) {
+        const newBalance = (client.balance||0) + data.reste;
+        if (newBalance > client.credit_limit) {
+          return { success:false, error:`تجاوز سقف الكريدي! الرصيد الحالي: ${client.balance} DA، السقف: ${client.credit_limit} DA` };
+        }
+      }
+    }
 
     const id = this.uuid();
     const counter = parseInt(this.get(`SELECT value FROM settings WHERE key='vente_num_counter'`)?.value || '1');
@@ -585,7 +598,7 @@ class DB {
 
   // ===== ACHATS =====
   getAllAchats() {
-    const achats = this.all(`SELECT * FROM achats WHERE is_deleted=0 ORDER BY created_at DESC LIMIT 200`);
+    const achats = this.all(`SELECT * FROM achats WHERE is_deleted=0 ORDER BY created_at DESC LIMIT 500`);
     return achats.map(a => ({
       ...a,
       items: this.all(`SELECT * FROM achat_items WHERE achat_id=?`, [a.id])
@@ -716,7 +729,7 @@ class DB {
   }
 
   // ===== QUOTES =====
-  getAllQuotes() { return this.all(`SELECT * FROM quotes WHERE is_deleted=0 ORDER BY created_at DESC LIMIT 200`); }
+  getAllQuotes() { return this.all(`SELECT * FROM quotes WHERE is_deleted=0 ORDER BY created_at DESC LIMIT 500`); }
   getQuoteById(id) {
     const q = this.get(`SELECT * FROM quotes WHERE id=?`,[id]);
     if(!q) return null;
@@ -767,7 +780,7 @@ class DB {
   }
 
   // ===== RETOURS =====
-  getAllRetours() { return this.all(`SELECT * FROM retours WHERE is_deleted=0 ORDER BY created_at DESC LIMIT 200`); }
+  getAllRetours() { return this.all(`SELECT * FROM retours WHERE is_deleted=0 ORDER BY created_at DESC LIMIT 500`); }
   addRetour(data) {
     const id = this.uuid();
     const counter = parseInt(this.get(`SELECT value FROM settings WHERE key='retour_num_counter'`)?.value||'1');

@@ -2931,6 +2931,9 @@ async function printVenteAs(id, docType, lang) {
     + '<div><div style="font-size:18pt;font-weight:900">'+company+'</div>'
     + (address?'<div style="font-size:9pt;color:#64748b">'+address+'</div>':'')
     + (phone?'<div style="font-size:9pt;color:#64748b">📞 '+phone+'</div>':'')
+    + (App.settings.company_nif?'<div style="font-size:7.5pt;color:#64748b">NIF: '+App.settings.company_nif+(App.settings.company_nis?' | NIS: '+App.settings.company_nis:'')+'</div>':'')
+    + (App.settings.company_rc?'<div style="font-size:7.5pt;color:#64748b">RC: '+App.settings.company_rc+(App.settings.company_ai?' | AI: '+App.settings.company_ai:'')+'</div>':'')
+    + (phone?'<div style="font-size:9pt;color:#64748b">📞 '+phone+'</div>':'')
     + '</div>'
     + '<div style="text-align:'+(dir==='rtl'?'left':'right')+'">'
     + '<div class="doc-type">'+docLabel+'</div>'
@@ -5123,6 +5126,12 @@ async function renderSettings() {
           <div class="form-group"><label class="form-label">العنوان الفرعي (للفاتورة)</label><input class="form-input" id="s_subtitle" value="${s.company_subtitle||'برنامج إدارة المبيعات'}" placeholder="مثلاً: مواد تجميل — ملابس — إلكترونيات"></div>
           <div class="form-group"><label class="form-label">الولاية / المدينة</label><input class="form-input" id="s_addr" value="${s.company_address||''}"></div>
           <div class="form-group"><label class="form-label">الهاتف</label><input class="form-input" id="s_phone" value="${s.company_phone||''}"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="form-group"><label class="form-label">NIF (رقم التعريف الجبائي)</label><input class="form-input" id="s_nif" value="${s.company_nif||''}" placeholder="000000000000000"></div>
+            <div class="form-group"><label class="form-label">NIS (رقم الإحصائيات)</label><input class="form-input" id="s_nis" value="${s.company_nis||''}" placeholder="000000000000000"></div>
+            <div class="form-group"><label class="form-label">RC (السجل التجاري)</label><input class="form-input" id="s_rc" value="${s.company_rc||''}" placeholder="00/00-0000000 B 00"></div>
+            <div class="form-group"><label class="form-label">AI (المادة)</label><input class="form-input" id="s_ai" value="${s.company_ai||''}" placeholder="00000000000"></div>
+          </div>
           <button class="btn btn-primary" onclick="saveSettings()">✅ حفظ</button>
         </div>
       </div>
@@ -5258,6 +5267,10 @@ async function saveSettings() {
     company_subtitle: document.getElementById('s_subtitle')?.value ?? App.settings.company_subtitle,
     company_address: document.getElementById('s_addr')?.value || App.settings.company_address,
     company_phone: document.getElementById('s_phone')?.value || App.settings.company_phone,
+    company_nif:   document.getElementById('s_nif')?.value   || App.settings.company_nif   || '',
+    company_nis:   document.getElementById('s_nis')?.value   || App.settings.company_nis   || '',
+    company_rc:    document.getElementById('s_rc')?.value    || App.settings.company_rc    || '',
+    company_ai:    document.getElementById('s_ai')?.value    || App.settings.company_ai    || '',
     tva: document.getElementById('s_tva')?.value || App.settings.tva,
     tva_enabled: (typeof _tvaState !== 'undefined') ? (_tvaState ? '1' : '0') : App.settings.tva_enabled,
     vente_num_prefix: document.getElementById('s_vprefix')?.value || App.settings.vente_num_prefix,
@@ -6331,19 +6344,23 @@ async function renderDettes() {
           <thead><tr><th onclick="sortTable('dettes_f','num',_dettesFoundData,renderDettesFoundTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_f','num')}الفاتورة</th><th onclick="sortTable('dettes_f','fournisseur_name',_dettesFoundData,renderDettesFoundTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_f','fournisseur_name')}المورد</th><th onclick="sortTable('dettes_f','net',_dettesFoundData,renderDettesFoundTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_f','net')}الإجمالي</th><th onclick="sortTable('dettes_f','paid',_dettesFoundData,renderDettesFoundTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_f','paid')}المدفوع</th><th onclick="sortTable('dettes_f','reste',_dettesFoundData,renderDettesFoundTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_f','reste')}المتبقي</th><th onclick="sortTable('dettes_f','date',_dettesFoundData,renderDettesFoundTable)" style="cursor:pointer;user-select:none" title="اضغط للترتيب">${sortArrow('dettes_f','date')}التاريخ</th><th>تسديد</th></tr></thead>
           <tbody>
             ${achDettes.length===0
-              ? '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--success)">✅ لا توجد ديون للموردين</td></tr>'
-              : achDettes.map(a=>`
-                <tr>
+              ? '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--success)">✅ لا توجد ديون للموردين</td></tr>'
+              : achDettes.map(a=>{
+                const days=Math.floor((new Date()-new Date(a.date))/(1000*60*60*24));
+                const ac=days>90?'#dc2626':days>30?'#f97316':days>7?'#eab308':'#16a34a';
+                const ab=days>90?'rgba(220,38,38,.1)':days>30?'rgba(249,115,22,.1)':days>7?'rgba(234,179,8,.1)':'rgba(22,163,74,.1)';
+                return `<tr>
                   <td><code style="background:#fef3c7;padding:2px 6px;border-radius:4px;color:#d97706">${a.num}</code></td>
                   <td style="font-weight:600">${a.fournisseur_name||'—'}</td>
                   <td>${fmt(a.total)}</td>
                   <td style="color:var(--success)">${fmt(a.paid)}</td>
                   <td style="color:var(--warning);font-weight:700">${fmt(a.reste)}</td>
                   <td style="color:var(--muted);font-size:.75rem">${a.date}</td>
+                  <td><span style="background:${ab};color:${ac};padding:3px 8px;border-radius:12px;font-size:.72rem;font-weight:700">${days>90?'🔴':days>30?'🟠':days>7?'🟡':'🟢'} ${days} يوم</span></td>
                   <td><button class="btn btn-sm" style="background:var(--warning);color:#fff"
                     onclick="showPayAchatDebtModal('${a.id}','${(a.fournisseur_name||'').replace(/'/g,"\\'")}',${a.reste})">
                     💵 تسديد</button></td>
-                </tr>`).join('')}
+                </tr>`;}).join('')}
           </tbody>
         </table>
       </div>
