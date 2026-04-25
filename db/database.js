@@ -1,6 +1,17 @@
 const path = require('path');
 const fs = require('fs');
 const { app } = require('electron');
+const crypto = require('crypto');
+
+const _SALT = 'DZVS_2025_#!@SEC';
+function hashPassword(plain) {
+  return crypto.createHash('sha256').update(plain + _SALT).digest('hex');
+}
+function verifyPassword(plain, stored) {
+  if (!stored) return false;
+  if (stored.length < 60 && stored === plain) return true; // كلمات مرور قديمة
+  return hashPassword(plain) === stored;
+}
 
 class DB {
   constructor() {
@@ -72,6 +83,11 @@ class DB {
   }
 
   init() {
+    // أمان وأداء قاعدة البيانات
+    this.db.run("PRAGMA journal_mode=WAL");
+    this.db.run("PRAGMA foreign_keys=ON");
+    this.db.run("PRAGMA synchronous=NORMAL");
+
     // Use exec() for multi-statement DDL — sql.js supports multiple statements in exec()
     const tables = [
       `CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)`,
@@ -205,6 +221,22 @@ class DB {
     });
 
     // Migration: add new columns to existing DBs
+    // ─── Indexes للأداء ───
+    ['products_name','products_barcode','products_category','ventes_date','ventes_client','vente_items_vente','stock_log_product'].forEach(function(name) {
+      try {
+        var tableSql = {
+          products_name: 'CREATE INDEX IF NOT EXISTS idx_products_name ON products(name)',
+          products_barcode: 'CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode)',
+          products_category: 'CREATE INDEX IF NOT EXISTS idx_products_category ON products(category)',
+          ventes_date: 'CREATE INDEX IF NOT EXISTS idx_ventes_date ON ventes(date)',
+          ventes_client: 'CREATE INDEX IF NOT EXISTS idx_ventes_client ON ventes(client_name)',
+          vente_items_vente: 'CREATE INDEX IF NOT EXISTS idx_vente_items_vente ON vente_items(vente_id)',
+          stock_log_product: 'CREATE INDEX IF NOT EXISTS idx_stock_log_product ON stock_log(product_id)',
+        };
+        this.db.run(tableSql[name]);
+      } catch(e) {}
+    }, this);
+
     const migrations = [
       `ALTER TABLE products ADD COLUMN margin_pct REAL DEFAULT 0`,
       `ALTER TABLE products ADD COLUMN tva_pct REAL DEFAULT 0`,
@@ -283,6 +315,9 @@ class DB {
   }
   deleteUnit(id) { this.run(`DELETE FROM units WHERE id=?`,[id]); return {success:true}; }
   addProduct(data) {
+    if (!data.name || !data.name.trim()) return { success:false, error:'اسم المنتج مطلوب' };
+    if (data.buy_price < 0 || data.sell_price < 0) return { success:false, error:'الأسعار لا يمكن أن تكون سالبة' };
+    if (data.stock < 0) return { success:false, error:'المخزون لا يمكن أن يكون سالباً' };
     const id = this.uuid();
     const count = this.get(`SELECT COUNT(*) as c FROM products`)?.c || 0;
     const ref = data.ref || `REF-${String(Number(count)+1).padStart(3,'0')}`;
@@ -500,35 +535,52 @@ class DB {
     return v;
   }
   addVente(data) {
+    // Validation
+    if (!data.items || data.items.length === 0) return { success:false, error:'لا توجد سلع في الفاتورة' };
+    if (data.net < 0) return { success:false, error:'المبلغ لا يمكن أن يكون سالباً' };
+
     const id = this.uuid();
     const counter = parseInt(this.get(`SELECT value FROM settings WHERE key='vente_num_counter'`)?.value || '1');
     const prefix = this.get(`SELECT value FROM settings WHERE key='vente_num_prefix'`)?.value || 'F';
     const num = `${prefix}${String(counter).padStart(5,'0')}`;
 
-    this.db.run(`INSERT INTO ventes(id,num,client_id,client_name,total,discount,tva,net,paid,reste,payment_type,notes,seller_name,date)
-      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [id,num,data.client_id||null,data.client_name,data.total||0,data.discount||0,
-       data.tva||0,data.net||0,data.paid||0,data.reste||0,data.payment_type,data.notes||'',data.seller_name||'',data.date]);
+    // Transaction — إما كل شيء أو لا شيء
+    try {
+      this.db.run('BEGIN TRANSACTION');
 
-    (data.items||[]).forEach(item => {
-      this.db.run(`INSERT INTO vente_items(id,vente_id,product_id,product_name,ref,qty,price,total)
-        VALUES(?,?,?,?,?,?,?,?)`,
-        [this.uuid(),id,item.product_id||null,item.product_name,item.ref||'',
-         item.qty,item.price,item.qty*item.price]);
-      if (item.product_id) {
-        const before = this.get(`SELECT stock,name FROM products WHERE id=?`,[item.product_id]);
-        this.db.run(`UPDATE products SET stock=stock-?,updated_at=datetime('now') WHERE id=?`,[item.qty,item.product_id]);
-        if (before) {
-          this.addStockLog({ product_id:item.product_id, product_name:before.name,
-            qty_before:before.stock||0, qty_change:-item.qty,
-            qty_after:Math.max(0,(before.stock||0)-item.qty),
-            reason:'بيع', note:'فاتورة '+num, user_name:data.seller_name||'' });
+      this.db.run(`INSERT INTO ventes(id,num,client_id,client_name,total,discount,tva,net,paid,reste,payment_type,notes,seller_name,date)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [id,num,data.client_id||null,data.client_name,data.total||0,data.discount||0,
+         data.tva||0,data.net||0,data.paid||0,data.reste||0,data.payment_type,data.notes||'',data.seller_name||'',data.date]);
+
+      (data.items||[]).forEach(item => {
+        if (item.qty <= 0) throw new Error('الكمية يجب أن تكون موجبة');
+        this.db.run(`INSERT INTO vente_items(id,vente_id,product_id,product_name,ref,qty,price,total)
+          VALUES(?,?,?,?,?,?,?,?)`,
+          [this.uuid(),id,item.product_id||null,item.product_name,item.ref||'',
+           item.qty,item.price,item.qty*item.price]);
+        if (item.product_id) {
+          const before = this.get(`SELECT stock,name FROM products WHERE id=?`,[item.product_id]);
+          this.db.run(`UPDATE products SET stock=stock-?,updated_at=datetime('now') WHERE id=?`,[item.qty,item.product_id]);
+          if (before) {
+            this.addStockLog({ product_id:item.product_id, product_name:before.name,
+              qty_before:before.stock||0, qty_change:-item.qty,
+              qty_after:Math.max(0,(before.stock||0)-item.qty),
+              reason:'بيع', note:'فاتورة '+num, user_name:data.seller_name||'' });
+          }
         }
-      }
-    });
-    this.db.run(`UPDATE settings SET value=? WHERE key='vente_num_counter'`,[String(counter+1)]);
-    this.saveNow();
-    return { success:true, id, num };
+      });
+
+      // counter atomic update داخل نفس الـ transaction
+      this.db.run(`UPDATE settings SET value=? WHERE key='vente_num_counter'`,[String(counter+1)]);
+
+      this.db.run('COMMIT');
+      this.saveNow();
+      return { success:true, id, num };
+    } catch(e) {
+      try { this.db.run('ROLLBACK'); } catch(_) {}
+      return { success:false, error: e.message };
+    }
   }
 
   // ===== ACHATS =====
@@ -545,10 +597,13 @@ class DB {
     const prefix = this.get(`SELECT value FROM settings WHERE key='achat_num_prefix'`)?.value || 'A';
     const num = `${prefix}${String(counter).padStart(5,'0')}`;
 
-    this.db.run(`INSERT INTO achats(id,num,fournisseur_id,fournisseur_name,total,paid,reste,payment_type,notes,date)
-      VALUES(?,?,?,?,?,?,?,?,?,?)`,
-      [id,num,data.fournisseur_id||null,data.fournisseur_name||'',
-       data.total||0,data.paid||0,data.reste||0,data.payment_type,data.notes||'',data.date]);
+    try {
+      this.db.run('BEGIN TRANSACTION');
+
+      this.db.run(`INSERT INTO achats(id,num,fournisseur_id,fournisseur_name,total,paid,reste,payment_type,notes,date)
+        VALUES(?,?,?,?,?,?,?,?,?,?)`,
+        [id,num,data.fournisseur_id||null,data.fournisseur_name||'',
+         data.total||0,data.paid||0,data.reste||0,data.payment_type,data.notes||'',data.date]);
 
     (data.items||[]).forEach(item => {
       this.db.run(`INSERT INTO achat_items(id,achat_id,product_id,product_name,ref,qty,price,total)
@@ -567,9 +622,14 @@ class DB {
         }
       }
     });
-    this.db.run(`UPDATE settings SET value=? WHERE key='achat_num_counter'`,[String(counter+1)]);
-    this.saveNow();
-    return { success:true, id, num };
+      this.db.run(`UPDATE settings SET value=? WHERE key='achat_num_counter'`,[String(counter+1)]);
+      this.db.run('COMMIT');
+      this.saveNow();
+      return { success:true, id, num };
+    } catch(e) {
+      try { this.db.run('ROLLBACK'); } catch(_) {}
+      return { success:false, error: e.message };
+    }
   }
 
   updateAchat(id, data) {
@@ -794,17 +854,17 @@ class DB {
     const id = this.uuid();
     try {
       this.run(`INSERT INTO users(id,username,name,role,password,is_active) VALUES(?,?,?,?,?,?)`,
-        [id,data.username,data.name,data.role||'cashier',data.password||'1234',1]);
+        [id,data.username,data.name,data.role||'cashier',hashPassword(data.password||'1234'),1]);
       return {success:true,id};
     } catch(e) { return {success:false,error:'اسم المستخدم موجود مسبقاً'}; }
   }
   updateUser(id,data) {
     this.run(`UPDATE users SET name=?,role=?,is_active=? WHERE id=?`,
       [data.name,data.role||'cashier',data.is_active??1,id]);
-    if(data.password) this.run(`UPDATE users SET password=? WHERE id=?`,[data.password,id]);
+    if(data.password) this.run(`UPDATE users SET password=? WHERE id=?`,[hashPassword(data.password),id]);
     return {success:true};
   }
-  deleteUser(id) { this.run(`DELETE FROM users WHERE id!=? AND id=?`,['user-admin',id]); return {success:true}; }
+  deleteUser(id) { this.run(`DELETE FROM users WHERE id=? AND id!='user-admin'`,[id]); return {success:true}; }
 
 
   // ===== RESET ADMIN =====
@@ -877,8 +937,13 @@ class DB {
   }
   // LOGIN
   loginUser(username, password) {
-    const user = this.get(`SELECT * FROM users WHERE username=? AND password=? AND is_active=1`,[username,password]);
+    const user = this.get(`SELECT * FROM users WHERE username=? AND is_active=1`,[username]);
     if (!user) return { success: false, error: 'اسم المستخدم أو كلمة المرور غير صحيحة' };
+    if (!verifyPassword(password, user.password)) return { success: false, error: 'اسم المستخدم أو كلمة المرور غير صحيحة' };
+    // إذا كانت كلمة المرور قديمة (غير مشفرة) نشفرها الآن
+    if (user.password.length < 60) {
+      this.db.run(`UPDATE users SET password=? WHERE id=?`,[hashPassword(password),user.id]);
+    }
     this.db.run(`UPDATE users SET last_login=datetime('now') WHERE id=?`,[user.id]);
     this.save();
     return { success: true, user: { id:user.id, name:user.name, username:user.username, role:user.role } };
