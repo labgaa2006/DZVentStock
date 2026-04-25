@@ -226,6 +226,26 @@ class DB {
         id TEXT PRIMARY KEY, vente_id TEXT, client_name TEXT,
         amount REAL DEFAULT 0, notes TEXT DEFAULT '',
         date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')))`,
+      `CREATE TABLE IF NOT EXISTS direct_debts (
+        id TEXT PRIMARY KEY,
+        num TEXT UNIQUE,
+        person_name TEXT NOT NULL,
+        person_phone TEXT DEFAULT '',
+        amount REAL DEFAULT 0,
+        paid REAL DEFAULT 0,
+        reste REAL DEFAULT 0,
+        type TEXT DEFAULT 'علي',
+        notes TEXT DEFAULT '',
+        date TEXT DEFAULT (date('now')),
+        created_at TEXT DEFAULT (datetime('now')),
+        is_deleted INTEGER DEFAULT 0)`,
+      `CREATE TABLE IF NOT EXISTS direct_debt_payments (
+        id TEXT PRIMARY KEY,
+        debt_id TEXT NOT NULL,
+        amount REAL DEFAULT 0,
+        notes TEXT DEFAULT '',
+        date TEXT DEFAULT (date('now')),
+        created_at TEXT DEFAULT (datetime('now')))`,
     ];
 
     // Run each CREATE TABLE separately — guaranteed to work in sql.js
@@ -269,6 +289,8 @@ class DB {
       `ALTER TABLE products ADD COLUMN barcode8 TEXT DEFAULT ''`,
       `ALTER TABLE products ADD COLUMN image_data TEXT DEFAULT ''`,
       `ALTER TABLE clients ADD COLUMN credit_limit REAL DEFAULT 0`,
+      `CREATE TABLE IF NOT EXISTS direct_debts (id TEXT PRIMARY KEY, num TEXT UNIQUE, person_name TEXT NOT NULL, person_phone TEXT DEFAULT '', amount REAL DEFAULT 0, paid REAL DEFAULT 0, reste REAL DEFAULT 0, type TEXT DEFAULT 'علي', notes TEXT DEFAULT '', date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0)`,
+      `CREATE TABLE IF NOT EXISTS direct_debt_payments (id TEXT PRIMARY KEY, debt_id TEXT NOT NULL, amount REAL DEFAULT 0, notes TEXT DEFAULT '', date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')))`,
       `ALTER TABLE caisse ADD COLUMN seller_id TEXT DEFAULT ''`,
       `ALTER TABLE caisse ADD COLUMN seller_name TEXT DEFAULT ''`,
       `ALTER TABLE ventes ADD COLUMN seller_name TEXT DEFAULT ''`,
@@ -885,6 +907,111 @@ class DB {
     }
     this.save();
     return {success:true,id};
+  }
+
+  // ===== DIRECT DEBTS (دفتر الديون المباشرة) =====
+  getAllDirectDebts() {
+    return this.all(`SELECT * FROM direct_debts WHERE is_deleted=0 ORDER BY created_at DESC LIMIT 500`);
+  }
+
+  addDirectDebt(data) {
+    if (!data.person_name?.trim()) return { success:false, error:'اسم الشخص مطلوب' };
+    if (!data.amount || data.amount <= 0) return { success:false, error:'المبلغ يجب أن يكون موجباً' };
+    const id  = this.uuid();
+    const counter = parseInt(this.get(`SELECT value FROM settings WHERE key='direct_debt_counter'`)?.value||'1');
+    const num = 'D' + String(counter).padStart(5,'0');
+    try {
+      this.db.run('BEGIN TRANSACTION');
+      this.db.run(
+        `INSERT INTO direct_debts(id,num,person_name,person_phone,amount,paid,reste,type,notes,date)
+         VALUES(?,?,?,?,?,0,?,?,?,?)`,
+        [id,num,data.person_name.trim(),data.person_phone||'',
+         data.amount,data.amount,data.type||'علي',data.notes||'',data.date||new Date().toISOString().slice(0,10)]
+      );
+      this.db.run(`INSERT OR IGNORE INTO settings(key,value) VALUES('direct_debt_counter','1')`);
+      this.db.run(`UPDATE settings SET value=? WHERE key='direct_debt_counter'`,[String(counter+1)]);
+      this.db.run('COMMIT');
+      this.save();
+      return { success:true, id, num };
+    } catch(e) {
+      try { this.db.run('ROLLBACK'); } catch(_) {}
+      return { success:false, error:e.message };
+    }
+  }
+
+  addDirectDebtPayment(debtId, amount, notes, date) {
+    const debt = this.get(`SELECT * FROM direct_debts WHERE id=?`,[debtId]);
+    if (!debt) return { success:false, error:'الدين غير موجود' };
+    if (amount <= 0) return { success:false, error:'المبلغ يجب أن يكون موجباً' };
+    const actualAmount = Math.min(amount, debt.reste);
+    const newPaid  = parseFloat(debt.paid) + actualAmount;
+    const newReste = Math.max(0, parseFloat(debt.amount) - newPaid);
+    this.db.run(
+      `INSERT INTO direct_debt_payments(id,debt_id,amount,notes,date) VALUES(?,?,?,?,?)`,
+      [this.uuid(), debtId, actualAmount, notes||'', date||new Date().toISOString().slice(0,10)]
+    );
+    this.db.run(`UPDATE direct_debts SET paid=?,reste=? WHERE id=?`,[newPaid,newReste,debtId]);
+    this.save();
+    return { success:true, paid:newPaid, reste:newReste };
+  }
+
+  getDirectDebtPayments(debtId) {
+    return this.all(`SELECT * FROM direct_debt_payments WHERE debt_id=? ORDER BY created_at DESC`,[debtId]);
+  }
+
+  deleteDirectDebt(id) {
+    this.run(`UPDATE direct_debts SET is_deleted=1 WHERE id=?`,[id]);
+    return { success:true };
+  }
+
+  // ═══ سجل دفعات الديون (زبائن) ═══
+  getDebtPayments(venteId) {
+    if (venteId) {
+      return this.all(`SELECT * FROM debt_payments WHERE vente_id=? ORDER BY created_at DESC`,[venteId]);
+    }
+    return this.all(`SELECT * FROM debt_payments ORDER BY created_at DESC LIMIT 200`);
+  }
+
+  // ═══ كشف حساب الزبون ═══
+  getClientStatement(clientName) {
+    const ventes = this.all(
+      `SELECT v.*, 'vente' as type FROM ventes v WHERE v.client_name=? AND v.is_deleted=0 ORDER BY v.date DESC`,
+      [clientName]
+    );
+    const payments = this.all(
+      `SELECT dp.*, 'payment' as type FROM debt_payments dp WHERE dp.client_name=? ORDER BY dp.date DESC`,
+      [clientName]
+    );
+    const totalBuy   = ventes.reduce((s,v)=>s+(v.net||0),0);
+    const totalPaid  = ventes.reduce((s,v)=>s+(v.paid||0),0);
+    const totalDebt  = ventes.reduce((s,v)=>s+(v.reste||0),0);
+    return { ventes, payments, totalBuy, totalPaid, totalDebt };
+  }
+
+  // ═══ إحصائيات الديون ═══
+  getDetteStats() {
+    const dettes = this.getAllDettes();
+    const now = new Date();
+    dettes.forEach(d => {
+      d.days_old = Math.floor((now - new Date(d.date))/(1000*60*60*24));
+    });
+    // أكثر 5 مديونين
+    const byClient = {};
+    dettes.forEach(d => {
+      byClient[d.client_name] = (byClient[d.client_name]||0) + (d.reste||0);
+    });
+    const top5 = Object.entries(byClient)
+      .sort((a,b)=>b[1]-a[1]).slice(0,5)
+      .map(([name,amount])=>({name,amount}));
+    return {
+      total: dettes.reduce((s,d)=>s+(d.reste||0),0),
+      count: dettes.length,
+      age7:   dettes.filter(d=>d.days_old<=7).length,
+      age30:  dettes.filter(d=>d.days_old>7&&d.days_old<=30).length,
+      age90:  dettes.filter(d=>d.days_old>30&&d.days_old<=90).length,
+      age90p: dettes.filter(d=>d.days_old>90).length,
+      top5,
+    };
   }
 
   // ===== LOYALTY =====

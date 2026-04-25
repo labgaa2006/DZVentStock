@@ -181,6 +181,14 @@ ipcMain.handle('retours:add',          (_, d)    => db.addRetour(d));
 
 // Dettes
 ipcMain.handle('dettes:getAll',        ()        => db.getAllDettes());
+ipcMain.handle('dettes:getPayments',   safe((_, id) => db.getDebtPayments(id)));
+ipcMain.handle('dettes:getStatement',  safe((_, name) => db.getClientStatement(name)));
+ipcMain.handle('dettes:getStats',      safe(() => db.getDetteStats()));
+ipcMain.handle('directDebts:getAll',   safe(() => db.getAllDirectDebts()));
+ipcMain.handle('directDebts:add',      safe((_, d) => db.addDirectDebt(d)));
+ipcMain.handle('directDebts:addPayment', safe((_, id, amt, notes, date) => db.addDirectDebtPayment(id, amt, notes, date)));
+ipcMain.handle('directDebts:getPayments', safe((_, id) => db.getDirectDebtPayments(id)));
+ipcMain.handle('directDebts:delete',   safe((_, id) => db.deleteDirectDebt(id)));
 ipcMain.handle('dettes:addPayment',    (_, d)    => db.addDebtPayment(d));
 
 // Loyalty

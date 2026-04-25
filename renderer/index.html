@@ -759,8 +759,8 @@ const App = {
 
 // ===== PERMISSIONS =====
 const ROLE_PERMISSIONS = {
-  admin:   ['dashboard','pos','ventes','achats','products','clients','fournisseurs','reports','settings','categories','mouvements','units','backup','quotes','caisse','retours','dettes','loyalty','expiry','branches','users','permissions','sellers'],
-  manager: ['dashboard','pos','ventes','achats','products','clients','fournisseurs','reports','categories','mouvements','quotes','retours','dettes','loyalty','expiry','sellers'],
+  admin:   ['dashboard','pos','ventes','achats','products','clients','fournisseurs','reports','settings','categories','mouvements','units','backup','quotes','caisse','retours','dettes','loyalty','expiry','branches','users','permissions','sellers','carnet'],
+  manager: ['dashboard','pos','ventes','achats','products','clients','fournisseurs','reports','categories','mouvements','quotes','retours','dettes','loyalty','expiry','sellers','carnet'],
   cashier: ['dashboard','pos','ventes','products','clients'],
 };
 
@@ -829,6 +829,7 @@ const screens = {
   reports:     { title:'📈 التقارير',          sub:'إحصائيات وتحليلات' },
   settings:    { title:'⚙️ الإعدادات',        sub:'إعدادات البرنامج' },
   categories:  { title:'📂 الفئات',           sub:'تصنيف المنتجات' },
+  carnet:      { title:'📒 دفتر الديون',       sub:'ديون مباشرة بدون فاتورة' },
   sellers:     { title:'👥 البائعين',           sub:'فتح/إغلاق الصناديق' },
   mouvements:  { title:'🔄 حركة المخزون',     sub:'سجل الدخول والخروج' },
   backup:      { title:'💾 النسخ الاحتياطي',  sub:'حفظ واستعادة البيانات' },
@@ -879,7 +880,7 @@ async function navigate(name, el) {
   const info = screens[name] || { title: name, sub: '' };
   document.getElementById('pageTitle').textContent = info.title;
   const _sub=document.getElementById('pageSub'); if(_sub) _sub.textContent = info.sub;
-  document.getElementById('topbarActions').innerHTML = '';
+  document.getElementById('topbarActions').innerHTML = '<button class="topbar-btn" onclick="exportDettesExcel()">📊 Excel</button>';
   // Reset content padding for non-POS screens
   document.getElementById('mainContent').style.padding = name === 'pos' ? '0' : '18px';
 
@@ -928,7 +929,8 @@ async function renderScreen(name) {
   try {
     switch(name) {
       case 'home':         renderHome();               break;
-      case 'dashboard':    await renderDashboard();    break;
+      case 'dashboard':    await renderDashboard();
+  checkOverdueDebts();    break;
       case 'products':     await renderProducts();     break;
       case 'ventes':       await renderVentes();       break;
       case 'achats':       await renderAchats();       break;
@@ -946,6 +948,7 @@ async function renderScreen(name) {
       case 'sellers':      await renderSellers();      break;
       case 'retours':      await renderRetours();      break;
       case 'dettes':       await renderDettes();       break;
+      case 'carnet':       await renderCarnet();       break;
       case 'loyalty':      await renderLoyalty();      break;
       case 'expiry':       await renderExpiry();       break;
       case 'branches':     await renderBranches();     break;
@@ -1558,7 +1561,7 @@ function exportProductsExcel() {
     ['المرجع','الاسم','الفئة','الوحدة','س.الشراء','هامش%','س.التجزئة','نصف جملة','الجملة','المخزون','حد التنبيه','الباركود','الموقع'],
     ...d.map(p=>[p.ref||'',p.name,p.category||'',p.unit||'قطعة',p.buy_price||0,p.margin_pct||0,p.sell_price||0,p.sell_price_semi||0,p.sell_price_gros||0,p.stock||0,p.stock_min||5,p.barcode||'',p.emplacement||''])
   ];
-  const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'\"\"')+'"').join(',')).join('\n');
   const blob=new Blob([bom+csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='المنتجات_'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(url);
@@ -5734,7 +5737,7 @@ function exportCategoriesExcel() {
     ['الفئة','عدد المنتجات','إجمالي المخزون','قيمة الشراء','قيمة البيع','الربح المتوقع'],
     ...entries.map(([cat,info])=>[cat,info.count,info.stock,info.buyVal,info.sellVal,info.sellVal-info.buyVal])
   ];
-  const csv=rows.map(r=>r.map(c=>'"'+String(c||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const csv=rows.map(r=>r.map(c=>'"'+String(c||'').replace(/"/g,'\"\"')+'"').join(',')).join('\n');
   const blob=new Blob([bom+csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;
@@ -6295,8 +6298,17 @@ async function renderDettes() {
         </div>
       </div>
       <div class="card-search-bar">
-        <input class="card-search-input" placeholder="🔍 ابحث برقم الفاتورة أو العميل..."
-          oninput="filterDettesTable(this.value)" autofocus>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="dettesSearch" class="card-search-input" style="flex:1;min-width:180px"
+            placeholder="🔍 ابحث برقم الفاتورة أو العميل..."
+            oninput="filterDettesTable(this.value)" autofocus>
+          <select id="dettesClientFilter" class="card-filter-select"
+            onchange="filterDettesTable(document.getElementById('dettesSearch')?.value||'')"
+            style="min-width:150px">
+            <option value="">كل الزبائن</option>
+            ${[...new Set(allDettes.map(d=>d.client_name).filter(Boolean))].sort().map(n=>'<option value="'+n+'">'+n+'</option>').join('')}
+          </select>
+        </div>
           <!-- بطاقات أعمار الديون -->
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
             <div onclick="filterDettesTable(document.getElementById('dettesSearch')?.value||'')"
@@ -6375,11 +6387,13 @@ function filterDettesTable(q) {
   const body = document.getElementById('dettesTableBody');
   if (!body) return;
   const ql = (q||'').toLowerCase().trim();
+  const clientFilter = document.getElementById('dettesClientFilter')?.value||'';
   let filtered = allDettes;
   if (ql) filtered = filtered.filter(d =>
     (d.num||'').toLowerCase().includes(ql) ||
     (d.client_name||'').toLowerCase().includes(ql)
   );
+  if (clientFilter) filtered = filtered.filter(d=>d.client_name===clientFilter);
   body.innerHTML = !filtered.length
     ? '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--success)">✅ لا توجد ديون على العملاء</td></tr>'
     : filtered.map(d => `
@@ -7802,8 +7816,8 @@ function toggleBarcodeProduct(id, checked) {
   var q=document.getElementById('bc_qty_'+id); if(q)q.style.opacity=checked?'1':'0.35';
   var c=document.getElementById('bc_selected_count'); if(c)c.textContent=Object.keys(window._bcSelected).length+' محدد';
 }
-
-function setBarcodeQty(id,qty){ if(qty>=1)window._bcSelected[id]=qty; }
+     + '<button class="btn btn-primary" data-name="'+encodeURIComponent(clientName)+'" onclick="_printStmt(this)">🖨️ طباعة كشف الحساب</button>'
+     + (stmt.totalDebt>0?'<button class="btn" style="background:#16a34a;color:#fff" data-name="'+encodeURIComponent(clientName)+'" data-amt="'+stmt.totalDebt+'" onclick="closeModal();_showBulk(this)">💵 تسديد جماعي</button>':'')
 
 function selectAllBarcodeProducts(){
   (window._bcProducts||[]).forEach(function(p){window._bcSelected[p.id]=1;});
@@ -8156,6 +8170,464 @@ async function confirmCloseSession(sessionId) {
       + '</div></div>'
     );
   }
+}
+
+
+// =====================================================
+// CARNET — دفتر الديون المباشرة
+// =====================================================
+async function renderCarnet() {
+  {const _mc=document.getElementById('mainContent');if(_mc){_mc.style.overflowY='auto';_mc.style.overflowX='hidden';}}
+  document.getElementById('topbarActions').innerHTML =
+    '<button class="topbar-btn primary" onclick="showAddDirectDebtModal()">➕ تسجيل دين جديد</button>'
+    + '<button class="topbar-btn" onclick="exportCarnetExcel()">📊 Excel</button>'
+    + '<button class="topbar-btn" onclick="printCarnetPDF()">🖨️ PDF</button>';
+
+  const debts = await window.api.directDebts.getAll();
+  const now = new Date();
+  debts.forEach(d => { d.days_old = Math.floor((now-new Date(d.date))/(1000*60*60*24)); });
+
+  const totalAli    = debts.filter(d=>d.type==='علي').reduce((s,d)=>s+(d.reste||0),0);
+  const totalLi     = debts.filter(d=>d.type==='لي').reduce((s,d)=>s+(d.reste||0),0);
+  const totalActive = debts.filter(d=>d.reste>0).length;
+
+  document.getElementById('mainContent').innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">'
+    + statCard('💰','ديون علي (أقرضت)','color:#dc2626',fmt(totalAli),'rgba(220,38,38,.1)')
+    + statCard('🤝','ديون لي (استلفت)','color:#0369a1',fmt(totalLi),'rgba(3,105,161,.1)')
+    + statCard('📋','ديون نشطة','',String(totalActive),'rgba(249,115,22,.1)')
+    + statCard('✅','مسددة بالكامل','color:#16a34a',String(debts.filter(d=>d.reste===0).length),'rgba(22,163,74,.1)')
+    + '</div>'
+
+    // فلاتر
+    + '<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
+    + '<input id="carnet_search" class="card-search-input" placeholder="🔍 ابحث بالاسم أو الهاتف..." oninput="filterCarnet()" style="flex:1;min-width:180px">'
+    + '<select id="carnet_type" class="card-filter-select" onchange="filterCarnet()" style="min-width:130px">'
+    + '<option value="">كل الأنواع</option>'
+    + '<option value="علي">💰 علي (أقرضت)</option>'
+    + '<option value="لي">🤝 لي (استلفت)</option>'
+    + '</select>'
+    + '<select id="carnet_status" class="card-filter-select" onchange="filterCarnet()" style="min-width:120px">'
+    + '<option value="">الكل</option>'
+    + '<option value="active">نشطة فقط</option>'
+    + '<option value="done">مسددة فقط</option>'
+    + '</select>'
+    + '</div>'
+
+    + '<div class="card"><div class="table-wrap"><table>'
+    + '<thead><tr>'
+    + '<th onclick="sortAndFilter(\'num\',window._carnetData,filterCarnet)" style="cursor:pointer">رقم ⇅</th>'
+    + '<th onclick="sortAndFilter(\'person_name\',window._carnetData,filterCarnet)" style="cursor:pointer">الشخص ⇅</th>'
+    + '<th>الهاتف</th>'
+    + '<th>النوع</th>'
+    + '<th onclick="sortAndFilter(\'amount\',window._carnetData,filterCarnet)" style="cursor:pointer">المبلغ ⇅</th>'
+    + '<th onclick="sortAndFilter(\'paid\',window._carnetData,filterCarnet)" style="cursor:pointer">المدفوع ⇅</th>'
+    + '<th onclick="sortAndFilter(\'reste\',window._carnetData,filterCarnet)" style="cursor:pointer">الباقي ⇅</th>'
+    + '<th onclick="sortAndFilter(\'days_old\',window._carnetData,filterCarnet)" style="cursor:pointer">العمر ⇅</th>'
+    + '<th onclick="sortAndFilter(\'date\',window._carnetData,filterCarnet)" style="cursor:pointer">التاريخ ⇅</th>'
+    + '<th>إجراءات</th>'
+    + '</tr></thead>'
+    + '<tbody id="carnet_body"></tbody>'
+    + '</table></div>'
+    + '<div id="carnet_totals" style="padding:8px 14px;background:#f8fafc;border-top:2px solid var(--border);font-size:.78rem;display:flex;gap:16px"></div>'
+    + '</div>'
+    + '<input type="file" id="carnet_import" accept=".csv" style="display:none">';
+
+  window._carnetData = debts;
+  filterCarnet();
+}
+
+function statCard(icon, label, valStyle, val, bg) {
+  return '<div class="stat-card" style="background:'+bg+'"><div class="stat-icon" style="background:rgba(0,0,0,.05)">'+icon+'</div>'
+    + '<div><div class="stat-val" style="'+valStyle+'">'+val+'</div><div class="stat-lbl">'+label+'</div></div></div>';
+}
+
+function filterCarnet() {
+  const q = (document.getElementById('carnet_search')?.value||'').toLowerCase();
+  const type = document.getElementById('carnet_type')?.value||'';
+  const status = document.getElementById('carnet_status')?.value||'';
+  const body = document.getElementById('carnet_body');
+  if (!body) return;
+
+  let data = window._carnetData||[];
+  if (q) data = data.filter(d=>(d.person_name||'').toLowerCase().includes(q)||(d.person_phone||'').includes(q));
+  if (type) data = data.filter(d=>d.type===type);
+  if (status==='active') data = data.filter(d=>d.reste>0);
+  if (status==='done')   data = data.filter(d=>d.reste===0);
+
+  const totReste = data.reduce((s,d)=>s+(d.reste||0),0);
+  const totEl = document.getElementById('carnet_totals');
+  if (totEl) totEl.innerHTML = '<span>'+data.length+' دين</span>'
+    + ' <span>إجمالي المبالغ: <b>'+fmt(data.reduce((s,d)=>s+(d.amount||0),0))+'</b></span>'
+    + ' <span>المسدد: <b style="color:#16a34a">'+fmt(data.reduce((s,d)=>s+(d.paid||0),0))+'</b></span>'
+    + ' <span>الباقي: <b style="color:#dc2626">'+fmt(totReste)+'</b></span>';
+
+  if (!data.length) { body.innerHTML='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted)">لا توجد ديون</td></tr>'; return; }
+
+  body.innerHTML = data.map(function(d) {
+    var days=d.days_old||0;
+    var ac=days>90?'#dc2626':days>30?'#f97316':days>7?'#eab308':'#16a34a';
+    var ab=days>90?'rgba(220,38,38,.1)':days>30?'rgba(249,115,22,.1)':days>7?'rgba(234,179,8,.1)':'rgba(22,163,74,.1)';
+    var isAli=d.type==='علي';
+    var isDone=d.reste===0;
+    return '<tr style="opacity:'+(isDone?'.6':'1')+'">'
+      + '<td><code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;color:#0369a1;font-size:.72rem">'+d.num+'</code></td>'
+      + '<td style="font-weight:700">'+d.person_name+'</td>'
+      + '<td style="color:var(--muted);font-size:.78rem">'+(d.person_phone||'—')+'</td>'
+      + '<td><span style="background:'+(isAli?'rgba(220,38,38,.1)':'rgba(3,105,161,.1)')+';color:'+(isAli?'#dc2626':'#0369a1')+';padding:2px 8px;border-radius:10px;font-size:.72rem;font-weight:600">'+(isAli?'💰 علي':'🤝 لي')+'</span></td>'
+      + '<td style="font-weight:700">'+fmt(d.amount)+'</td>'
+      + '<td style="color:#16a34a">'+fmt(d.paid)+'</td>'
+      + '<td style="color:'+(isDone?'#16a34a':'#dc2626')+';font-weight:'+(isDone?'600':'800')+'">'+fmt(d.reste)+'</td>'
+      + '<td><span style="background:'+ab+';color:'+ac+';padding:2px 7px;border-radius:10px;font-size:.7rem;font-weight:600">'+days+' يوم</span></td>'
+      + '<td style="color:var(--muted);font-size:.75rem">'+d.date+'</td>'
+      + '<td><div style="display:flex;gap:3px">'
+      + '<button class="btn btn-sm" style="background:#475569;color:#fff;padding:3px 7px;font-size:.7rem" onclick="showDirectDebtDetail(\''+d.id+'\')">👁️</button>'
+      + (!isDone?'<button class="btn btn-sm btn-success" style="padding:3px 7px;font-size:.7rem" onclick="showPayDirectDebt(\''+d.id+'\',\''+d.person_name.replace(/'/g,"\\'")+'\','+d.reste+')">💵</button>':'')
+      + '<button class="btn btn-sm btn-danger" style="padding:3px 7px;font-size:.7rem" onclick="deleteDirectDebt(\''+d.id+'\')">🗑️</button>'
+      + '</div></td>'
+      + '</tr>';
+  }).join('');
+}
+
+function showAddDirectDebtModal() {
+  showModal(
+    '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">'
+    + '<div class="modal" style="width:420px">'
+    + '<div class="modal-header" style="background:#1e293b">'
+    + '<div class="modal-title" style="color:#fff">📒 تسجيل دين جديد</div>'
+    + '<button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button>'
+    + '</div><div class="modal-body">'
+
+    // نوع الدين
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
+    + '<button id="btn_ali" onclick="setDebtType(\'علي\')" '
+    + 'style="padding:12px;border-radius:8px;border:2px solid #dc2626;background:rgba(220,38,38,.1);cursor:pointer;font-family:Cairo,sans-serif;font-weight:700;color:#dc2626">'
+    + '💰 علي<div style="font-size:.7rem;font-weight:400;color:#64748b">أنا أقرضت الشخص</div></button>'
+    + '<button id="btn_li" onclick="setDebtType(\'لي\')" '
+    + 'style="padding:12px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700;color:#64748b">'
+    + '🤝 لي<div style="font-size:.7rem;font-weight:400;color:#64748b">أنا استلفت من الشخص</div></button>'
+    + '</div>'
+    + '<input type="hidden" id="dd_type" value="علي">'
+
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+    + '<div class="form-group"><label class="form-label">اسم الشخص *</label>'
+    + '<input class="form-input" id="dd_name" placeholder="الاسم الكامل" onkeydown="event.stopPropagation()"></div>'
+    + '<div class="form-group"><label class="form-label">الهاتف</label>'
+    + '<input class="form-input" id="dd_phone" placeholder="اختياري" onkeydown="event.stopPropagation()"></div>'
+    + '</div>'
+
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+    + '<div class="form-group"><label class="form-label">المبلغ (DA) *</label>'
+    + '<input class="form-input" id="dd_amount" type="number" min="1" value="" style="font-size:1.1rem;font-weight:700;text-align:center" onkeydown="event.stopPropagation()"></div>'
+    + '<div class="form-group"><label class="form-label">التاريخ</label>'
+    + '<input class="form-input" id="dd_date" type="date" value="'+today()+'" onkeydown="event.stopPropagation()"></div>'
+    + '</div>'
+
+    + '<div class="form-group"><label class="form-label">ملاحظات</label>'
+    + '<input class="form-input" id="dd_notes" placeholder="اختياري..." onkeydown="event.stopPropagation()"></div>'
+    + '</div>'
+
+    + '<div class="modal-footer">'
+    + '<button class="btn" style="background:#f1f5f9;color:#475569" onclick="closeModal()">إلغاء</button>'
+    + '<button class="btn btn-primary" onclick="saveDirectDebt()">✅ حفظ</button>'
+    + '</div></div></div>'
+  );
+  setTimeout(()=>document.getElementById('dd_name')?.focus(),80);
+}
+
+function setDebtType(t) {
+  document.getElementById('dd_type').value=t;
+  var btnAli=document.getElementById('btn_ali');
+  var btnLi=document.getElementById('btn_li');
+  if(t==='علي'){
+    btnAli.style.cssText='padding:12px;border-radius:8px;border:2px solid #dc2626;background:rgba(220,38,38,.1);cursor:pointer;font-family:Cairo,sans-serif;font-weight:700;color:#dc2626';
+    btnLi.style.cssText='padding:12px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700;color:#64748b';
+  } else {
+    btnLi.style.cssText='padding:12px;border-radius:8px;border:2px solid #0369a1;background:rgba(3,105,161,.1);cursor:pointer;font-family:Cairo,sans-serif;font-weight:700;color:#0369a1';
+    btnAli.style.cssText='padding:12px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700;color:#64748b';
+  }
+}
+
+async function saveDirectDebt() {
+  var name   = document.getElementById('dd_name')?.value?.trim();
+  var amount = parseFloat(document.getElementById('dd_amount')?.value)||0;
+  var type   = document.getElementById('dd_type')?.value||'علي';
+  var phone  = document.getElementById('dd_phone')?.value||'';
+  var notes  = document.getElementById('dd_notes')?.value||'';
+  var date   = document.getElementById('dd_date')?.value||today();
+  if(!name){ toast('اسم الشخص مطلوب','error'); document.getElementById('dd_name')?.focus(); return; }
+  if(amount<=0){ toast('المبلغ يجب أن يكون موجباً','error'); return; }
+  var res = await window.api.directDebts.add({person_name:name,person_phone:phone,amount,type,notes,date});
+  if(res.success){
+    closeModal();
+    toast('✅ تم تسجيل الدين — '+res.num,'success',2500);
+    await renderCarnet();
+  } else {
+    toast('خطأ: '+(res.error||''),'error');
+  }
+}
+
+function showPayDirectDebt(id, name, reste) {
+  showModal(
+    '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">'
+    + '<div class="modal" style="width:360px">'
+    + '<div class="modal-header" style="background:#16a34a">'
+    + '<div class="modal-title" style="color:#fff">💵 تسديد: '+name+'</div>'
+    + '<button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button>'
+    + '</div><div class="modal-body">'
+    + '<div style="background:rgba(220,38,38,.1);border-radius:8px;padding:10px;margin-bottom:12px;text-align:center">'
+    + '<div style="font-size:.7rem;color:#64748b">الباقي</div>'
+    + '<div style="font-size:1.4rem;font-weight:900;color:#dc2626">'+fmt(reste)+'</div>'
+    + '</div>'
+    + '<div class="form-group"><label class="form-label">المبلغ المدفوع (DA) *</label>'
+    + '<input class="form-input" id="pay_dd_amount" type="number" min="1" max="'+reste+'" value="'+reste+'" style="font-size:1.1rem;font-weight:700;text-align:center" onkeydown="event.stopPropagation()"></div>'
+    + '<div class="form-group"><label class="form-label">ملاحظة</label>'
+    + '<input class="form-input" id="pay_dd_notes" placeholder="اختياري" onkeydown="event.stopPropagation()"></div>'
+    + '<div class="form-group"><label class="form-label">التاريخ</label>'
+    + '<input class="form-input" id="pay_dd_date" type="date" value="'+today()+'" onkeydown="event.stopPropagation()"></div>'
+    + '</div><div class="modal-footer">'
+    + '<button class="btn" style="background:#f1f5f9;color:#475569" onclick="closeModal()">إلغاء</button>'
+    + '<button class="btn" style="background:#16a34a;color:#fff;font-weight:700" onclick="confirmPayDirectDebt(\''+id+'\')">✅ تسديد</button>'
+    + '</div></div></div>'
+  );
+  setTimeout(()=>{var i=document.getElementById('pay_dd_amount');if(i){i.focus();i.select();}},80);
+}
+
+async function confirmPayDirectDebt(id) {
+  var amt  = parseFloat(document.getElementById('pay_dd_amount')?.value)||0;
+  var note = document.getElementById('pay_dd_notes')?.value||'';
+  var date = document.getElementById('pay_dd_date')?.value||today();
+  if(amt<=0){toast('أدخل مبلغاً صحيحاً','error');return;}
+  var res = await window.api.directDebts.addPayment(id,amt,note,date);
+  if(res.success){
+    closeModal();
+    toast('✅ تم تسجيل الدفعة — الباقي: '+fmt(res.reste),'success',2500);
+    await renderCarnet();
+  }
+}
+
+async function showDirectDebtDetail(id) {
+  var debts = window._carnetData||[];
+  var d = debts.find(function(x){return x.id===id;});
+  if(!d) return;
+  var payments = await window.api.directDebts.getPayments(id);
+  showModal(
+    '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">'
+    + '<div class="modal" style="width:500px;max-width:96vw">'
+    + '<div class="modal-header" style="background:#1e293b">'
+    + '<div><div class="modal-title" style="color:#fff">📒 '+d.person_name+' — '+d.num+'</div>'
+    + '<div style="font-size:.7rem;color:#94a3b8">'+d.type+' • '+d.date+'</div></div>'
+    + '<button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button>'
+    + '</div><div class="modal-body" style="padding:0">'
+    // معلومات
+    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-bottom:1px solid #e2e8f0">'
+    + '<div style="padding:12px;text-align:center;border-left:1px solid #e2e8f0"><div style="font-size:.65rem;color:#64748b">المبلغ الكلي</div><div style="font-size:1.1rem;font-weight:800">'+fmt(d.amount)+'</div></div>'
+    + '<div style="padding:12px;text-align:center;border-left:1px solid #e2e8f0"><div style="font-size:.65rem;color:#64748b">المسدد</div><div style="font-size:1.1rem;font-weight:800;color:#16a34a">'+fmt(d.paid)+'</div></div>'
+    + '<div style="padding:12px;text-align:center"><div style="font-size:.65rem;color:#64748b">الباقي</div><div style="font-size:1.1rem;font-weight:800;color:'+(d.reste>0?'#dc2626':'#16a34a')+'">'+fmt(d.reste)+'</div></div>'
+    + '</div>'
+    // progress bar
+    + '<div style="padding:10px 14px;border-bottom:1px solid #e2e8f0">'
+    + '<div style="height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden">'
+    + '<div style="height:100%;background:#16a34a;border-radius:4px;width:'+Math.min(100,Math.round((d.paid/d.amount)*100))+'%;transition:.3s"></div>'
+    + '</div>'
+    + '<div style="font-size:.65rem;color:#64748b;margin-top:3px">'+Math.round((d.paid/d.amount)*100)+'% مسدد</div>'
+    + '</div>'
+    // سجل الدفعات
+    + '<div style="padding:10px 14px"><div style="font-weight:700;font-size:.8rem;margin-bottom:8px">📜 سجل الدفعات ('+payments.length+')</div>'
+    + (payments.length===0
+      ? '<div style="color:#94a3b8;font-size:.8rem;text-align:center;padding:16px">لا توجد دفعات بعد</div>'
+      : '<div style="max-height:200px;overflow-y:auto">'
+        + payments.map(function(p){return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:.78rem">'
+          + '<span>'+p.date+'</span><span style="color:#16a34a;font-weight:700">+'+fmt(p.amount)+'</span>'
+          + '<span style="color:#64748b">'+(p.notes||'—')+'</span></div>';}).join('')
+        + '</div>')
+    + '</div>'
+    + '<div style="padding:8px 14px;font-size:.75rem;color:#64748b">'+(d.notes?'📝 '+d.notes:'')+'</div>'
+    + '</div><div class="modal-footer">'
+    + '<button class="btn" onclick="closeModal()">إغلاق</button>'
+    + (d.reste>0?'<button class="btn" style="background:#16a34a;color:#fff" onclick="closeModal();showPayDirectDebt(\''+d.id+'\',\''+d.person_name.replace(/'/g,"\\'")+'\','+d.reste+')">💵 تسديد</button>':'')
+    + '</div></div></div>'
+  );
+}
+
+async function deleteDirectDebt(id) {
+  var d = (window._carnetData||[]).find(function(x){return x.id===id;});
+  if(!d) return;
+  showModal(
+    '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">'
+    + '<div class="modal" style="width:340px">'
+    + '<div class="modal-header" style="background:#7f1d1d"><div class="modal-title" style="color:#fff">🗑️ حذف الدين</div>'
+    + '<button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button></div>'
+    + '<div class="modal-body"><p style="margin:0">حذف دين <b>'+d.person_name+'</b> بمبلغ <b>'+fmt(d.amount)+'</b>؟</p>'
+    + '<p style="font-size:.8rem;color:#64748b;margin:8px 0 0">لا يمكن التراجع عن هذا الإجراء</p></div>'
+    + '<div class="modal-footer">'
+    + '<button class="btn" onclick="closeModal()">إلغاء</button>'
+    + '<button class="btn btn-danger" onclick="doDeleteDirectDebt(\''+id+'\')">✅ حذف</button>'
+    + '</div></div></div>'
+  );
+}
+
+async function doDeleteDirectDebt(id) {
+  await window.api.directDebts.delete(id);
+  closeModal();
+  toast('🗑️ تم الحذف','info',1500);
+  await renderCarnet();
+}
+
+function exportCarnetExcel() {
+  var data = window._carnetData||[];
+  var bom='\uFEFF';
+  var rows=[['الرقم','الشخص','الهاتف','النوع','المبلغ','المسدد','الباقي','التاريخ','الملاحظات']];
+  data.forEach(function(d){rows.push([d.num,d.person_name,d.person_phone||'',d.type,d.amount,d.paid,d.reste,d.date,d.notes||'']);});
+  var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c||'').replace(/"/g,'\"\"')+'"';}).join(',');}).join('\n');
+  var blob=new Blob([bom+csv],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='دفتر_الديون_'+today()+'.csv';a.click();URL.revokeObjectURL(url);
+  toast('✅ تم التصدير','success',1500);
+}
+
+async function printCarnetPDF() {
+  var data = window._carnetData||[];
+  var html='<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8">'
+    + '<style>@page{size:A4;margin:15mm}body{font-family:Arial;direction:rtl;font-size:9pt}'
+    + 'h1{text-align:center;color:#1e293b}table{width:100%;border-collapse:collapse}'
+    + 'th{background:#1e293b;color:#fff;padding:6px}td{border:1px solid #e2e8f0;padding:5px}'
+    + 'tr:nth-child(even)td{background:#f8fafc}.ali{color:#dc2626}.li{color:#0369a1}</style></head><body>'
+    + '<h1>📒 دفتر الديون</h1>'
+    + '<p style="text-align:center;color:#64748b">'+today()+'</p>'
+    + '<table><thead><tr><th>الرقم</th><th>الشخص</th><th>النوع</th><th>المبلغ</th><th>المسدد</th><th>الباقي</th><th>التاريخ</th></tr></thead><tbody>'
+    + data.map(function(d){return '<tr><td>'+d.num+'</td><td>'+d.person_name+'</td>'
+      + '<td class="'+(d.type==='علي'?'ali':'li')+'">'+d.type+'</td>'
+      + '<td>'+fmtNum(d.amount)+' DA</td><td>'+fmtNum(d.paid)+' DA</td>'
+      + '<td style="color:'+(d.reste>0?'#dc2626':'#16a34a')+'">'+fmtNum(d.reste)+' DA</td>'
+      + '<td>'+d.date+'</td></tr>';}).join('')
+    + '</tbody></table></body></html>';
+  await window.api.print.invoice(html);
+}
+
+// =====================================================
+// DETTES — تحسينات النظام الحالي
+// =====================================================
+
+
+// ─── كشف حساب الزبون ───
+async function showClientStatement(clientName) {
+  const stmt = await window.api.dettes.getStatement(clientName);
+  showModal(
+    '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">'
+    + '<div class="modal" style="width:600px;max-width:96vw">'
+    + '<div class="modal-header" style="background:#1e293b">'
+    + '<div class="modal-title" style="color:#fff">📋 كشف حساب: '+clientName+'</div>'
+    + '<button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button>'
+    + '</div><div class="modal-body" style="padding:0">'
+
+    // بطاقات
+    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-bottom:1px solid #e2e8f0">'
+    + '<div style="padding:10px 14px;text-align:center;border-left:1px solid #e2e8f0"><div style="font-size:.65rem;color:#64748b">إجمالي المشتريات</div><div style="font-size:1rem;font-weight:800">'+fmt(stmt.totalBuy)+'</div></div>'
+    + '<div style="padding:10px 14px;text-align:center;border-left:1px solid #e2e8f0"><div style="font-size:.65rem;color:#64748b">المدفوع</div><div style="font-size:1rem;font-weight:800;color:#16a34a">'+fmt(stmt.totalPaid)+'</div></div>'
+    + '<div style="padding:10px 14px;text-align:center"><div style="font-size:.65rem;color:#64748b">الديون</div><div style="font-size:1rem;font-weight:800;color:#dc2626">'+fmt(stmt.totalDebt)+'</div></div>'
+    + '</div>'
+
+    // جدول الفواتير
+    + '<div style="padding:10px 14px;max-height:300px;overflow-y:auto">'
+    + '<div style="font-weight:700;font-size:.8rem;margin-bottom:6px">📄 الفواتير ('+stmt.ventes.length+')</div>'
+    + '<table style="width:100%;font-size:.75rem;border-collapse:collapse">'
+    + '<thead><tr style="background:#f1f5f9"><th style="padding:4px 6px;text-align:right">رقم</th><th style="padding:4px 6px">التاريخ</th><th style="padding:4px 6px">الصافي</th><th style="padding:4px 6px">المدفوع</th><th style="padding:4px 6px">الباقي</th></tr></thead>'
+    + '<tbody>'
+    + stmt.ventes.map(function(v){return '<tr style="border-bottom:1px solid #f1f5f9">'
+      + '<td style="padding:4px 6px"><code style="background:#e0f2fe;padding:1px 5px;border-radius:3px;color:#0369a1">'+v.num+'</code></td>'
+      + '<td style="padding:4px 6px;color:#64748b">'+v.date+'</td>'
+      + '<td style="padding:4px 6px;font-weight:600">'+fmt(v.net)+'</td>'
+      + '<td style="padding:4px 6px;color:#16a34a">'+fmt(v.paid)+'</td>'
+      + '<td style="padding:4px 6px;color:'+(v.reste>0?'#dc2626':'#16a34a')+';font-weight:700">'+fmt(v.reste)+'</td>'
+      + '</tr>';}).join('')
+    + '</tbody></table>'
+    + '</div>'
+    + '</div><div class="modal-footer">'
+    + '<button class="btn" onclick="closeModal()">إغلاق</button>'
+    + '<button class="btn btn-primary" data-name="'+encodeURIComponent(clientName)+'" onclick="_printStmt(this)">🖨️ طباعة كشف الحساب</button>'
+    + (stmt.totalDebt>0?'<button class="btn" style="background:#16a34a;color:#fff" data-name="'+encodeURIComponent(clientName)+'" data-amt="'+stmt.totalDebt+'" onclick="closeModal();_showBulk(this)">💵 تسديد جماعي</button>':'')
+    + '</div></div></div>'
+  );
+}
+
+async function printClientStatement(clientName) {
+  const stmt = await window.api.dettes.getStatement(clientName);
+  const company = App.settings.company_name || 'المحل';
+  var html = '<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8">'
+    + '<style>@page{size:A4;margin:15mm}body{font-family:Arial;direction:rtl;font-size:10pt}'
+    + 'h1{color:#1e293b;margin:0}table{width:100%;border-collapse:collapse;margin:10px 0}'
+    + 'th{background:#1e293b;color:#fff;padding:7px}td{border:1px solid #e2e8f0;padding:6px}'
+    + '.tot{font-size:12pt;font-weight:700;margin-top:12px}</style></head><body>'
+    + '<h1>📋 كشف حساب</h1>'
+    + '<p style="color:#64748b">'+company+' — '+today()+'</p>'
+    + '<h2 style="color:#f97316">'+clientName+'</h2>'
+    + '<table><thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>الصافي</th><th>المدفوع</th><th>الباقي</th></tr></thead><tbody>'
+    + stmt.ventes.map(function(v){return '<tr><td>'+v.num+'</td><td>'+v.date+'</td><td>'+fmtNum(v.net)+' DA</td><td>'+fmtNum(v.paid)+' DA</td><td style="color:'+(v.reste>0?'#dc2626':'#16a34a')+'">'+fmtNum(v.reste)+' DA</td></tr>';}).join('')
+    + '</tbody></table>'
+    + '<div class="tot">إجمالي المشتريات: '+fmt(stmt.totalBuy)+'</div>'
+    + '<div class="tot" style="color:#16a34a">المدفوع: '+fmt(stmt.totalPaid)+'</div>'
+    + '<div class="tot" style="color:#dc2626">الديون: '+fmt(stmt.totalDebt)+'</div>'
+    + '</body></html>';
+  await window.api.print.invoice(html);
+}
+
+// ─── تسديد جماعي ───
+function showBulkPayModal(clientName, totalDebt) {
+  showModal(
+    '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">'
+    + '<div class="modal" style="width:380px">'
+    + '<div class="modal-header" style="background:#16a34a">'
+    + '<div class="modal-title" style="color:#fff">💵 تسديد جماعي: '+clientName+'</div>'
+    + '<button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button>'
+    + '</div><div class="modal-body">'
+    + '<div style="background:rgba(220,38,38,.1);border-radius:8px;padding:10px;margin-bottom:12px;text-align:center">'
+    + '<div style="font-size:.7rem;color:#64748b">إجمالي الديون</div>'
+    + '<div style="font-size:1.4rem;font-weight:900;color:#dc2626">'+fmt(totalDebt)+'</div>'
+    + '</div>'
+    + '<div class="form-group"><label class="form-label">المبلغ الإجمالي المدفوع (DA) *</label>'
+    + '<input class="form-input" id="bulk_amount" type="number" min="1" value="'+totalDebt+'" style="font-size:1.1rem;font-weight:700;text-align:center" onkeydown="event.stopPropagation()"></div>'
+    + '<div class="form-group"><label class="form-label">ملاحظة</label>'
+    + '<input class="form-input" id="bulk_notes" placeholder="اختياري" onkeydown="event.stopPropagation()"></div>'
+    + '<div style="font-size:.75rem;color:#64748b;background:#f8fafc;border-radius:6px;padding:8px">💡 سيتم توزيع المبلغ تلقائياً على الفواتير من الأقدم للأحدث</div>'
+    + '</div><div class="modal-footer">'
+    + '<button class="btn" onclick="closeModal()">إلغاء</button>'
+    + '<button class="btn" style="background:#16a34a;color:#fff;font-weight:700" data-name="'+encodeURIComponent(clientName)+'" onclick="confirmBulkPay(decodeURIComponent(this.dataset.name))">✅ تسديد</button>'
+    + '</div></div></div>'
+  );
+  setTimeout(()=>{var i=document.getElementById('bulk_amount');if(i){i.focus();i.select();}},80);
+}
+
+async function confirmBulkPay(clientName) {
+  var totalAmount = parseFloat(document.getElementById('bulk_amount')?.value)||0;
+  var notes = document.getElementById('bulk_notes')?.value||'تسديد جماعي';
+  if (totalAmount<=0){toast('أدخل مبلغاً صحيحاً','error');return;}
+  // جلب كل الديون لهذا الزبون مرتبة من الأقدم للأحدث
+  var debts = allDettes.filter(function(d){return d.client_name===clientName&&d.reste>0;})
+    .sort(function(a,b){return new Date(a.date)-new Date(b.date);});
+  var remaining = totalAmount;
+  var count = 0;
+  for (var i=0; i<debts.length && remaining>0; i++) {
+    var pay = Math.min(remaining, debts[i].reste);
+    await window.api.dettes.addPayment({vente_id:debts[i].id, client_name:clientName, amount:pay, notes:notes, date:today()});
+    remaining -= pay;
+    count++;
+  }
+  closeModal();
+  toast('✅ تم تسديد '+fmt(totalAmount)+' على '+count+' فاتورة','success',3000);
+  await renderDettes();
+}
+
+// ─── تصدير ديون Excel ───
+function exportDettesExcel() {
+  var rows=[['رقم الفاتورة','العميل','الصافي','المدفوع','الباقي','التاريخ','عمر الدين (يوم)']];
+  allDettes.forEach(function(d){rows.push([d.num,d.client_name,d.net,d.paid,d.reste,d.date,d.days_old||0]);});
+  var bom='﻿';
+  var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c||'').replace(/"/g,'\"\"')+'"';}).join(',');}).join('\n')
+  var blob=new Blob([bom+csv],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='ديون_الزبائن_'+today()+'.csv';a.click();URL.revokeObjectURL(url);
+  toast('✅ تم التصدير','success',1500);
 }
 
 // ===== STARTUP =====

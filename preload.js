@@ -62,6 +62,13 @@ contextBridge.exposeInMainWorld('api', {
     getSession:   (sid)             => ipcRenderer.invoke('sellers:getSession', sid),
     getSessions:  (date)            => ipcRenderer.invoke('sellers:getSessions', date),
   },
+  directDebts: {
+    getAll:      ()              => ipcRenderer.invoke('directDebts:getAll'),
+    add:         (d)             => ipcRenderer.invoke('directDebts:add', d),
+    addPayment:  (id,amt,n,date) => ipcRenderer.invoke('directDebts:addPayment', id, amt, n, date),
+    getPayments: (id)            => ipcRenderer.invoke('directDebts:getPayments', id),
+    delete:      (id)            => ipcRenderer.invoke('directDebts:delete', id),
+  },
   caisse: {
     getStats: ()  => ipcRenderer.invoke('caisse:getStats'),
     add:      (d) => ipcRenderer.invoke('caisse:add', d),
@@ -74,7 +81,10 @@ contextBridge.exposeInMainWorld('api', {
   // ===== الديون =====
   dettes: {
     getAll:      ()  => ipcRenderer.invoke('dettes:getAll'),
-    addPayment:  (d) => ipcRenderer.invoke('dettes:addPayment', d),
+    addPayment:  (d)    => ipcRenderer.invoke('dettes:addPayment', d),
+    getPayments: (id)  => ipcRenderer.invoke('dettes:getPayments', id),
+    getStatement:(name)=> ipcRenderer.invoke('dettes:getStatement', name),
+    getStats:    ()    => ipcRenderer.invoke('dettes:getStats'),
   },
   // ===== الولاء =====
   loyalty: {
