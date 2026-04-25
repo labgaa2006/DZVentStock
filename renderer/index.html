@@ -1264,6 +1264,8 @@ function filterProductsTable(q) {
         <div style="display:flex;gap:3px;flex-wrap:nowrap">
           <button class="btn btn-sm" style="background:var(--warning);color:#fff;padding:3px 7px;font-size:.7rem"
             onclick="showEditProductModal('${p.id}')" title="تعديل">✏️</button>
+          <button class="btn btn-sm" style="background:#6366f1;color:#fff;padding:3px 7px;font-size:.7rem"
+            onclick="showVariantsModal('${p.id}')" title="متغيرات">🔀</button>
           <button class="btn btn-sm" style="background:#0369a1;color:#fff;padding:3px 7px;font-size:.7rem"
             onclick="duplicateProduct('${p.id}')" title="تكرار">📋</button>
           <button class="btn btn-sm" style="background:#059669;color:#fff;padding:3px 7px;font-size:.7rem"
@@ -2042,6 +2044,7 @@ async function showAddProductModal(editId = null) {
 
     <div class="modal-footer" style="background:#111827;padding:6px 16px;min-height:unset">
       <button class="btn" style="background:#374151;color:#fff;padding:5px 14px;font-size:.78rem" onclick="closeModal()">إلغاء</button>
+      ${editId ? `<button class="btn" style="background:#6366f1;color:#fff;padding:5px 14px;font-size:.78rem" onclick="closeModal();showVariantsModal('${editId}')">🔀 المتغيرات</button>` : ''}
       <button class="btn btn-primary" style="padding:5px 20px;font-size:.78rem;font-weight:700" onclick="saveProduct('${editId||''}')">✅ حفظ المنتج</button>
     </div>
   </div>
@@ -8629,6 +8632,339 @@ function exportDettesExcel() {
   var a=document.createElement('a');a.href=url;a.download='ديون_الزبائن_'+today()+'.csv';a.click();URL.revokeObjectURL(url);
   toast('✅ تم التصدير','success',1500);
 }
+
+
+// =====================================================
+// PRODUCT VARIANTS — إدارة متغيرات المنتج
+// =====================================================
+async function showVariantsModal(productId) {
+  const p = allProducts.find(function(x){return x.id===productId;});
+  if (!p) return;
+  const variants = await window.api.variants.get(productId);
+
+  function buildVariantsTable(vars) {
+    if (!vars.length) return '<div style="text-align:center;padding:20px;color:#94a3b8">لا توجد متغيرات بعد — أضف أول متغير أدناه</div>';
+    return '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.78rem">'
+      + '<thead><tr style="background:#f1f5f9">'
+      + '<th style="padding:7px 8px;text-align:right">المتغير 1</th>'
+      + '<th style="padding:7px 8px;text-align:right">المتغير 2</th>'
+      + '<th style="padding:7px 8px;text-align:center">الباركود</th>'
+      + '<th style="padding:7px 8px;text-align:center">المخزون</th>'
+      + '<th style="padding:7px 8px;text-align:center">سعر خاص</th>'
+      + '<th style="padding:7px 8px">إجراءات</th>'
+      + '</tr></thead><tbody>'
+      + vars.map(function(v) {
+          var label = (v.attr1_name?v.attr1_name+': ':'')+v.attr1_val
+            + (v.attr2_val?(v.attr2_name?' / '+v.attr2_name+': ':' / ')+v.attr2_val:'');
+          var stockColor = v.stock===0?'#dc2626':v.stock<=v.stock_min?'#f97316':'#16a34a';
+          return '<tr style="border-bottom:1px solid #f1f5f9">'
+            + '<td style="padding:6px 8px"><span style="font-weight:600">'+(v.attr1_name?v.attr1_name+': ':'')+v.attr1_val+'</span></td>'
+            + '<td style="padding:6px 8px">'+(v.attr2_val?(v.attr2_name?v.attr2_name+': ':'')+v.attr2_val:'—')+'</td>'
+            + '<td style="padding:6px 8px;text-align:center"><code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;color:#0369a1;font-size:.7rem">'+(v.barcode||'—')+'</code></td>'
+            + '<td style="padding:6px 8px;text-align:center;font-weight:700;color:'+stockColor+'">'+v.stock+'</td>'
+            + '<td style="padding:6px 8px;text-align:center">'+(v.price_override>0?fmtNum(v.price_override)+' DA':'—')+'</td>'
+            + '<td style="padding:6px 8px"><div style="display:flex;gap:3px">'
+            + '<button class="btn btn-sm" style="background:#f97316;color:#fff;padding:3px 6px;font-size:.68rem" onclick="editVariantRow(\''+v.id+'\',\''+productId+'\')">✏️</button>'
+            + '<button class="btn btn-sm" style="background:#475569;color:#fff;padding:3px 6px;font-size:.68rem" onclick="variantStockUpdate(\''+v.id+'\','+v.stock+')">±</button>'
+            + '<button class="btn btn-sm btn-danger" style="padding:3px 6px;font-size:.68rem" onclick="deleteVariantRow(\''+v.id+'\',\''+productId+'\')">🗑️</button>'
+            + '</div></td></tr>';
+        }).join('')
+      + '</tbody></table></div>';
+  }
+
+  window._currentVariants = variants;
+
+  showModal(
+    '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">'
+    + '<div class="modal" style="width:750px;max-width:98vw;max-height:94vh;display:flex;flex-direction:column">'
+    + '<div class="modal-header" style="background:#1e293b">'
+    + '<div><div class="modal-title" style="color:#fff">🔀 متغيرات: '+p.name+'</div>'
+    + '<div style="font-size:.7rem;color:#94a3b8">السعر الأساسي: '+fmt(p.sell_price)+' — المخزون الكلي: '+variants.reduce(function(s,v){return s+(v.stock||0);},0)+'</div>'
+    + '</div><button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button>'
+    + '</div>'
+
+    // جدول المتغيرات الحالية
+    + '<div style="flex:1;overflow-y:auto">'
+    + '<div id="variants_table" style="padding:14px">'
+    + buildVariantsTable(variants)
+    + '</div>'
+
+    // فورم إضافة متغير
+    + '<div style="padding:14px;border-top:2px solid #e2e8f0;background:#f8fafc">'
+    + '<div style="font-weight:700;font-size:.82rem;color:#1e293b;margin-bottom:10px">➕ إضافة متغير جديد</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 80px 80px;gap:6px;align-items:end">'
+
+    + '<div><label style="font-size:.65rem;color:#64748b;display:block;margin-bottom:2px">المتغير 1 (مثال: اللون)</label>'
+    + '<div style="display:flex;gap:3px">'
+    + '<input id="v_attr1_name" class="form-input" placeholder="اللون" value="اللون" style="width:60px;font-size:.7rem;padding:4px 5px" onkeydown="event.stopPropagation()">'
+    + '<input id="v_attr1_val" class="form-input" placeholder="أحمر" style="flex:1;font-size:.75rem;padding:4px 6px" onkeydown="event.stopPropagation()"></div></div>'
+
+    + '<div><label style="font-size:.65rem;color:#64748b;display:block;margin-bottom:2px">المتغير 2 (اختياري)</label>'
+    + '<div style="display:flex;gap:3px">'
+    + '<input id="v_attr2_name" class="form-input" placeholder="المقاس" style="width:60px;font-size:.7rem;padding:4px 5px" onkeydown="event.stopPropagation()">'
+    + '<input id="v_attr2_val" class="form-input" placeholder="XL" style="flex:1;font-size:.75rem;padding:4px 6px" onkeydown="event.stopPropagation()"></div></div>'
+
+    + '<div><label style="font-size:.65rem;color:#64748b;display:block;margin-bottom:2px">الباركود</label>'
+    + '<div style="display:flex;gap:3px">'
+    + '<input id="v_barcode" class="form-input" placeholder="تلقائي" style="flex:1;font-size:.75rem;padding:4px 6px" onkeydown="event.stopPropagation()">'
+    + '<button onclick="document.getElementById(\'v_barcode\').value=\''+productId.slice(0,4)+'\'+Date.now().toString().slice(-6)" style="padding:4px 6px;border:1px solid #e2e8f0;border-radius:5px;background:#f1f5f9;cursor:pointer;font-size:.7rem" title="توليد تلقائي">🎲</button>'
+    + '</div></div>'
+
+    + '<div><label style="font-size:.65rem;color:#64748b;display:block;margin-bottom:2px">المخزون</label>'
+    + '<input id="v_stock" class="form-input" type="number" value="0" min="0" style="font-size:.82rem;padding:4px 6px;font-weight:700" onkeydown="event.stopPropagation()"></div>'
+
+    + '<div><label style="font-size:.65rem;color:#64748b;display:block;margin-bottom:2px">الحد الأدنى</label>'
+    + '<input id="v_stock_min" class="form-input" type="number" value="0" min="0" style="font-size:.82rem;padding:4px 6px" onkeydown="event.stopPropagation()"></div>'
+
+    + '<div><label style="font-size:.65rem;color:#64748b;display:block;margin-bottom:2px">سعر خاص</label>'
+    + '<input id="v_price" class="form-input" type="number" value="0" min="0" placeholder="0=أساسي" style="font-size:.75rem;padding:4px 6px" onkeydown="event.stopPropagation()"></div>'
+
+    + '</div>'
+
+    // أزرار إضافة
+    + '<div style="display:flex;gap:6px;margin-top:8px">'
+    + '<button onclick="addVariantRow(\''+productId+'\')" style="padding:7px 16px;background:#16a34a;border:none;border-radius:6px;color:#fff;font-family:Cairo,sans-serif;font-size:.8rem;font-weight:700;cursor:pointer">✅ إضافة متغير</button>'
+    + '<button onclick="addMultipleVariants(\''+productId+'\')" style="padding:7px 16px;background:#6366f1;border:none;border-radius:6px;color:#fff;font-family:Cairo,sans-serif;font-size:.8rem;cursor:pointer">⚡ إنشاء متعدد</button>'
+    + '</div>'
+    + '</div>'
+    + '</div>'
+
+    + '<div class="modal-footer">'
+    + '<button class="btn" onclick="closeModal()">إغلاق</button>'
+    + '<button class="btn" style="background:#0369a1;color:#fff" onclick="printVariantsLabels(\''+productId+'\')">🏷️ طباعة ملصقات</button>'
+    + '</div>'
+    + '</div></div>'
+  );
+}
+
+async function addVariantRow(productId) {
+  var v1n = document.getElementById('v_attr1_name')?.value?.trim()||'';
+  var v1v = document.getElementById('v_attr1_val')?.value?.trim()||'';
+  if (!v1v) { toast('أدخل قيمة المتغير الأول','error'); document.getElementById('v_attr1_val')?.focus(); return; }
+  var data = {
+    product_id: productId,
+    attr1_name: v1n, attr1_val: v1v,
+    attr2_name: document.getElementById('v_attr2_name')?.value?.trim()||'',
+    attr2_val:  document.getElementById('v_attr2_val')?.value?.trim()||'',
+    barcode:    document.getElementById('v_barcode')?.value?.trim()||'',
+    stock:      parseInt(document.getElementById('v_stock')?.value)||0,
+    stock_min:  parseInt(document.getElementById('v_stock_min')?.value)||0,
+    price_override: parseFloat(document.getElementById('v_price')?.value)||0,
+  };
+  // توليد باركود إذا فارغ
+  if (!data.barcode) {
+    data.barcode = productId.slice(0,4) + Date.now().toString().slice(-6);
+  }
+  var res = await window.api.variants.add(data);
+  if (res.success) {
+    toast('✅ تم إضافة المتغير','success',1500);
+    // مسح الحقول
+    document.getElementById('v_attr1_val').value='';
+    document.getElementById('v_attr2_val').value='';
+    document.getElementById('v_barcode').value='';
+    document.getElementById('v_stock').value='0';
+    document.getElementById('v_price').value='0';
+    document.getElementById('v_attr1_val').focus();
+    // تحديث الجدول
+    var updated = await window.api.variants.get(productId);
+    window._currentVariants = updated;
+    var wrap = document.getElementById('variants_table');
+    if (wrap) {
+      if (!updated.length) { wrap.innerHTML='<div style="text-align:center;padding:20px;color:#94a3b8">لا توجد متغيرات</div>'; return; }
+      wrap.innerHTML = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.78rem"><thead><tr style="background:#f1f5f9"><th style="padding:7px 8px;text-align:right">المتغير 1</th><th style="padding:7px 8px;text-align:right">المتغير 2</th><th style="padding:7px 8px;text-align:center">الباركود</th><th style="padding:7px 8px;text-align:center">المخزون</th><th style="padding:7px 8px;text-align:center">سعر خاص</th><th style="padding:7px 8px">إجراءات</th></tr></thead><tbody>'
+        + updated.map(function(v){
+          var sc=v.stock===0?'#dc2626':v.stock<=v.stock_min?'#f97316':'#16a34a';
+          return '<tr style="border-bottom:1px solid #f1f5f9">'
+            + '<td style="padding:6px 8px;font-weight:600">'+(v.attr1_name?v.attr1_name+': ':'')+v.attr1_val+'</td>'
+            + '<td style="padding:6px 8px">'+(v.attr2_val?(v.attr2_name?v.attr2_name+': ':'')+v.attr2_val:'—')+'</td>'
+            + '<td style="padding:6px 8px;text-align:center"><code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;color:#0369a1;font-size:.7rem">'+(v.barcode||'—')+'</code></td>'
+            + '<td style="padding:6px 8px;text-align:center;font-weight:700;color:'+sc+'">'+v.stock+'</td>'
+            + '<td style="padding:6px 8px;text-align:center">'+(v.price_override>0?fmtNum(v.price_override)+' DA':'—')+'</td>'
+            + '<td style="padding:6px 8px"><div style="display:flex;gap:3px">'
+            + '<button class="btn btn-sm" style="background:#f97316;color:#fff;padding:3px 6px;font-size:.68rem" onclick="editVariantRow(\''+v.id+'\',\''+productId+'\')">✏️</button>'
+            + '<button class="btn btn-sm" style="background:#475569;color:#fff;padding:3px 6px;font-size:.68rem" onclick="variantStockUpdate(\''+v.id+'\','+v.stock+')">±</button>'
+            + '<button class="btn btn-sm btn-danger" style="padding:3px 6px;font-size:.68rem" onclick="deleteVariantRow(\''+v.id+'\',\''+productId+'\')">🗑️</button>'
+            + '</div></td></tr>';
+        }).join('')
+        + '</tbody></table></div>';
+    }
+  }
+}
+
+function addMultipleVariants(productId) {
+  // فتح مودال إنشاء متعدد — أدخل قيماً مفصولة بفاصلة
+  showModal(
+    '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">'
+    + '<div class="modal" style="width:420px">'
+    + '<div class="modal-header"><div class="modal-title">⚡ إنشاء متغيرات متعددة</div>'
+    + '<button class="modal-close" onclick="closeModal()">✕</button></div>'
+    + '<div class="modal-body">'
+    + '<div style="font-size:.78rem;color:#64748b;background:#f8fafc;border-radius:8px;padding:10px;margin-bottom:12px">'
+    + '💡 مثال: اكتب قيم المتغير مفصولة بفاصلة<br>المتغير 1: <b>أحمر, أزرق, أبيض</b><br>المتغير 2: <b>S, M, L, XL</b><br>سيُنشئ البرنامج كل التركيبات الممكنة تلقائياً'
+    + '</div>'
+    + '<div class="form-group"><label class="form-label">اسم المتغير 1</label>'
+    + '<input class="form-input" id="multi_n1" value="اللون" onkeydown="event.stopPropagation()"></div>'
+    + '<div class="form-group"><label class="form-label">قيم المتغير 1 (مفصولة بفاصلة)</label>'
+    + '<input class="form-input" id="multi_v1" placeholder="أحمر, أزرق, أبيض" onkeydown="event.stopPropagation()"></div>'
+    + '<div class="form-group"><label class="form-label">اسم المتغير 2 (اختياري)</label>'
+    + '<input class="form-input" id="multi_n2" value="المقاس" onkeydown="event.stopPropagation()"></div>'
+    + '<div class="form-group"><label class="form-label">قيم المتغير 2 (اختياري)</label>'
+    + '<input class="form-input" id="multi_v2" placeholder="S, M, L, XL" onkeydown="event.stopPropagation()"></div>'
+    + '<div class="form-group"><label class="form-label">مخزون لكل متغير</label>'
+    + '<input class="form-input" id="multi_stock" type="number" value="0" onkeydown="event.stopPropagation()"></div>'
+    + '</div><div class="modal-footer">'
+    + '<button class="btn" onclick="closeModal()">إلغاء</button>'
+    + '<button class="btn btn-primary" data-pid="'+productId+'" onclick="executeMultiVariants(this.dataset.pid)">⚡ إنشاء</button>'
+    + '</div></div></div>'
+  );
+  setTimeout(()=>document.getElementById('multi_v1')?.focus(),80);
+}
+
+async function executeMultiVariants(productId) {
+  var n1 = document.getElementById('multi_n1')?.value?.trim()||'المتغير1';
+  var v1 = (document.getElementById('multi_v1')?.value||'').split(',').map(function(x){return x.trim();}).filter(Boolean);
+  var n2 = document.getElementById('multi_n2')?.value?.trim()||'';
+  var v2 = (document.getElementById('multi_v2')?.value||'').split(',').map(function(x){return x.trim();}).filter(Boolean);
+  var stock = parseInt(document.getElementById('multi_stock')?.value)||0;
+  if (!v1.length) { toast('أدخل قيم المتغير الأول','error'); return; }
+  closeModal();
+  var combos = [];
+  v1.forEach(function(val1){
+    if (v2.length) {
+      v2.forEach(function(val2){
+        combos.push({attr1_name:n1,attr1_val:val1,attr2_name:n2,attr2_val:val2});
+      });
+    } else {
+      combos.push({attr1_name:n1,attr1_val:val1,attr2_name:'',attr2_val:''});
+    }
+  });
+  var added=0;
+  for (var i=0;i<combos.length;i++) {
+    var c=combos[i];
+    var bc = productId.slice(0,4)+Date.now().toString().slice(-5)+String(i).padStart(2,'0');
+    await window.api.variants.add({product_id:productId,attr1_name:c.attr1_name,attr1_val:c.attr1_val,
+      attr2_name:c.attr2_name,attr2_val:c.attr2_val,barcode:bc,stock:stock,stock_min:0,price_override:0});
+    added++;
+  }
+  toast('✅ تم إنشاء '+added+' متغير','success',2000);
+  showVariantsModal(productId);
+}
+
+async function deleteVariantRow(variantId, productId) {
+  await window.api.variants.delete(variantId);
+  toast('🗑️ تم الحذف','info',1500);
+  showVariantsModal(productId);
+}
+
+function variantStockUpdate(variantId, currentStock) {
+  showModal(
+    '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">'
+    + '<div class="modal" style="width:320px">'
+    + '<div class="modal-header"><div class="modal-title">± تحديث المخزون</div>'
+    + '<button class="modal-close" onclick="closeModal()">✕</button></div>'
+    + '<div class="modal-body">'
+    + '<div style="text-align:center;font-size:1.5rem;font-weight:900;margin-bottom:12px">'+currentStock+'</div>'
+    + '<div class="form-group"><label class="form-label">التغيير (+/-)</label>'
+    + '<input class="form-input" id="vs_change" type="number" value="0" style="font-size:1rem;font-weight:700;text-align:center" onkeydown="event.stopPropagation()"></div>'
+    + '<div class="form-group"><label class="form-label">السبب</label>'
+    + '<select class="form-select" id="vs_reason"><option>شراء</option><option>تصحيح</option><option>تلف</option><option>إرجاع</option></select></div>'
+    + '</div><div class="modal-footer">'
+    + '<button class="btn" onclick="closeModal()">إلغاء</button>'
+    + '<button class="btn btn-primary" data-id="'+variantId+'" onclick="doVariantStock(this.dataset.id)">✅ تحديث</button>'
+    + '</div></div></div>'
+  );
+  setTimeout(()=>{var i=document.getElementById('vs_change');if(i){i.focus();i.select();}},80);
+}
+
+async function doVariantStock(variantId) {
+  var change = parseInt(document.getElementById('vs_change')?.value)||0;
+  var reason = document.getElementById('vs_reason')?.value||'تصحيح';
+  if (change===0) { toast('أدخل قيمة غير صفر','error'); return; }
+  var res = await window.api.variants.updateStock(variantId, change, reason, '', App.currentUser?.name||'');
+  if (res.success) {
+    closeModal();
+    toast((change>0?'✅ أُضيف ':'✅ طُرح ')+Math.abs(change)+' — المخزون: '+res.qty_after,'success',2000);
+  }
+}
+
+function editVariantRow(variantId, productId) {
+  var v = (window._currentVariants||[]).find(function(x){return x.id===variantId;});
+  if (!v) return;
+  showModal(
+    '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">'
+    + '<div class="modal" style="width:420px">'
+    + '<div class="modal-header"><div class="modal-title">✏️ تعديل متغير</div>'
+    + '<button class="modal-close" onclick="closeModal()">✕</button></div>'
+    + '<div class="modal-body">'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+    + '<div class="form-group"><label class="form-label">'+v.attr1_name+' *</label>'
+    + '<input class="form-input" id="ev_attr1_val" value="'+v.attr1_val+'" onkeydown="event.stopPropagation()"></div>'
+    + '<div class="form-group"><label class="form-label">'+(v.attr2_name||'المتغير 2')+'</label>'
+    + '<input class="form-input" id="ev_attr2_val" value="'+(v.attr2_val||'')+'" onkeydown="event.stopPropagation()"></div>'
+    + '<div class="form-group"><label class="form-label">الباركود</label>'
+    + '<input class="form-input" id="ev_barcode" value="'+(v.barcode||'')+'" onkeydown="event.stopPropagation()"></div>'
+    + '<div class="form-group"><label class="form-label">سعر خاص (0=أساسي)</label>'
+    + '<input class="form-input" id="ev_price" type="number" value="'+(v.price_override||0)+'" onkeydown="event.stopPropagation()"></div>'
+    + '</div>'
+    + '</div><div class="modal-footer">'
+    + '<button class="btn" onclick="closeModal()">إلغاء</button>'
+    + '<button class="btn btn-primary" data-id="'+variantId+'" data-pid="'+productId+'" onclick="saveEditVariant(this.dataset.id,this.dataset.pid)">✅ حفظ</button>'
+    + '</div></div></div>'
+  );
+  setTimeout(()=>document.getElementById('ev_attr1_val')?.focus(),80);
+}
+
+async function saveEditVariant(variantId, productId) {
+  var v = (window._currentVariants||[]).find(function(x){return x.id===variantId;});
+  if (!v) return;
+  await window.api.variants.update(variantId, {
+    attr1_name:v.attr1_name, attr1_val:document.getElementById('ev_attr1_val')?.value?.trim()||v.attr1_val,
+    attr2_name:v.attr2_name, attr2_val:document.getElementById('ev_attr2_val')?.value?.trim()||'',
+    barcode:document.getElementById('ev_barcode')?.value?.trim()||v.barcode,
+    stock:v.stock, stock_min:v.stock_min,
+    price_override:parseFloat(document.getElementById('ev_price')?.value)||0,
+  });
+  closeModal();
+  toast('✅ تم التعديل','success',1500);
+  showVariantsModal(productId);
+}
+
+async function printVariantsLabels(productId) {
+  var variants = await window.api.variants.get(productId);
+  var p = allProducts.find(function(x){return x.id===productId;});
+  if (!p || !variants.length) { toast('لا توجد متغيرات','error'); return; }
+  var shop = App.settings?.company_name||'المحل';
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    + '<link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39" rel="stylesheet">'
+    + '<style>@page{size:50mm 25mm;margin:0}body{margin:0;padding:0}'
+    + '.lw{page-break-after:always;width:48mm;height:23mm;padding:2px 3px;box-sizing:border-box;'
+    + 'display:flex;flex-direction:column;justify-content:space-between;align-items:center;font-family:Arial}'
+    + '.lw:last-child{page-break-after:avoid}'
+    + '.shop{font-size:7pt;font-weight:900;text-align:center;width:100%;border-bottom:0.5px solid #000;padding-bottom:1px}'
+    + '.name{font-size:5.5pt;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;width:100%}'
+    + '.var{font-size:5pt;color:#475569;text-align:center}'
+    + '.bc{font-family:\'Libre Barcode 39\',monospace;font-size:15pt;line-height:1;text-align:center;width:100%}'
+    + '.price{font-size:9pt;font-weight:900;text-align:center}'
+    + '</style></head><body>'
+    + variants.map(function(v){
+        var price = v.price_override>0?v.price_override:p.sell_price;
+        var bc = v.barcode||(productId.slice(0,4)+'000');
+        var varLabel = v.attr1_val+(v.attr2_val?' / '+v.attr2_val:'');
+        return '<div class="lw">'
+          + '<div class="shop">'+shop+'</div>'
+          + '<div style="height:0.5px;background:#000;width:100%"></div>'
+          + '<div class="name">'+p.name+'</div>'
+          + '<div class="var">'+varLabel+'</div>'
+          + '<div class="bc">*'+bc+'*</div>'
+          + '<div class="price">'+fmtNum(price)+' DA</div>'
+          + '</div>';
+      }).join('')
+    + '</body></html>';
+  var win=window.open('','_blank','width=600,height=500');
+  win.document.write(html);win.document.close();
+  setTimeout(function(){win.print();setTimeout(function(){win.close();},800);},1200);
+}
+
 
 // ===== STARTUP =====
 async function startup() {

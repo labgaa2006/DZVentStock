@@ -289,6 +289,7 @@ class DB {
       `ALTER TABLE products ADD COLUMN barcode8 TEXT DEFAULT ''`,
       `ALTER TABLE products ADD COLUMN image_data TEXT DEFAULT ''`,
       `ALTER TABLE clients ADD COLUMN credit_limit REAL DEFAULT 0`,
+      `CREATE TABLE IF NOT EXISTS product_variants (id TEXT PRIMARY KEY, product_id TEXT NOT NULL, attr1_name TEXT DEFAULT '', attr1_val TEXT DEFAULT '', attr2_name TEXT DEFAULT '', attr2_val TEXT DEFAULT '', barcode TEXT DEFAULT '', stock INTEGER DEFAULT 0, stock_min INTEGER DEFAULT 0, price_override REAL DEFAULT 0, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')))`,
       `CREATE TABLE IF NOT EXISTS direct_debts (id TEXT PRIMARY KEY, num TEXT UNIQUE, person_name TEXT NOT NULL, person_phone TEXT DEFAULT '', amount REAL DEFAULT 0, paid REAL DEFAULT 0, reste REAL DEFAULT 0, type TEXT DEFAULT 'علي', notes TEXT DEFAULT '', date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')), is_deleted INTEGER DEFAULT 0)`,
       `CREATE TABLE IF NOT EXISTS direct_debt_payments (id TEXT PRIMARY KEY, debt_id TEXT NOT NULL, amount REAL DEFAULT 0, notes TEXT DEFAULT '', date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')))`,
       `ALTER TABLE caisse ADD COLUMN seller_id TEXT DEFAULT ''`,
@@ -907,6 +908,86 @@ class DB {
     }
     this.save();
     return {success:true,id};
+  }
+
+  // ===== PRODUCT VARIANTS =====
+  getVariants(productId) {
+    return this.all(
+      `SELECT * FROM product_variants WHERE product_id=? ORDER BY attr1_val, attr2_val`,
+      [productId]
+    );
+  }
+
+  getAllVariants() {
+    return this.all(`SELECT pv.*, p.name as product_name, p.sell_price as base_price
+      FROM product_variants pv
+      JOIN products p ON p.id=pv.product_id
+      WHERE p.is_deleted=0
+      ORDER BY p.name, pv.attr1_val, pv.attr2_val`);
+  }
+
+  addVariant(data) {
+    if (!data.product_id) return { success:false, error:'product_id مطلوب' };
+    const id = this.uuid();
+    this.db.run(
+      `INSERT INTO product_variants(id,product_id,attr1_name,attr1_val,attr2_name,attr2_val,barcode,stock,stock_min,price_override)
+       VALUES(?,?,?,?,?,?,?,?,?,?)`,
+      [id, data.product_id,
+       data.attr1_name||'', data.attr1_val||'',
+       data.attr2_name||'', data.attr2_val||'',
+       data.barcode||'', parseInt(data.stock)||0,
+       parseInt(data.stock_min)||0,
+       parseFloat(data.price_override)||0]
+    );
+    this.save();
+    return { success:true, id };
+  }
+
+  updateVariant(id, data) {
+    this.db.run(
+      `UPDATE product_variants SET
+        attr1_name=?, attr1_val=?, attr2_name=?, attr2_val=?,
+        barcode=?, stock=?, stock_min=?, price_override=?,
+        updated_at=datetime('now')
+       WHERE id=?`,
+      [data.attr1_name||'', data.attr1_val||'',
+       data.attr2_name||'', data.attr2_val||'',
+       data.barcode||'', parseInt(data.stock)||0,
+       parseInt(data.stock_min)||0,
+       parseFloat(data.price_override)||0, id]
+    );
+    this.save();
+    return { success:true };
+  }
+
+  deleteVariant(id) {
+    this.db.run(`DELETE FROM product_variants WHERE id=?`,[id]);
+    this.save();
+    return { success:true };
+  }
+
+  updateVariantStock(id, change, reason, note, userName) {
+    const v = this.get(`SELECT pv.*, p.name as pname FROM product_variants pv JOIN products p ON p.id=pv.product_id WHERE pv.id=?`,[id]);
+    if (!v) return { success:false };
+    const before = v.stock||0;
+    const after  = Math.max(0, before+change);
+    this.db.run(`UPDATE product_variants SET stock=?,updated_at=datetime('now') WHERE id=?`,[after,id]);
+    this.addStockLog({ product_id:v.product_id, product_name:v.pname+' ('+v.attr1_val+(v.attr2_val?' / '+v.attr2_val:'')+')',
+      qty_before:before, qty_change:change, qty_after:after, reason, note, user_name:userName||'' });
+    this.save();
+    return { success:true, qty_before:before, qty_after:after };
+  }
+
+  // البحث بباركود المتغير في POS
+  findVariantByBarcode(barcode) {
+    return this.get(
+      `SELECT pv.*, p.name as product_name, p.sell_price, p.buy_price,
+              p.unit, p.favorite, p.category, p.ref, p.image_data
+       FROM product_variants pv
+       JOIN products p ON p.id=pv.product_id
+       WHERE pv.barcode=? AND p.is_deleted=0`,
+      [barcode]
+    );
   }
 
   // ===== DIRECT DEBTS (دفتر الديون المباشرة) =====
