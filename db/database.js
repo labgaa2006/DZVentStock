@@ -180,7 +180,19 @@ class DB {
       `CREATE TABLE IF NOT EXISTS caisse (
         id TEXT PRIMARY KEY, type TEXT DEFAULT 'entrée', montant REAL DEFAULT 0,
         description TEXT DEFAULT '', ref_id TEXT DEFAULT '', ref_type TEXT DEFAULT '',
+        seller_id TEXT DEFAULT '', seller_name TEXT DEFAULT '',
         date TEXT DEFAULT (date('now')), created_at TEXT DEFAULT (datetime('now')))`,
+      `CREATE TABLE IF NOT EXISTS seller_sessions (
+        id TEXT PRIMARY KEY,
+        seller_id TEXT NOT NULL,
+        seller_name TEXT DEFAULT '',
+        opening_amount REAL DEFAULT 0,
+        closing_amount REAL DEFAULT 0,
+        sales_total REAL DEFAULT 0,
+        sales_count INTEGER DEFAULT 0,
+        status TEXT DEFAULT 'open',
+        opened_at TEXT DEFAULT (datetime('now')),
+        closed_at TEXT DEFAULT '')`,
       `CREATE TABLE IF NOT EXISTS retours (
         id TEXT PRIMARY KEY, num TEXT UNIQUE, vente_id TEXT, client_name TEXT DEFAULT '',
         total REAL DEFAULT 0, notes TEXT DEFAULT '',
@@ -257,6 +269,8 @@ class DB {
       `ALTER TABLE products ADD COLUMN barcode8 TEXT DEFAULT ''`,
       `ALTER TABLE products ADD COLUMN image_data TEXT DEFAULT ''`,
       `ALTER TABLE clients ADD COLUMN credit_limit REAL DEFAULT 0`,
+      `ALTER TABLE caisse ADD COLUMN seller_id TEXT DEFAULT ''`,
+      `ALTER TABLE caisse ADD COLUMN seller_name TEXT DEFAULT ''`,
       `ALTER TABLE ventes ADD COLUMN seller_name TEXT DEFAULT ''`,
       `ALTER TABLE ventes ADD COLUMN notes TEXT DEFAULT ''`,
     ];
@@ -760,6 +774,61 @@ class DB {
   deleteQuote(id) { this.run(`UPDATE quotes SET is_deleted=1 WHERE id=?`,[id]); return {success:true}; }
 
   // ===== CAISSE =====
+  // ─── Seller Sessions ───
+  openSellerSession(sellerId, sellerName, openingAmount) {
+    // إغلاق أي جلسة مفتوحة لنفس البائع
+    const existing = this.get(
+      `SELECT id FROM seller_sessions WHERE seller_id=? AND status='open'`, [sellerId]
+    );
+    if (existing) {
+      this.db.run(`UPDATE seller_sessions SET status='closed',closed_at=datetime('now') WHERE id=?`,
+        [existing.id]);
+    }
+    const id = this.uuid();
+    this.db.run(
+      `INSERT INTO seller_sessions(id,seller_id,seller_name,opening_amount,status) VALUES(?,?,?,?,'open')`,
+      [id, sellerId, sellerName, openingAmount||0]
+    );
+    this.save();
+    return { success:true, session_id:id };
+  }
+
+  closeSellerSession(sessionId, closingAmount) {
+    const s = this.get(`SELECT * FROM seller_sessions WHERE id=?`, [sessionId]);
+    if (!s) return { success:false, error:'الجلسة غير موجودة' };
+    // احسب إجمالي المبيعات خلال الجلسة
+    const sales = this.get(
+      `SELECT COALESCE(SUM(net),0) as total, COUNT(*) as cnt FROM ventes
+       WHERE seller_name=? AND created_at>=? AND is_deleted=0`,
+      [s.seller_name, s.opened_at]
+    );
+    this.db.run(
+      `UPDATE seller_sessions SET status='closed',closed_at=datetime('now'),
+       closing_amount=?,sales_total=?,sales_count=? WHERE id=?`,
+      [closingAmount||0, sales?.total||0, sales?.cnt||0, sessionId]
+    );
+    this.save();
+    return {
+      success:true,
+      diff: (closingAmount||0) - (s.opening_amount||0) - (sales?.total||0),
+      sales_total: sales?.total||0,
+      sales_count: sales?.cnt||0,
+    };
+  }
+
+  getSellerSession(sellerId) {
+    return this.get(
+      `SELECT * FROM seller_sessions WHERE seller_id=? AND status='open'`, [sellerId]
+    );
+  }
+
+  getAllSellerSessions(date) {
+    const d = date || new Date().toISOString().slice(0,10);
+    return this.all(
+      `SELECT * FROM seller_sessions WHERE date(opened_at)=? ORDER BY opened_at DESC`, [d]
+    );
+  }
+
   getCaisseStats() {
     const today = new Date().toISOString().slice(0,10);
     const month = today.slice(0,7);

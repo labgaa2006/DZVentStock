@@ -168,6 +168,10 @@ ipcMain.handle('quotes:updateStatus',  (_, i, s) => db.updateQuoteStatus(i, s));
 ipcMain.handle('quotes:delete',        (_, i)    => db.deleteQuote(i));
 
 // Caisse
+ipcMain.handle('sellers:openSession',  safe((_, sid, sname, amt) => db.openSellerSession(sid, sname, amt)));
+ipcMain.handle('sellers:closeSession', safe((_, sid, amt) => db.closeSellerSession(sid, amt)));
+ipcMain.handle('sellers:getSession',   safe((_, sid)      => db.getSellerSession(sid)));
+ipcMain.handle('sellers:getSessions',  safe((_, date)     => db.getAllSellerSessions(date)));
 ipcMain.handle('caisse:getStats',      ()        => db.getCaisseStats());
 ipcMain.handle('caisse:add',           (_, d)    => db.addCaisseTransaction(d));
 

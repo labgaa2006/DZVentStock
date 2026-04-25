@@ -759,8 +759,8 @@ const App = {
 
 // ===== PERMISSIONS =====
 const ROLE_PERMISSIONS = {
-  admin:   ['dashboard','pos','ventes','achats','products','clients','fournisseurs','reports','settings','categories','mouvements','units','backup','quotes','caisse','retours','dettes','loyalty','expiry','branches','users','permissions'],
-  manager: ['dashboard','pos','ventes','achats','products','clients','fournisseurs','reports','categories','mouvements','quotes','retours','dettes','loyalty','expiry'],
+  admin:   ['dashboard','pos','ventes','achats','products','clients','fournisseurs','reports','settings','categories','mouvements','units','backup','quotes','caisse','retours','dettes','loyalty','expiry','branches','users','permissions','sellers'],
+  manager: ['dashboard','pos','ventes','achats','products','clients','fournisseurs','reports','categories','mouvements','quotes','retours','dettes','loyalty','expiry','sellers'],
   cashier: ['dashboard','pos','ventes','products','clients'],
 };
 
@@ -829,6 +829,7 @@ const screens = {
   reports:     { title:'📈 التقارير',          sub:'إحصائيات وتحليلات' },
   settings:    { title:'⚙️ الإعدادات',        sub:'إعدادات البرنامج' },
   categories:  { title:'📂 الفئات',           sub:'تصنيف المنتجات' },
+  sellers:     { title:'👥 البائعين',           sub:'فتح/إغلاق الصناديق' },
   mouvements:  { title:'🔄 حركة المخزون',     sub:'سجل الدخول والخروج' },
   backup:      { title:'💾 النسخ الاحتياطي',  sub:'حفظ واستعادة البيانات' },
   quotes:      { title:'📋 عروض الأسعار',     sub:'تسعير وعروض تجارية' },
@@ -942,6 +943,7 @@ async function renderScreen(name) {
       case 'backup':       await renderBackup();       break;
       case 'quotes':       await renderQuotes();       break;
       case 'caisse':       await renderCaisse();       break;
+      case 'sellers':      await renderSellers();      break;
       case 'retours':      await renderRetours();      break;
       case 'dettes':       await renderDettes();       break;
       case 'loyalty':      await renderLoyalty();      break;
@@ -7940,6 +7942,221 @@ function executePrintBarcodes() {
   toast('✅ طباعة ' + labels.length + ' ملصق — حجم ' + s.size, 'success', 2000);
 }
 
+
+
+// =====================================================
+// SELLERS — إدارة البائعين والصناديق
+// =====================================================
+window._openSess = function(btn) {
+  showOpenSessionModal(btn.dataset.id, decodeURIComponent(btn.dataset.name||''));
+};
+window._closeSess = function(btn) {
+  showCloseSessionModal(btn.dataset.id, decodeURIComponent(btn.dataset.name||''), parseFloat(btn.dataset.amt)||0);
+};
+
+async function renderSellers() {
+  const {_mc} = {_mc: document.getElementById('mainContent')};
+  if(_mc){_mc.style.overflowY='auto';_mc.style.overflowX='hidden';}
+
+  document.getElementById('topbarActions').innerHTML = `
+    <button class="topbar-btn" onclick="showOpenSessionModal()">🔓 فتح صندوق</button>
+    <button class="topbar-btn primary" onclick="navigate('users',null)">👤 إدارة المستخدمين</button>
+  `;
+
+  const todaySessions = await window.api.sellers.getSessions(today());
+  const allUsers = await window.api.users.getAll().catch(()=>[]);
+
+  // إحصائيات اليوم
+  const openSessions  = todaySessions.filter(s=>s.status==='open');
+  const closedSessions = todaySessions.filter(s=>s.status==='closed');
+  const totalSales    = todaySessions.reduce((s,x)=>s+(x.sales_total||0),0);
+
+  document.getElementById('mainContent').innerHTML = `
+    <!-- بطاقات إجمالية -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(22,163,74,.15)">🔓</div>
+        <div><div class="stat-val" style="color:#16a34a">${openSessions.length}</div><div class="stat-lbl">صناديق مفتوحة</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(100,116,139,.15)">🔒</div>
+        <div><div class="stat-val">${closedSessions.length}</div><div class="stat-lbl">صناديق مغلقة</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(249,115,22,.15)">💰</div>
+        <div><div class="stat-val" style="font-size:.95rem">${fmt(totalSales)}</div><div class="stat-lbl">إجمالي مبيعات اليوم</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(99,102,241,.15)">👥</div>
+        <div><div class="stat-val">${allUsers.length}</div><div class="stat-lbl">إجمالي البائعين</div></div>
+      </div>
+    </div>
+
+    <!-- جلسات اليوم -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📋 جلسات اليوم — ${today()}</div>
+        <button class="btn btn-sm btn-primary" onclick="showOpenSessionModal()">🔓 فتح صندوق جديد</button>
+      </div>
+      ${todaySessions.length === 0
+        ? '<div style="text-align:center;padding:40px;color:var(--muted)">لا توجد جلسات اليوم</div>'
+        : `<div class="table-wrap"><table>
+          <thead><tr>
+            <th>البائع</th><th>وقت الفتح</th><th>رصيد الفتح</th>
+            <th>المبيعات</th><th>عدد الفواتير</th><th>رصيد الإغلاق</th><th>الفرق</th><th>الحالة</th><th>إجراءات</th>
+          </tr></thead>
+          <tbody>
+            ${todaySessions.map(s => {
+              const diff = (s.closing_amount||0) - (s.opening_amount||0) - (s.sales_total||0);
+              const isOpen = s.status === 'open';
+              return '<tr>'
+                + '<td style="font-weight:700">'+s.seller_name+'</td>'
+                + '<td style="color:var(--muted);font-size:.78rem">'+((s.opened_at||'').slice(11,16))+'</td>'
+                + '<td>'+fmt(s.opening_amount)+'</td>'
+                + '<td style="color:var(--primary);font-weight:700">'+fmt(s.sales_total)+'</td>'
+                + '<td style="text-align:center">'+s.sales_count+'</td>'
+                + '<td>'+(isOpen?'<span style="color:var(--muted)">—</span>':fmt(s.closing_amount))+'</td>'
+                + '<td>'+(isOpen?'<span style="color:var(--muted)">—</span>'
+                  :'<span style="color:'+(diff>=0?'#16a34a':'#dc2626')+';font-weight:700">'+(diff>=0?'+':'')+fmt(diff)+'</span>')+'</td>'
+                + '<td><span class="badge badge-'+(isOpen?'success':'secondary')+'">'+(isOpen?'🔓 مفتوح':'🔒 مغلق')+'</span></td>'
+                + '<td>'+(isOpen
+                  ? '<button class="btn btn-sm btn-danger" data-id="'+s.id+'" data-name="'+encodeURIComponent(s.seller_name||'')+"'" + '" data-amt="'+s.opening_amount+'" onclick="_closeSess(this)">🔒 إغلاق</button>'
+                  : '<button class="btn btn-sm" style="background:#f1f5f9">📊 تقرير</button>')
+                + '</td></tr>';
+            }).join('')}
+          </tbody>
+        </table></div>`}
+    </div>
+
+    <!-- البائعون المتاحون -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-header">
+        <div class="card-title">👥 البائعون</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;padding:14px">
+        ${allUsers.map(u => {
+          const session = todaySessions.find(s=>s.seller_id===u.id && s.status==='open');
+          return '<div style="border:2px solid '+(session?'#16a34a':'#e2e8f0')+';border-radius:10px;padding:12px;'
+            + 'background:'+(session?'rgba(22,163,74,.05)':'#fff')+'">'
+            + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+            + '<div style="width:38px;height:38px;border-radius:50%;background:'+(session?'#16a34a':'#e2e8f0')+';'
+            + 'display:flex;align-items:center;justify-content:center;color:#fff;font-size:1rem;font-weight:700">'
+            + (u.name||'?').charAt(0) + '</div>'
+            + '<div><div style="font-weight:700;font-size:.85rem">'+u.name+'</div>'
+            + '<div style="font-size:.7rem;color:var(--muted)">@'+u.username+' • '+u.role+'</div></div>'
+            + '</div>'
+            + (session
+              ? '<div style="font-size:.75rem;color:#16a34a;font-weight:600">🔓 صندوق مفتوح</div>'
+                + '<div style="font-size:.72rem;color:var(--muted)">مبيعات: '+fmt(session.sales_total||0)+'</div>'
+                + '<button onclick="_closeSess(this)" data-id="'+session.id+'" data-name="'+encodeURIComponent(u.name||'')+"'" + '" data-amt="'+session.opening_amount+'" '
+                + 'style="margin-top:8px;width:100%;padding:5px;background:#dc2626;border:none;border-radius:5px;color:#fff;font-family:Cairo,sans-serif;cursor:pointer;font-size:.75rem">🔒 إغلاق الصندوق</button>'
+              : '<div style="font-size:.75rem;color:var(--muted)">🔒 لا يوجد صندوق مفتوح</div>'
+                + '<button onclick="_openSess(this)" data-id="'+u.id+'" data-name="'+encodeURIComponent(u.name||'')+'" '
+                + 'style="margin-top:8px;width:100%;padding:5px;background:#16a34a;border:none;border-radius:5px;color:#fff;font-family:Cairo,sans-serif;cursor:pointer;font-size:.75rem">🔓 فتح الصندوق</button>')
+            + '</div>';
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function showOpenSessionModal(sellerId, sellerName) {
+  window.api.users.getAll().then(users => {
+    const opts = users.map(u => '<option value="'+u.id+'" data-name="'+u.name+'"'+(u.id===sellerId?' selected':'')+'>'+u.name+' (@'+u.username+')</option>').join('');
+    showModal(
+      '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">'
+      + '<div class="modal" style="width:380px">'
+      + '<div class="modal-header" style="background:#16a34a">'
+      + '<div class="modal-title" style="color:#fff">🔓 فتح صندوق جديد</div>'
+      + '<button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button>'
+      + '</div><div class="modal-body">'
+      + '<div class="form-group"><label class="form-label">البائع *</label>'
+      + '<select class="form-select" id="sess_user">'+opts+'</select></div>'
+      + '<div class="form-group"><label class="form-label">رصيد الفتح (DA)</label>'
+      + '<input class="form-input" id="sess_amount" type="number" min="0" value="0" '
+      + 'onkeydown="event.stopPropagation()" style="font-size:1.1rem;font-weight:700;text-align:center">'
+      + '</div>'
+      + '<div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:10px;font-size:.78rem;color:#16a34a">'
+      + '💡 يمكنك إدخال المبلغ الموجود في الصندوق عند بداية يوم العمل'
+      + '</div>'
+      + '</div><div class="modal-footer">'
+      + '<button class="btn" style="background:#f1f5f9;color:#475569" onclick="closeModal()">إلغاء</button>'
+      + '<button class="btn" style="background:#16a34a;color:#fff;font-weight:700" onclick="confirmOpenSession()">🔓 فتح الصندوق</button>'
+      + '</div></div></div>'
+    );
+  });
+}
+
+async function confirmOpenSession() {
+  const sel = document.getElementById('sess_user');
+  const uid = sel?.value;
+  const uname = sel?.options[sel.selectedIndex]?.dataset?.name || sel?.options[sel.selectedIndex]?.text || '';
+  const amt = parseFloat(document.getElementById('sess_amount')?.value)||0;
+  if (!uid) { toast('اختر البائع','error'); return; }
+  const res = await window.api.sellers.openSession(uid, uname, amt);
+  if (res?.success) {
+    closeModal();
+    toast('✅ تم فتح الصندوق — '+uname,'success',2500);
+    await renderSellers();
+  }
+}
+
+function showCloseSessionModal(sessionId, sellerName, openingAmount) {
+  showModal(
+    '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">'
+    + '<div class="modal" style="width:380px">'
+    + '<div class="modal-header" style="background:#dc2626">'
+    + '<div class="modal-title" style="color:#fff">🔒 إغلاق صندوق: '+sellerName+'</div>'
+    + '<button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button>'
+    + '</div><div class="modal-body">'
+    + '<div style="background:rgba(249,115,22,.08);border-radius:8px;padding:10px;margin-bottom:12px">'
+    + '<div style="font-size:.72rem;color:#64748b">رصيد الفتح</div>'
+    + '<div style="font-size:1.2rem;font-weight:800">'+fmt(openingAmount)+'</div>'
+    + '</div>'
+    + '<div class="form-group"><label class="form-label">رصيد الإغلاق الفعلي (DA) *</label>'
+    + '<input class="form-input" id="close_amount" type="number" min="0" value="'+openingAmount+'" '
+    + 'onkeydown="event.stopPropagation()" style="font-size:1.1rem;font-weight:700;text-align:center">'
+    + '</div>'
+    + '<div style="font-size:.75rem;color:#64748b">💡 أدخل المبلغ المتبقي فعلياً في الصندوق عند الإغلاق</div>'
+    + '</div><div class="modal-footer">'
+    + '<button class="btn" style="background:#f1f5f9;color:#475569" onclick="closeModal()">إلغاء</button>'
+    + '<button class="btn" style="background:#dc2626;color:#fff;font-weight:700" onclick="confirmCloseSession(this.dataset.sid)" data-sid="'+sessionId+'">🔒 إغلاق الصندوق</button>'
+    + '</div></div></div>'
+  );
+  setTimeout(()=>document.getElementById('close_amount')?.select(),80);
+}
+
+async function confirmCloseSession(sessionId) {
+  const amt = parseFloat(document.getElementById('close_amount')?.value)||0;
+  const res = await window.api.sellers.closeSession(sessionId, amt);
+  if (res?.success) {
+    closeModal();
+    const diff = res.diff || 0;
+    const diffColor = diff >= 0 ? '#16a34a' : '#dc2626';
+    const diffMsg = diff >= 0 ? `فائض ${fmt(Math.abs(diff))}` : `عجز ${fmt(Math.abs(diff))}`;
+    showModal(
+      '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">'
+      + '<div class="modal" style="width:360px">'
+      + '<div class="modal-header"><div class="modal-title">📊 تقرير إغلاق الصندوق</div>'
+      + '<button class="modal-close" onclick="closeModal()">✕</button></div>'
+      + '<div class="modal-body">'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+      + '<div style="background:#f8fafc;border-radius:8px;padding:12px;text-align:center">'
+      + '<div style="font-size:.68rem;color:#64748b">المبيعات</div>'
+      + '<div style="font-size:1.1rem;font-weight:800;color:var(--primary)">'+fmt(res.sales_total)+'</div>'
+      + '<div style="font-size:.68rem;color:#64748b">'+res.sales_count+' فاتورة</div>'
+      + '</div>'
+      + '<div style="background:#f8fafc;border-radius:8px;padding:12px;text-align:center">'
+      + '<div style="font-size:.68rem;color:#64748b">الفرق</div>'
+      + '<div style="font-size:1.1rem;font-weight:800;color:'+diffColor+'">'+diffMsg+'</div>'
+      + '</div>'
+      + '</div>'
+      + '</div>'
+      + '<div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();renderSellers()">✅ تم</button></div>'
+      + '</div></div>'
+    );
+  }
+}
 
 // ===== STARTUP =====
 async function startup() {

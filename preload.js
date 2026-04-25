@@ -56,6 +56,12 @@ contextBridge.exposeInMainWorld('api', {
     delete:       (id)       => ipcRenderer.invoke('quotes:delete', id),
   },
   // ===== الخزينة =====
+  sellers: {
+    openSession:  (sid, sname, amt) => ipcRenderer.invoke('sellers:openSession', sid, sname, amt),
+    closeSession: (sid, amt)        => ipcRenderer.invoke('sellers:closeSession', sid, amt),
+    getSession:   (sid)             => ipcRenderer.invoke('sellers:getSession', sid),
+    getSessions:  (date)            => ipcRenderer.invoke('sellers:getSessions', date),
+  },
   caisse: {
     getStats: ()  => ipcRenderer.invoke('caisse:getStats'),
     add:      (d) => ipcRenderer.invoke('caisse:add', d),
