@@ -2352,9 +2352,9 @@ async function saveProduct(editId) {
     }
     return;
   }  // ← يغلق else
-}    // ← يغلق async function saveProduct(id, name) {
-  if (!confirm(`هل تريد حذف "${name}"؟`)) return;
-  await window.api.products.delete(id);
+}    // ← يغلق async function saveProduct
+
+async function deleteProduct
   toast('🗑️ تم الحذف', 'info');
   await renderProducts();
 }
