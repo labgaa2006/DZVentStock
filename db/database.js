@@ -721,7 +721,7 @@ class DB {
       ca_month:        this.get(`SELECT COALESCE(SUM(net),0) as s FROM ventes WHERE is_deleted=0 AND date LIKE ?`,[`${month}%`])?.s || 0,
       ca_total:        this.get(`SELECT COALESCE(SUM(net),0) as s FROM ventes WHERE is_deleted=0`)?.s || 0,
       recent_ventes:   this.all(`SELECT v.* FROM ventes v WHERE v.is_deleted=0 ORDER BY v.created_at DESC LIMIT 5`),
-      low_stock_products: this.all(`SELECT * FROM products WHERE is_deleted=0 AND stock<=stock_min ORDER BY stock ASC LIMIT 5`),
+      low_stock_products: this.all(`SELECT id,name,stock,stock_min,unit,category FROM products WHERE is_deleted=0 AND stock<=stock_min ORDER BY stock ASC LIMIT 5`),
       supplier_debts: this.get(`SELECT COALESCE(SUM(reste),0) as s FROM achats WHERE is_deleted=0 AND reste>0`)?.s||0,
     };
   }
@@ -1253,13 +1253,13 @@ class DB {
     // Clear old auto notifications
     this.db.run(`DELETE FROM notifications WHERE type IN ('stock','debt','info')`);
     // Low stock
-    const lowStock = this.all(`SELECT * FROM products WHERE is_deleted=0 AND stock<=stock_min AND stock>0 LIMIT 10`);
+    const lowStock = this.all(`SELECT id,name,stock,stock_min,unit FROM products WHERE is_deleted=0 AND stock<=stock_min AND stock>0 LIMIT 10`);
     lowStock.forEach(p => {
       this.db.run(`INSERT INTO notifications(id,type,title,message,ref_screen,ref_id) VALUES(?,?,?,?,?,?)`,
         [this.uuid(),'stock',`مخزون منخفض: ${p.name}`,`المخزون: ${p.stock} / الحد: ${p.stock_min}`,'products',p.id]);
     });
     // Out of stock
-    const outStock = this.all(`SELECT * FROM products WHERE is_deleted=0 AND stock=0 LIMIT 10`);
+    const outStock = this.all(`SELECT id,name,stock,unit FROM products WHERE is_deleted=0 AND stock=0 LIMIT 10`);
     outStock.forEach(p => {
       this.db.run(`INSERT INTO notifications(id,type,title,message,ref_screen,ref_id) VALUES(?,?,?,?,?,?)`,
         [this.uuid(),'stock',`نفد المخزون: ${p.name}`,`المنتج غير متوفر`,'products',p.id]);
