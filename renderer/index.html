@@ -2354,7 +2354,8 @@ async function saveProduct(editId) {
   }  // ← يغلق else
 }    // ← يغلق async function saveProduct
 
-async function deleteProduct
+async function deleteProduct(id, name) {
+  if (!confirm(`هل تريد حذف "${name}"؟`)) return;
   toast('🗑️ تم الحذف', 'info');
   await renderProducts();
 }
