@@ -64,24 +64,7 @@ contextBridge.exposeInMainWorld('api', {
     getSession:   (sid)             => ipcRenderer.invoke('sellers:getSession', sid),
     getSessions:  (date)            => ipcRenderer.invoke('sellers:getSessions', date),
   },
-  variantTypes: {
-    getAll:  ()          => ipcRenderer.invoke('variantTypes:getAll'),
-    add:     (name)      => ipcRenderer.invoke('variantTypes:add', name),
-    delete:  (id)        => ipcRenderer.invoke('variantTypes:delete', id),
-  },
-  variantValues: {
-    add:     (tid, val)  => ipcRenderer.invoke('variantValues:add', tid, val),
-    delete:  (id)        => ipcRenderer.invoke('variantValues:delete', id),
-  },
-  variants: {
-    getAll:      ()              => ipcRenderer.invoke('variants:getAll'),
-    get:         (pid)          => ipcRenderer.invoke('variants:get', pid),
-    add:         (d)            => ipcRenderer.invoke('variants:add', d),
-    update:      (id, d)        => ipcRenderer.invoke('variants:update', id, d),
-    delete:      (id)           => ipcRenderer.invoke('variants:delete', id),
-    updateStock: (id, c, r, n, u) => ipcRenderer.invoke('variants:updateStock', id, c, r, n, u),
-    findBarcode: (bc)           => ipcRenderer.invoke('variants:findBarcode', bc),
-  },
+
   directDebts: {
     getAll:      ()              => ipcRenderer.invoke('directDebts:getAll'),
     add:         (d)             => ipcRenderer.invoke('directDebts:add', d),

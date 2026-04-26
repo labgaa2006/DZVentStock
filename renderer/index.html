@@ -544,7 +544,6 @@ tbody tr{transition:.12s}tbody tr:hover td{background:rgba(249,115,22,.04)}
           <div class="menu-dd-item" onclick="navigate('products',null)"><span class="menu-dd-icon">📦</span>المنتجات</div>
           <div class="menu-dd-item" onclick="navigate('categories',null)"><span class="menu-dd-icon">📂</span>الفئات</div>
           <div class="menu-dd-item" onclick="navigate('units',null)"><span class="menu-dd-icon">📐</span>الوحدات</div>
-          <div class="menu-dd-item" onclick="navigate('vartypes',null)"><span class="menu-dd-icon">🔀</span>أنواع المتغيرات</div>
           <div class="menu-dd-item" onclick="navigate('mouvements',null)"><span class="menu-dd-icon">🔄</span>حركة المخزون</div>
           <div class="menu-dd-item" onclick="navigate('expiry',null)"><span class="menu-dd-icon">📅</span>تواريخ الصلاحية</div>
         </div>
@@ -762,7 +761,7 @@ const App = {
 
 // ===== PERMISSIONS =====
 const ROLE_PERMISSIONS = {
-  admin:   ['dashboard','pos','ventes','achats','products','clients','fournisseurs','reports','settings','categories','mouvements','units','backup','quotes','caisse','retours','dettes','loyalty','expiry','branches','users','permissions','sellers','carnet','vartypes'],
+  admin:   ['dashboard','pos','ventes','achats','products','clients','fournisseurs','reports','settings','categories','mouvements','units','backup','quotes','caisse','retours','dettes','loyalty','expiry','branches','users','permissions','sellers','carnet'],
   manager: ['dashboard','pos','ventes','achats','products','clients','fournisseurs','reports','categories','mouvements','quotes','retours','dettes','loyalty','expiry','sellers','carnet'],
   cashier: ['dashboard','pos','ventes','products','clients'],
 };
@@ -832,7 +831,6 @@ const screens = {
   reports:     { title:'📈 التقارير',          sub:'إحصائيات وتحليلات' },
   settings:    { title:'⚙️ الإعدادات',        sub:'إعدادات البرنامج' },
   categories:  { title:'📂 الفئات',           sub:'تصنيف المنتجات' },
-  vartypes:    { title:'🔀 أنواع المتغيرات', sub:'إدارة خصائص المنتجات' },
   carnet:      { title:'📒 دفتر الديون',       sub:'ديون مباشرة بدون فاتورة' },
   sellers:     { title:'👥 البائعين',           sub:'فتح/إغلاق الصناديق' },
   mouvements:  { title:'🔄 حركة المخزون',     sub:'سجل الدخول والخروج' },
@@ -952,7 +950,6 @@ async function renderScreen(name) {
       case 'retours':      await renderRetours();      break;
       case 'dettes':       await renderDettes();       break;
       case 'carnet':       await renderCarnet();       break;
-      case 'vartypes':     await renderVarTypes();     break;
       case 'loyalty':      await renderLoyalty();      break;
       case 'expiry':       await renderExpiry();       break;
       case 'branches':     await renderBranches();     break;
@@ -1294,8 +1291,6 @@ function filterProductsTable(q) {
         <div style="display:flex;gap:3px;flex-wrap:nowrap">
           <button class="btn btn-sm" style="background:var(--warning);color:#fff;padding:3px 7px;font-size:.7rem"
             onclick="showEditProductModal('${p.id}')" title="تعديل">✏️</button>
-          <button class="btn btn-sm" style="background:#6366f1;color:#fff;padding:3px 7px;font-size:.7rem"
-            onclick="showVariantsModal('${p.id}')" title="متغيرات">🔀</button>
           <button class="btn btn-sm" style="background:#0369a1;color:#fff;padding:3px 7px;font-size:.7rem"
             onclick="duplicateProduct('${p.id}')" title="تكرار">📋</button>
           <button class="btn btn-sm" style="background:#059669;color:#fff;padding:3px 7px;font-size:.7rem"
@@ -2080,7 +2075,6 @@ async function showAddProductModal(editId = null) {
 
     <div class="modal-footer" style="background:#111827;padding:6px 16px;min-height:unset">
       <button class="btn" style="background:#374151;color:#fff;padding:5px 14px;font-size:.78rem" onclick="closeModal()">إلغاء</button>
-      ${editId ? `<button class="btn" style="background:#6366f1;color:#fff;padding:5px 14px;font-size:.78rem" onclick="closeModal();showVariantsModal('${editId}')">🔀 المتغيرات</button>` : ''}
       <button class="btn btn-primary" style="padding:5px 20px;font-size:.78rem;font-weight:700" onclick="saveProduct('${editId||''}')">✅ حفظ المنتج</button>
     </div>
   </div>
@@ -2331,25 +2325,6 @@ async function saveProduct(editId) {
     closeModal();
     filterProductsTable(document.getElementById('prodSearchInput')?.value||'');
 
-    // عرض خيار إضافة متغيرات
-    if (res && res.id) {
-      setTimeout(()=>{
-        showModal(
-          '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">'
-          + '<div class="modal" style="width:360px">'
-          + '<div class="modal-header"><div class="modal-title">🔀 إضافة متغيرات؟</div>'
-          + '<button class="modal-close" onclick="closeModal()">✕</button></div>'
-          + '<div class="modal-body" style="text-align:center;padding:16px">'
-          + '<div style="font-size:1.2rem;margin-bottom:8px">📦</div>'
-          + '<div style="font-weight:700;margin-bottom:6px">'+name+'</div>'
-          + '<div style="font-size:.8rem;color:#64748b">هل تريد إضافة متغيرات لهذا المنتج؟<br>(حجم، طول، نوع...)</div>'
-          + '</div><div class="modal-footer">'
-          + '<button class="btn" style="background:#f1f5f9;color:#475569" onclick="closeModal()">لا، شكراً</button>'
-          + '<button class="btn btn-primary" data-id="'+res.id+'" onclick="closeModal();showVariantsModal(this.dataset.id)">🔀 إضافة متغيرات</button>'
-          + '</div></div></div>'
-        );
-      }, 500);
-    }
     return;
   }  // ← يغلق else
 }    // ← يغلق async function saveProduct
@@ -8726,7 +8701,6 @@ async function showVariantsModal(productId) {
   const p = allProducts.find(function(x){return x.id===productId;});
   if (!p) return;
   const variants = await window.api.variants.get(productId);
-  const varTypes = await window.api.variantTypes.getAll();
 
   function buildVariantsTable(vars) {
     if (!vars.length) return '<div style="text-align:center;padding:20px;color:#94a3b8">لا توجد متغيرات بعد — أضف أول متغير أدناه</div>';
@@ -8778,26 +8752,15 @@ async function showVariantsModal(productId) {
     // فورم إضافة متغير
     + '<div style="padding:14px;border-top:2px solid #e2e8f0;background:#f8fafc">'
     + '<div style="font-weight:700;font-size:.82rem;color:#1e293b;margin-bottom:10px">➕ إضافة متغير جديد</div>'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 80px 80px;gap:6px;align-items:end">'
-    + varTypesSelectHTML(varTypes, 1)
-    + varTypesSelectHTML(varTypes, 2)
-
-    + '<div><label style="font-size:.65rem;color:#64748b;display:block;margin-bottom:2px">الباركود</label>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 80px 80px;gap:6px;align-items:end">'
+    + '<div><label style="font-size:.65rem;color:#64748b;display:block;margin-bottom:2px">المتغير 1</label>'
     + '<div style="display:flex;gap:3px">'
-    + '<input id="v_barcode" class="form-input" placeholder="تلقائي" style="flex:1;font-size:.75rem;padding:4px 6px" onkeydown="event.stopPropagation()">'
-    + '<button onclick="document.getElementById(\'v_barcode\').value=\''+productId.slice(0,4)+'\'+Date.now().toString().slice(-6)" style="padding:4px 6px;border:1px solid #e2e8f0;border-radius:5px;background:#f1f5f9;cursor:pointer;font-size:.7rem" title="توليد تلقائي">🎲</button>'
-    + '</div></div>'
-
-    + '<div><label style="font-size:.65rem;color:#64748b;display:block;margin-bottom:2px">المخزون</label>'
-    + '<input id="v_stock" class="form-input" type="number" value="0" min="0" style="font-size:.82rem;padding:4px 6px;font-weight:700" onkeydown="event.stopPropagation()"></div>'
-
-    + '<div><label style="font-size:.65rem;color:#64748b;display:block;margin-bottom:2px">الحد الأدنى</label>'
-    + '<input id="v_stock_min" class="form-input" type="number" value="0" min="0" style="font-size:.82rem;padding:4px 6px" onkeydown="event.stopPropagation()"></div>'
-
-    + '<div><label style="font-size:.65rem;color:#64748b;display:block;margin-bottom:2px">سعر خاص</label>'
-    + '<input id="v_price" class="form-input" type="number" value="0" min="0" placeholder="0=أساسي" style="font-size:.75rem;padding:4px 6px" onkeydown="event.stopPropagation()"></div>'
-
-    + '</div>'
+    + '<input id="v_attr1_name" class="form-input" placeholder="النوع..." style="width:60px;font-size:.7rem;padding:4px 5px" onkeydown="event.stopPropagation()">'
+    + '<input id="v_attr1_val" class="form-input" placeholder="القيمة..." style="flex:1;font-size:.75rem;padding:4px 6px" onkeydown="event.stopPropagation()"></div></div>'
+    + '<div><label style="font-size:.65rem;color:#64748b;display:block;margin-bottom:2px">المتغير 2 (اختياري)</label>'
+    + '<div style="display:flex;gap:3px">'
+    + '<input id="v_attr2_name" class="form-input" placeholder="اختياري..." style="width:60px;font-size:.7rem;padding:4px 5px" onkeydown="event.stopPropagation()">'
+    + '<input id="v_attr2_val" class="form-input" placeholder="اختياري..." style="flex:1;font-size:.75rem;padding:4px 6px" onkeydown="event.stopPropagation()"></div></div>'
 
     // أزرار إضافة
     + '<div style="display:flex;gap:6px;margin-top:8px">'
@@ -8816,14 +8779,14 @@ async function showVariantsModal(productId) {
 }
 
 async function addVariantRow(productId) {
-  var v1n = getVarName(1)||'';
-  var v1v = getVarVal(1)||'';
-  if (!v1v) { toast('أدخل قيمة المتغير الأول','error'); return; }
+  var v1n = document.getElementById('v_attr1_name')?.value?.trim()||'';
+  var v1v = document.getElementById('v_attr1_val')?.value?.trim()||'';
+  if (!v1v) { toast('أدخل قيمة المتغير الأول','error'); document.getElementById('v_attr1_val')?.focus(); return; }
   var data = {
     product_id: productId,
     attr1_name: v1n, attr1_val: v1v,
-    attr2_name: getVarName(2)||'',
-    attr2_val:  getVarVal(2)||'',
+    attr2_name: document.getElementById('v_attr2_name')?.value?.trim()||'',
+    attr2_val:  document.getElementById('v_attr2_val')?.value?.trim()||'',
     barcode:    document.getElementById('v_barcode')?.value?.trim()||'',
     stock:      parseInt(document.getElementById('v_stock')?.value)||0,
     stock_min:  parseInt(document.getElementById('v_stock_min')?.value)||0,
@@ -8837,9 +8800,7 @@ async function addVariantRow(productId) {
   if (res.success) {
     toast('✅ تم إضافة المتغير','success',1500);
     // مسح الحقول
-    var s1=document.getElementById('v_attr1_sel');if(s1)s1.value='';
     var i1=document.getElementById('v_attr1_val');if(i1)i1.value='';
-    var s2=document.getElementById('v_attr2_sel');if(s2)s2.value='';
     var i2=document.getElementById('v_attr2_val');if(i2)i2.value='';
     document.getElementById('v_barcode').value='';
     document.getElementById('v_stock').value='0';
@@ -9044,49 +9005,6 @@ async function printVariantsLabels(productId) {
   setTimeout(function(){win.print();setTimeout(function(){win.close();},800);},1200);
 }
 
-
-// ─── helper: بناء select من أنواع المتغيرات ───
-function varTypesSelectHTML(types, num) {
-  var typeOpts = '<option value="">— نوع المتغير '+num+' —</option>'
-    + types.map(function(t){return '<option value="'+t.name+'">'+t.name+'</option>';}).join('');
-
-  // قائمة القيم لكل نوع مُمررة كـ JSON
-  var allVals = {};
-  types.forEach(function(t){ allVals[t.name] = t.values.map(function(v){return v.value;}); });
-
-  var isOptional = num===2;
-  return '<div><label style="font-size:.65rem;color:#64748b;display:block;margin-bottom:2px">المتغير '+num+(isOptional?' (اختياري)':' *')+'</label>'
-    + '<div style="display:flex;gap:3px">'
-    + '<select id="v_attr'+num+'_name" style="width:80px;padding:3px 4px;border:1px solid #d1dbe8;border-radius:5px;font-family:Cairo,sans-serif;font-size:.68rem;height:26px"'
-    + ' onchange="updateVarValueSelect('+num+','+JSON.stringify(JSON.stringify(allVals))+')">'
-    + typeOpts+'</select>'
-    + '<select id="v_attr'+num+'_sel" style="flex:1;padding:3px 4px;border:1px solid #d1dbe8;border-radius:5px;font-family:Cairo,sans-serif;font-size:.72rem;height:26px">'
-    + '<option value="">— القيمة —</option></select>'
-    + '<input id="v_attr'+num+'_val" class="form-input" placeholder="أو اكتب..." style="width:70px;font-size:.7rem;padding:3px 5px;height:26px" onkeydown="event.stopPropagation()">'
-    + '</div></div>';
-}
-
-function updateVarValueSelect(num, allValsJson) {
-  try {
-    var allVals = JSON.parse(allValsJson);
-    var typeEl = document.getElementById('v_attr'+num+'_name');
-    var selEl  = document.getElementById('v_attr'+num+'_sel');
-    if (!typeEl || !selEl) return;
-    var vals = allVals[typeEl.value] || [];
-    selEl.innerHTML = '<option value="">— القيمة —</option>'
-      + vals.map(function(v){return '<option value="'+v+'">'+v+'</option>';}).join('');
-  } catch(e) {}
-}
-
-// القيمة النهائية للمتغير (من select أو input)
-function getVarVal(num) {
-  var sel = document.getElementById('v_attr'+num+'_sel')?.value||'';
-  var inp = document.getElementById('v_attr'+num+'_val')?.value?.trim()||'';
-  return sel || inp;
-}
-function getVarName(num) {
-  return document.getElementById('v_attr'+num+'_name')?.value||'';
-}
 
 // ─── شاشة إدارة أنواع المتغيرات ───
 async function renderVarTypes() {
