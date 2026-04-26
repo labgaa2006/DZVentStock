@@ -933,8 +933,7 @@ async function renderScreen(name) {
   try {
     switch(name) {
       case 'home':         renderHome();               break;
-      case 'dashboard':    await renderDashboard();
-  checkOverdueDebts();    break;
+      case 'dashboard':    await renderDashboard();    break;
       case 'products':     await renderProducts();     break;
       case 'ventes':       await renderVentes();       break;
       case 'achats':       await renderAchats();       break;
@@ -981,12 +980,38 @@ async function renderScreen(name) {
 async function renderDashboard() {
   const mc = document.getElementById('mainContent');
   if (mc) { mc.style.padding = '20px'; mc.style.overflowY = 'auto'; mc.style.overflowX = 'hidden'; }
-  const s = await window.api.stats.getDashboard();
-  const caisseData = await window.api.caisse.getStats();
-  const dettes = await window.api.dettes.getAll();
+
+  let s, caisseData, dettes;
+  try { s = await window.api.stats.getDashboard(); } catch(e) { console.error('getDashboard:', e); throw new Error('خطأ في إحصائيات لوحة التحكم: '+e.message); }
+  try { caisseData = await window.api.caisse.getStats(); } catch(e) { caisseData = {total_in:0,total_out:0}; }
+  try { dettes = await window.api.dettes.getAll(); } catch(e) { dettes = []; }
+
   const totalDettes = dettes.reduce((sum,d)=>sum+(d.reste||0),0);
   const solde = (caisseData.total_in||0)-(caisseData.total_out||0);
   const c = document.getElementById('mainContent');
+
+  // تذكير بالديون المتأخرة (بعد رسم لوحة التحكم)
+  setTimeout(async () => {
+    try {
+      const overdueCount = dettes.filter(d => {
+        const days = Math.floor((new Date()-new Date(d.date))/(1000*60*60*24));
+        return days > 90;
+      }).length;
+      if (overdueCount > 0) {
+        showModal('<div class="modal-overlay" onclick="if(event.target===this)closeModal()">'
+          +'<div class="modal" style="width:340px"><div class="modal-header" style="background:#7f1d1d">'
+          +'<div class="modal-title" style="color:#fff">⚠️ ديون متأخرة</div>'
+          +'<button class="modal-close" onclick="closeModal()" style="color:#fff">✕</button></div>'
+          +'<div class="modal-body" style="text-align:center;padding:20px">'
+          +'<div style="font-size:2rem;margin-bottom:8px">🔴</div>'
+          +'<div style="font-weight:700">'+overdueCount+' دين تجاوزوا 90 يوم</div>'
+          +'</div><div class="modal-footer">'
+          +'<button class="btn" onclick="closeModal()">لاحقاً</button>'
+          +'<button class="btn btn-danger" onclick="closeModal();navigate(\'dettes\',null)">عرض الديون ←</button>'
+          +'</div></div></div>');
+      }
+    } catch(e) {}
+  }, 2500);
 
   // Mini chart bars (simulated last 7 days pattern from month total)
   const maxVal = Math.max(s.ca_month||1, 1);
